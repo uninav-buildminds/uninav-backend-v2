@@ -1,7 +1,7 @@
 import { configService } from 'src/utils/config/config.service';
 import { HelmetOptions } from 'helmet';
-import { CorsOptions } from 'cors';
 import { ENV } from 'src/utils/config/env.enum';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 
 const HELMET_OPTIONS: HelmetOptions = {
   contentSecurityPolicy: false,

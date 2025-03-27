@@ -3,22 +3,27 @@ import { AppModule } from './app.module';
 import { EnvValidation } from 'src/utils/env.validation';
 import { AppEnum } from 'src/utils/config/app.config';
 import helmet from 'helmet';
-import cors from 'cors';
+import { HttpExceptionFilter } from 'src/utils/exceptions/http-exception-filter';
+import { LoggerService } from 'src/utils/logger/logger.service';
+import { LoggerPaths } from 'src/utils/config/constants.config';
 async function bootstrap() {
   console.log('Server Starting up....');
   const port = process.env.PORT ?? 3000;
   EnvValidation.validate();
   console.log(`=>     http://localhost:${port}`);
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new LoggerService(LoggerPaths.APP),
+  });
 
   app.use(helmet(AppEnum.HELMET_OPTIONS));
-  app.use(cors(AppEnum.CORS_OPTIONS));
-
+  app.enableCors(AppEnum.CORS_OPTIONS);
+  // * format exceptions response
+  app.useGlobalFilters(new HttpExceptionFilter());
+  // app.useLogger(new LoggerService(LoggerPaths.APP));
   await app.listen(port);
   if (EnvValidation.isDevelopment()) {
     console.log(`Server is running in development mode`);
-  }
-  if (EnvValidation.isProduction()) {
+  } else {
     console.log(`Server is running in production mode`);
   }
   console.log(`Press CTRL + C to stop the server`);
