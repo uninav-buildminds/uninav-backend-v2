@@ -1,7 +1,6 @@
 import { LoggerPaths } from 'src/utils/config/constants.config';
 import { Injectable } from '@nestjs/common';
 import { configService } from 'src/utils/config/config.service';
-import { ILogger } from './logger.interface';
 import pino from 'pino';
 import { ENV } from 'src/utils/config/env.enum';
 import * as fs from 'fs';
