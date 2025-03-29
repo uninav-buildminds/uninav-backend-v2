@@ -16,10 +16,10 @@ export const collection = pgTable('collection', {
 export const collectionMaterial = pgTable(
   'collection_material',
   {
-    collectionId: uuid('collection_id').references(() => collection.id, {
+    collectionId: uuid('collectionId').references(() => collection.id, {
       onDelete: 'cascade',
     }),
-    materialId: uuid('material_id').references(() => material.id, {
+    materialId: uuid('materialId').references(() => material.id, {
       onDelete: 'cascade',
     }),
   },
@@ -33,11 +33,11 @@ export const collectionMaterial = pgTable(
 export const bookmarks = pgTable(
   'bookmarks',
   {
-    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
-    materialId: uuid('material_id').references(() => material.id, {
+    userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),
+    materialId: uuid('materialId').references(() => material.id, {
       onDelete: 'cascade',
     }),
-    collectionId: uuid('collection_id').references(() => collection.id, {
+    collectionId: uuid('collectionId').references(() => collection.id, {
       onDelete: 'cascade',
     }),
   },

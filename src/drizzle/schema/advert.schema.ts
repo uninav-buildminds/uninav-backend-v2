@@ -21,14 +21,14 @@ export const advert = pgTable('advert', {
   collectionId: uuid('collection_id').references(() => collection.id, {
     onDelete: 'cascade',
   }),
-  imageUrl: text('image_url'),
+  imageUrl: text('imageUrl'),
   label: text('label'),
   description: text('description'),
   clicks: integer('clicks').default(0),
   impressions: integer('impressions').default(0),
   status: advertStatusEnum('status').default('pending'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  createdAt: timestamp('createdAt').defaultNow(),
+  updatedAt: timestamp('updatedAt').defaultNow(),
 });
 
 export const advertRelations = relations(advert, ({ one }) => ({

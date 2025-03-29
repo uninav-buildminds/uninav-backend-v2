@@ -7,6 +7,7 @@ const databaseConnectionString =
     : process.env.DATABASE_URL;
 const options: Config = {
   schema: './src/drizzle/schema/schema.ts',
+  out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
     // Append the timeout setting to your connection string

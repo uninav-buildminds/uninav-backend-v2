@@ -9,7 +9,7 @@ export const department = pgTable('department', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   description: text('description'),
-  facultyId: uuid('faculty_id').references(() => faculty.id, {
+  facultyId: uuid('facultyId').references(() => faculty.id, {
     onDelete: 'cascade',
   }),
 });

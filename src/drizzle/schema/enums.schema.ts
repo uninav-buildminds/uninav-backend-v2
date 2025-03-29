@@ -11,6 +11,17 @@ export const materialStatusEnum = pgEnum('materialStatus', [
   'approved',
   'rejected',
 ]);
+export const materialTypeEnum = pgEnum('resourceType', [
+  'pdf',
+  'video',
+  'article',
+  'image',
+]);
+export const resourceTypeEnum = pgEnum('resourceType', [
+  'url',
+  'GDrive',
+  'uploaded',
+]);
 export const visibilityEnum = pgEnum('visibilityEnum', ['public', 'private']);
 export const restrictionEnum = pgEnum('restrictionEnum', [
   'readonly',
@@ -26,4 +37,5 @@ export const blogTypeEnum = pgEnum('blogType', [
   'article',
   'guideline',
   'scheme_of_work',
+  'tutorial',
 ]);

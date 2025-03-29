@@ -26,6 +26,7 @@ import { collection } from './collection.schema';
 import { studentCourses } from './course.schema';
 import { bookmarks } from './collection.schema';
 import { comments } from './comments.schema';
+import { blogs } from 'src/drizzle/schema/blog.schema';
 
 export const userRelations = relations(user, ({ one, many }) => ({
   department: one(department, {
@@ -41,4 +42,5 @@ export const userRelations = relations(user, ({ one, many }) => ({
   studentCourses: many(studentCourses),
   bookmarks: many(bookmarks),
   comments: many(comments),
+  blogs: many(blogs),
 }));

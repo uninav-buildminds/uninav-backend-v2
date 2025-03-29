@@ -5,18 +5,18 @@ import { user } from './user.schema';
 
 export const courses = pgTable('courses', {
   id: uuid('id').primaryKey().defaultRandom(),
-  courseName: text('course_name').notNull(),
-  courseCode: text('course_code').notNull().unique(),
+  courseName: text('courseName').notNull(),
+  courseCode: text('courseCode').notNull().unique(),
   description: text('description'),
 });
 
 export const departmentCourses = pgTable(
   'department_courses',
   {
-    departmentId: uuid('department_id').references(() => department.id, {
+    departmentId: uuid('departmentId').references(() => department.id, {
       onDelete: 'cascade',
     }),
-    courseId: uuid('course_id').references(() => courses.id, {
+    courseId: uuid('courseId').references(() => courses.id, {
       onDelete: 'cascade',
     }),
   },
@@ -30,8 +30,8 @@ export const departmentCourses = pgTable(
 export const studentCourses = pgTable(
   'student_courses',
   {
-    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
-    courseId: uuid('course_id').references(() => courses.id, {
+    userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),
+    courseId: uuid('courseId').references(() => courses.id, {
       onDelete: 'cascade',
     }),
   },

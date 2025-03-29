@@ -28,7 +28,7 @@ export type AdvertEntity = InferSelectModel<typeof advert>;
 export enum UserRoleEnum {
   ADMIN = 'admin',
   MODERATOR = 'moderator',
-  USER = 'user',
+  STUDENT = 'student',
 }
 
 export enum EntityStatus {
@@ -52,4 +52,5 @@ export enum BlogTypeEnum {
   ARTICLE = 'article',
   GUIDELINE = 'guideline',
   SCHEME_OF_WORK = 'scheme_of_work',
+  TUTORIAL = 'tutorial',
 }
