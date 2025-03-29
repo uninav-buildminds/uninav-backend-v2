@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { HttpExceptionFilter } from 'src/utils/exceptions/http-exception-filter';
 import { LoggerService } from 'src/utils/logger/logger.service';
 import { LoggerPaths } from 'src/utils/config/constants.config';
+import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   console.log('Server Starting up....');
   const port = process.env.PORT ?? 3000;
@@ -14,7 +15,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: new LoggerService(LoggerPaths.APP),
   });
-
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+  );
   app.use(helmet(AppEnum.HELMET_OPTIONS));
   app.enableCors(AppEnum.CORS_OPTIONS);
   // * format exceptions response
