@@ -5,6 +5,8 @@ import { DrizzleModule } from 'src/drizzle/drizzle.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { FacultyModule } from './faculty/faculty.module';
+import { DepartmentModule } from './department/department.module';
 import setupConfig from 'src/utils/config/setup.config';
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import setupConfig from 'src/utils/config/setup.config';
       expandVariables: true,
       load: [setupConfig],
     }),
+    FacultyModule,
+    DepartmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

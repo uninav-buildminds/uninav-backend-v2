@@ -1,4 +1,10 @@
-Here’s your revised **`copilot_custom_instructions.md`** file with a concise backend focus:
+## **rep🌟 General Coding Standards**
+
+- **Maintain Clean, Modular Code**: Keep functions and components small, reusable, and well-documented.
+- **Error Handling**: Always handle errors gracefully, especially in API calls and blockchain transactions.
+- **Security First**: Never expose private keys, API secrets, or sensitive logic in the frontend.
+- Naming Conventions: Use meaningful names, using **Camel Case naming style.**
+- **Follow Existing Convetions:** This nestjs project uses a controller, services,
 
 # **UniNav - University Study Materials Platform**
 
@@ -25,10 +31,3 @@ UniNav is a **university-focused study material platform** that allows students 
 - **Authentication:** JWT-based authentication
 - **Payments (for ads):** Paystack Web Checkout
 - **Real-time Features:** Socket.io for notifications
-
-## **🌟 General Coding Standards**
-
-- **Maintain Clean, Modular Code**: Keep functions and components small, reusable, and well-documented.
-- **Error Handling**: Always handle errors gracefully, especially in API calls and blockchain transactions.
-- **Security First**: Never expose private keys, API secrets, or sensitive logic in the frontend.
-- Naming Conventions: Use meaningful names, using **Camel Case naming style.**
