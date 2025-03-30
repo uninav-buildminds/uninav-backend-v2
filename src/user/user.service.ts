@@ -3,18 +3,22 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRepository } from 'src/user/user.repository';
-import { AuthService } from 'src/auth/auth.service';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
+import { DepartmentService } from 'src/department/department.service';
+import { LoginDto } from 'src/auth/dto/login.dto';
+
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
   constructor(
     private readonly userRepository: UserRepository,
-    // private readonly authService: AuthService,
+    private readonly departmentService: DepartmentService,
   ) {}
   async createStudent(createUserDto: CreateUserDto) {
     let userWithEmail = await this.userRepository.findByEmail(
@@ -28,6 +32,15 @@ export class UserService {
     );
     if (userWithUsername) {
       throw new BadRequestException('User with this username already exists');
+    }
+
+    let department = await this.departmentService.findOne(
+      createUserDto.departmentId,
+    );
+    if (!department) {
+      throw new NotFoundException(
+        `Department with ID ${createUserDto.departmentId} does not exist`,
+      );
     }
 
     try {
@@ -45,19 +58,178 @@ export class UserService {
     }
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findAll() {
+    try {
+      const users = await this.userRepository.findAll();
+      return users.map((user) =>
+        DataFormatter.formatObject(user, ['password']),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error retrieving users: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error retrieving users: ${error.message}`,
+      );
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string) {
+    try {
+      const user = await this.userRepository.findById(id);
+      if (!user) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+      return DataFormatter.formatObject(user, ['password']);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error retrieving user ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error retrieving user: ${error.message}`,
+      );
+    }
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async findByEmail(email: string) {
+    try {
+      const user = await this.userRepository.findByEmail(email);
+      if (!user) {
+        throw new NotFoundException(`User with email ${email} not found`);
+      }
+      return user;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error retrieving user by email: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error retrieving user by email: ${error.message}`,
+      );
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async findByUsername(username: string) {
+    try {
+      const user = await this.userRepository.findByUsername(username);
+      if (!user) {
+        throw new NotFoundException(`User with username ${username} not found`);
+      }
+      return user;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error retrieving user by username: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error retrieving user by username: ${error.message}`,
+      );
+    }
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    try {
+      // Check if user exists
+      await this.findOne(id);
+
+      // Check department if it's being updated
+      if (updateUserDto.departmentId) {
+        const department = await this.departmentService.findOne(
+          updateUserDto.departmentId,
+        );
+        if (!department) {
+          throw new NotFoundException(
+            `Department with ID ${updateUserDto.departmentId} does not exist`,
+          );
+        }
+      }
+
+      // Check email uniqueness if updating email
+      if (updateUserDto.email) {
+        const existingUserWithEmail = await this.userRepository.findByEmail(
+          updateUserDto.email,
+        );
+        if (existingUserWithEmail && existingUserWithEmail.id !== id) {
+          throw new BadRequestException('Email already in use');
+        }
+      }
+
+      // Check username uniqueness if updating username
+      if (updateUserDto.username) {
+        const existingUserWithUsername =
+          await this.userRepository.findByUsername(updateUserDto.username);
+        if (existingUserWithUsername && existingUserWithUsername.id !== id) {
+          throw new BadRequestException('Username already in use');
+        }
+      }
+
+      const updatedUser = await this.userRepository.update(id, updateUserDto);
+      return DataFormatter.formatObject(updatedUser, ['password']);
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error(
+        `Error updating user ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error updating user: ${error.message}`,
+      );
+    }
+  }
+
+  async remove(id: string) {
+    try {
+      // Check if user exists
+      await this.findOne(id);
+
+      return await this.userRepository.remove(id);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error deleting user ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error deleting user: ${error.message}`,
+      );
+    }
+  }
+
+  async findByEmailOrUsername(emailOrUsername: string) {
+    try {
+      const user =
+        await this.userRepository.findByEmailOrUsername(emailOrUsername);
+      if (!user) {
+        throw new NotFoundException(
+          `User with email or username ${emailOrUsername} not found`,
+        );
+      }
+      return user;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        `Error retrieving user by email or username: ${error.message}`,
+      );
+    }
   }
 }

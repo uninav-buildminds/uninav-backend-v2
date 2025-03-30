@@ -1,7 +1,12 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
+import { LoginDto } from 'src/auth/dto/login.dto';
+import { LocalAuthGuard } from 'src/guard/local.guard';
+import { Request, Response } from 'express';
+import { UserEntity } from 'src/utils/types/db.types';
+import { globalCookieOptions } from 'src/utils/config/constants.config';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -14,5 +19,20 @@ export class AuthController {
       student,
     );
     return responseObj;
+  }
+  @UseGuards(LocalAuthGuard)
+  @Post('login')
+  async login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const user = req.user as UserEntity;
+    const accessToken = await this.authService.generateToken(user.id);
+    // for cookies
+    res.cookie('authorization', accessToken, globalCookieOptions);
+    // for sessions  (if not using cookies)
+    res.header('authorization', `Bearer ${accessToken}`);
+    const responseObj = ResponseDto.createSuccessResponse(
+      'Login Successful',
+      user,
+    );
+    res.status(200).json(responseObj);
   }
 }

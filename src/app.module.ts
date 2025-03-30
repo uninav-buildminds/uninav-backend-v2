@@ -7,7 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { FacultyModule } from './faculty/faculty.module';
 import { DepartmentModule } from './department/department.module';
-import setupConfig from 'src/utils/config/setup.config';
+import envConfig from 'src/utils/config/env.config';
 @Module({
   imports: [
     DrizzleModule,
@@ -18,7 +18,7 @@ import setupConfig from 'src/utils/config/setup.config';
       envFilePath: ['.env'],
       cache: true,
       expandVariables: true,
-      load: [setupConfig],
+      load: [envConfig],
     }),
     FacultyModule,
     DepartmentModule,

@@ -1,6 +1,6 @@
 import { ConfigService as ConfigServiceBase } from '@nestjs/config';
 import { ENV } from 'src/utils/config/env.enum';
-class ConfigServiceWrapper extends ConfigServiceBase {
+class ConfigService extends ConfigServiceBase {
   constructor() {
     super();
   }
@@ -13,5 +13,5 @@ class ConfigServiceWrapper extends ConfigServiceBase {
     super.set(key, value);
   }
 }
-const configService = new ConfigServiceWrapper();
-export { configService };
+const configService = new ConfigService();
+export { configService, ConfigService };

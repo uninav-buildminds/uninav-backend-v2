@@ -1,25 +1,39 @@
-import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  timestamp,
+  index,
+} from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { userRoleEnum } from './enums.schema';
 import { department } from './department.schema';
 
-export const user = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: text('email').notNull().unique(),
-  password: text('password').notNull(),
-  firstName: text('firstName').notNull(),
-  lastName: text('lastName').notNull(),
-  username: text('username').notNull().unique(),
-  departmentId: uuid('department').references(() => department.id, {
-    onDelete: 'set null',
+// Table Definition with Index on email
+export const user = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: text('email').notNull().unique(),
+    password: text('password').notNull(),
+    firstName: text('firstName').notNull(),
+    lastName: text('lastName').notNull(),
+    username: text('username').notNull().unique(),
+    departmentId: uuid('department').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    level: integer('level').notNull(),
+    role: userRoleEnum('role').default('student'),
+    createdAt: timestamp('createdAt').defaultNow(),
+    updatedAt: timestamp('updatedAt')
+      .default(sql`(CURRENT_TIMESTAMP)`)
+      .$onUpdate(() => sql`(CURRENT_TIMESTAMP)`),
+  },
+  (table) => ({
+    emailIndex: index('users_email_index').on(table.email),
   }),
-  level: integer('level').notNull(),
-  role: userRoleEnum('role').default('student'),
-  createdAt: timestamp('createdAt').defaultNow(),
-  updatedAt: timestamp('updatedAt')
-    .default(sql`(CURRENT_TIMESTAMP)`)
-    .$onUpdate(() => sql`(CURRENT_TIMESTAMP)`),
-});
+);
 
 // Relations  ------
 // Used by other schemas to import the user type

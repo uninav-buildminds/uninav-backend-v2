@@ -10,33 +10,51 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ResponseDto } from 'src/utils/globalDto/response.dto';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.createStudent(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto) {
+    const user = await this.userService.createStudent(createUserDto);
+    return ResponseDto.createSuccessResponse('User created successfully', user);
   }
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  async findAll() {
+    const users = await this.userService.findAll();
+    return ResponseDto.createSuccessResponse(
+      'Users retrieved successfully',
+      users,
+    );
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    const user = await this.userService.findOne(id);
+    return ResponseDto.createSuccessResponse(
+      'User retrieved successfully',
+      user,
+    );
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    const updatedUser = await this.userService.update(id, updateUserDto);
+    return ResponseDto.createSuccessResponse(
+      'User updated successfully',
+      updatedUser,
+    );
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  async remove(@Param('id') id: string) {
+    const result = await this.userService.remove(id);
+    return ResponseDto.createSuccessResponse(
+      'User deleted successfully',
+      result,
+    );
   }
 }
