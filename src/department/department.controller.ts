@@ -6,17 +6,23 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
+import { RolesGuard } from 'src/guard/roles.guard';
+import { Roles } from 'src/utils/decorators/roles.decorator';
+import { UserRoleEnum } from 'src/utils/types/db.types';
 
 @Controller('department')
+@UseGuards(RolesGuard)
 export class DepartmentController {
   constructor(private readonly departmentService: DepartmentService) {}
 
   @Post()
+  @Roles(UserRoleEnum.ADMIN)
   async create(@Body() createDepartmentDto: CreateDepartmentDto) {
     const department = await this.departmentService.create(createDepartmentDto);
     return ResponseDto.createSuccessResponse(
@@ -53,6 +59,7 @@ export class DepartmentController {
   }
 
   @Patch(':id')
+  @Roles(UserRoleEnum.ADMIN)
   async update(
     @Param('id') id: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
@@ -68,6 +75,7 @@ export class DepartmentController {
   }
 
   @Delete(':id')
+  @Roles(UserRoleEnum.ADMIN)
   async remove(@Param('id') id: string) {
     const department = await this.departmentService.remove(id);
     return ResponseDto.createSuccessResponse(
