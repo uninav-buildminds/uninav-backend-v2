@@ -36,21 +36,43 @@ export enum EntityStatus {
   APPROVED = 'approved',
   REJECTED = 'rejected',
 }
+
 export enum VisibilityEnum {
   PUBLIC = 'public',
   PRIVATE = 'private',
 }
+
 export enum RestrictionEnum {
   READONLY = 'readonly',
   DOWNLOADABLE = 'downloadable',
 }
+
 export enum AdvertTypeEnum {
   FREE = 'free',
   PAID = 'paid',
 }
+
 export enum BlogTypeEnum {
   ARTICLE = 'article',
   GUIDELINE = 'guideline',
   SCHEME_OF_WORK = 'scheme_of_work',
   TUTORIAL = 'tutorial',
+}
+
+export enum MaterialTypeEnum {
+  PDF = 'pdf',
+  VIDEO = 'video',
+  ARTICLE = 'article',
+  IMAGE = 'image',
+}
+
+export enum ResourceType {
+  // url doesn't need to be uploaded
+  URL = 'url',
+
+  // GDrive doesn't need to be uploaded only indexed to metadata using GDrive API, to read files within folder
+  GDRIVE = 'GDrive',
+
+  // uploaded means the file is uploaded to the server
+  UPLOADED = 'uploaded',
 }

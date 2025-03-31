@@ -9,4 +9,9 @@ export default registerAs('config', (): { [key in ENV]: string } => ({
 
   BCRYPT_SALT_ROUNDS: process.env.BCRYPT_SALT_ROUNDS,
   BCRYPT_PEPPER: process.env.BCRYPT_PEPPER,
+
+  B2_ACCESS_KEY: process.env.B2_ACCESS_KEY,
+  B2_SECRET_KEY: process.env.B2_SECRET_KEY,
+  B2_REGION: process.env.B2_REGION,
+  B2_ENDPOINT: process.env.B2_ENDPOINT,
 }));

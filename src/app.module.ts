@@ -7,6 +7,8 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { FacultyModule } from './modules/faculty/faculty.module';
 import { DepartmentModule } from './modules/department/department.module';
+import { MaterialModule } from './modules/material/material.module';
+import { CollectionModule } from './modules/collection/collection.module';
 import envConfig from 'src/utils/config/env.config';
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import envConfig from 'src/utils/config/env.config';
     }),
     FacultyModule,
     DepartmentModule,
+    MaterialModule,
+    CollectionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -3,14 +3,18 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Request } from 'express';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { UserEntity } from 'src/utils/types/db.types';
 
 @Controller('user')
 export class UserController {
@@ -22,12 +26,13 @@ export class UserController {
     return ResponseDto.createSuccessResponse('User created successfully', user);
   }
 
-  @Get()
-  async findAll() {
-    const users = await this.userService.findAll();
+  @Get('profile')
+  @UseGuards(RolesGuard)
+  async getProfile(@Req() req: Request) {
+    const user = req.user as UserEntity;
     return ResponseDto.createSuccessResponse(
       'Users retrieved successfully',
-      users,
+      user,
     );
   }
 
@@ -40,21 +45,21 @@ export class UserController {
     );
   }
 
-  @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    const updatedUser = await this.userService.update(id, updateUserDto);
-    return ResponseDto.createSuccessResponse(
-      'User updated successfully',
-      updatedUser,
-    );
-  }
+  // @Patch(':id')
+  // async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  //   const updatedUser = await this.userService.update(id, updateUserDto);
+  //   return ResponseDto.createSuccessResponse(
+  //     'User updated successfully',
+  //     updatedUser,
+  //   );
+  // }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
-    const result = await this.userService.remove(id);
-    return ResponseDto.createSuccessResponse(
-      'User deleted successfully',
-      result,
-    );
-  }
+  // @Delete(':id')
+  // async remove(@Param('id') id: string) {
+  //   const result = await this.userService.remove(id);
+  //   return ResponseDto.createSuccessResponse(
+  //     'User deleted successfully',
+  //     result,
+  //   );
+  // }
 }
