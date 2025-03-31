@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from '../drizzle/schema/schema';
-import { faculty } from '../drizzle/schema/faculty.schema';
-import { department } from '../drizzle/schema/department.schema';
+import * as schema from 'src/modules/drizzle/schema/schema';
+import { faculty } from 'src/modules/drizzle/schema/faculty.schema';
+import { department } from 'src/modules/drizzle/schema/department.schema';
 import { DepartmentEntity, FacultyEntity } from 'src/utils/types/db.types';
 
 // Map of departments to their descriptions
@@ -263,7 +263,7 @@ const seedDatabase = async () => {
         .returning()
         .catch((error) => {
           console.error(
-            `Error creating faculty ${facultyData.name}`,
+            `Error creating faculty ${facultyData.name}:`,
             error.message,
           );
           return [{ id: null }];

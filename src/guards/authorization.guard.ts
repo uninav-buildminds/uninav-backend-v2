@@ -8,7 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
-import { UserService } from 'src/user/user.service';
+import { UserService } from 'src/modules/user/user.service';
 @Injectable()
 export class AuthorizationGuard implements CanActivate {
   constructor(

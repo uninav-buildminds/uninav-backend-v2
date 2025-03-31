@@ -10,7 +10,7 @@ import { user } from './user.schema';
 import { moderator } from './moderator.schema';
 import { collectionMaterial } from './collection.schema';
 import { advert } from './advert.schema';
-import { resource } from 'src/drizzle/schema/resource.schema';
+import { resource } from 'src/modules/drizzle/schema/resource.schema';
 
 export const material = pgTable('material', {
   id: uuid('id').primaryKey().defaultRandom(),

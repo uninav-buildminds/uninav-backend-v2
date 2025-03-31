@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { faculty } from 'src/drizzle/schema/faculty.schema';
+import { faculty } from 'src/modules/drizzle/schema/faculty.schema';
 import { CreateFacultyDto } from './dto/create-faculty.dto';
 import { UpdateFacultyDto } from './dto/update-faculty.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';

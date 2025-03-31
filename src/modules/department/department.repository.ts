@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { department } from 'src/drizzle/schema/department.schema';
+import { department } from 'src/modules/drizzle/schema/department.schema';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';

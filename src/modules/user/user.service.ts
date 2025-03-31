@@ -8,10 +8,10 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRepository } from 'src/user/user.repository';
+import { UserRepository } from 'src/modules/user/user.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
-import { DepartmentService } from 'src/department/department.service';
-import { LoginDto } from 'src/auth/dto/login.dto';
+import { DepartmentService } from 'src/modules/department/department.service';
+import { LoginDto } from 'src/modules/auth/dto/login.dto';
 
 @Injectable()
 export class UserService {

@@ -1,17 +1,17 @@
-import * as schema from 'src/drizzle/schema/schema';
+import * as schema from 'src/modules/drizzle/schema/schema';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { InferSelectModel } from 'drizzle-orm';
 // Tables
-import { user } from 'src/drizzle/schema/user.schema';
-import { moderator } from 'src/drizzle/schema/moderator.schema';
-import { faculty } from 'src/drizzle/schema/faculty.schema';
-import { department } from 'src/drizzle/schema/department.schema';
-import { courses } from 'src/drizzle/schema/course.schema';
-import { material } from 'src/drizzle/schema/material.schema';
-import { collection } from 'src/drizzle/schema/collection.schema';
-import { blogs } from 'src/drizzle/schema/blog.schema';
-import { comments } from 'src/drizzle/schema/comments.schema';
-import { advert } from 'src/drizzle/schema/advert.schema';
+import { user } from 'src/modules/drizzle/schema/user.schema';
+import { moderator } from 'src/modules/drizzle/schema/moderator.schema';
+import { faculty } from 'src/modules/drizzle/schema/faculty.schema';
+import { department } from 'src/modules/drizzle/schema/department.schema';
+import { courses } from 'src/modules/drizzle/schema/course.schema';
+import { material } from 'src/modules/drizzle/schema/material.schema';
+import { collection } from 'src/modules/drizzle/schema/collection.schema';
+import { blogs } from 'src/modules/drizzle/schema/blog.schema';
+import { comments } from 'src/modules/drizzle/schema/comments.schema';
+import { advert } from 'src/modules/drizzle/schema/advert.schema';
 export type DrizzleDB = NodePgDatabase<typeof schema>;
 
 export type UserEntity = InferSelectModel<typeof user>;

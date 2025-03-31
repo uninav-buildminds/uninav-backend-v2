@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { FacultyService } from './faculty.service';
 import { FacultyController } from './faculty.controller';
 import { FacultyRepository } from './faculty.repository';
-import { DrizzleModule } from 'src/drizzle/drizzle.module';
-import { UserModule } from 'src/user/user.module';
+import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { AuthModule } from 'src/modules/auth/auth.module';
 
 @Module({
-  imports: [DrizzleModule, UserModule],
+  imports: [DrizzleModule],
   controllers: [FacultyController],
   providers: [FacultyService, FacultyRepository],
   exports: [FacultyService],

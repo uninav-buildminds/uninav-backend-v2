@@ -12,7 +12,7 @@ import { FacultyService } from './faculty.service';
 import { CreateFacultyDto } from './dto/create-faculty.dto';
 import { UpdateFacultyDto } from './dto/update-faculty.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { RolesGuard } from 'src/guard/roles.guard';
+import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/utils/decorators/roles.decorator';
 import { UserRoleEnum } from 'src/utils/types/db.types';
 

@@ -32,6 +32,7 @@ export const user = pgTable(
   },
   (table) => ({
     emailIndex: index('users_email_index').on(table.email),
+    usernameIndex: index('user_username_index').on(table.username),
   }),
 );
 
@@ -43,7 +44,7 @@ import { collection } from './collection.schema';
 import { studentCourses } from './course.schema';
 import { bookmarks } from './collection.schema';
 import { comments } from './comments.schema';
-import { blogs } from 'src/drizzle/schema/blog.schema';
+import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 
 export const userRelations = relations(user, ({ one, many }) => ({
   department: one(department, {

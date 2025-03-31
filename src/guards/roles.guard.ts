@@ -13,7 +13,7 @@ import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { ROLES_KEY } from 'src/utils/decorators/roles.decorator';
 import envConfig from 'src/utils/config/env.config';
 import { UserRoleEnum } from 'src/utils/types/db.types';
-import { UserService } from 'src/user/user.service';
+import { UserService } from 'src/modules/user/user.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateStudentDto } from 'src/auth/dto/create-student.dto';
-import { UserService } from 'src/user/user.service';
+import { CreateStudentDto } from 'src/modules/auth/dto/create-student.dto';
+import { UserService } from 'src/modules/user/user.service';
 import * as bcrypt from 'bcryptjs';
 import envConfig from 'src/utils/config/env.config';
 import { ConfigType } from 'src/utils/types/config.types';

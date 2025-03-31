@@ -7,7 +7,7 @@ import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { DepartmentRepository } from './department.repository';
 import { DepartmentEntity } from 'src/utils/types/db.types';
-import { FacultyService } from 'src/faculty/faculty.service';
+import { FacultyService } from 'src/modules/faculty/faculty.service';
 
 @Injectable()
 export class DepartmentService {

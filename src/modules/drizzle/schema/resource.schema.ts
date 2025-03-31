@@ -1,7 +1,7 @@
 import { PgArray, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { material } from 'src/drizzle/schema/material.schema';
-import { resourceTypeEnum } from 'src/drizzle/schema/enums.schema';
+import { material } from 'src/modules/drizzle/schema/material.schema';
+import { resourceTypeEnum } from 'src/modules/drizzle/schema/enums.schema';
 
 export const resource = pgTable('resource', {
   materialId: uuid('materialId')
