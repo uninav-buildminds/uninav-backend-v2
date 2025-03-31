@@ -16,6 +16,7 @@ import { AddMaterialToCollectionDto } from './dto/add-material.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Request } from 'express';
+import { UserEntity } from 'src/utils/types/db.types';
 
 @Controller('collections')
 export class CollectionController {
@@ -28,7 +29,7 @@ export class CollectionController {
     @Req() req: Request,
   ) {
     // Extract user from request (from auth guard)
-    const user = req['user'];
+    const user = req['user'] as UserEntity;
 
     // Set creatorId if not provided in the DTO
     if (!createCollectionDto.creatorId && user) {

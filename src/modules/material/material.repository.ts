@@ -53,7 +53,7 @@ export class MaterialRepository {
       .update(material)
       .set({
         downloadCount: sql`${material.downloadCount} + 1`,
-      })
+      } as any)
       .where(eq(material.id, id))
       .returning();
     return result[0];
@@ -64,7 +64,7 @@ export class MaterialRepository {
       .update(material)
       .set({
         likes: sql`${material.likes} + 1`,
-      })
+      } as any)
       .where(eq(material.id, id))
       .returning();
     return result[0];

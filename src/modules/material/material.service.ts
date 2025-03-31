@@ -8,6 +8,7 @@ import { CreateMaterialDto, ResourceDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { StorageService } from 'src/storage/storage.service';
 import { MaterialTypeEnum, ResourceType } from 'src/utils/types/db.types';
+import { MulterFile } from 'src/utils/types';
 
 @Injectable()
 export class MaterialService {
@@ -16,7 +17,7 @@ export class MaterialService {
     private readonly storageService: StorageService,
   ) {}
 
-  async create(createMaterialDto: CreateMaterialDto, file?: File) {
+  async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
     // Extract resource data from the DTO
     const { resourceType, resourceAddress, ...materialData } =
       createMaterialDto;
@@ -106,8 +107,15 @@ export class MaterialService {
     return { url: materialResource.resourceAddress, material };
   }
 
-  async update(id: string, updateMaterialDto: UpdateMaterialDto, file?: File) {
+  async update(
+    id: string,
+    updateMaterialDto: UpdateMaterialDto,
+    file?: MulterFile,
+  ) {
     const material = await this.findOne(id); // Check if exists
+    if (!material) {
+      throw new NotFoundException(`Material with id ${id} wasn't found`);
+    }
 
     // Extract and handle resource data if present
     let updatedResource;

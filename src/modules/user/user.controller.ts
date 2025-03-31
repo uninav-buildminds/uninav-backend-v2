@@ -16,6 +16,9 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { UserEntity } from 'src/utils/types/db.types';
 
+// Import the extended Express type definition
+// import 'src/utils/types/express.types';
+
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -31,7 +34,7 @@ export class UserController {
   async getProfile(@Req() req: Request) {
     const user = req.user as UserEntity;
     return ResponseDto.createSuccessResponse(
-      'Users retrieved successfully',
+      'User profile retrieved successfully',
       user,
     );
   }

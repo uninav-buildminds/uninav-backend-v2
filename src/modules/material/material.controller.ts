@@ -21,6 +21,7 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { ResourceType, UserEntity } from 'src/utils/types/db.types';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Request } from 'express';
+import { MulterFile } from 'src/utils/types';
 
 @Controller('materials')
 export class MaterialController {
@@ -32,7 +33,7 @@ export class MaterialController {
   async create(
     @Req() req: Request,
     @Body() createMaterialDto: CreateMaterialDto,
-    @UploadedFile() file?: File,
+    @UploadedFile() file?: MulterFile,
   ) {
     // Extract user from request (from auth guard)
     const user = req['user'] as UserEntity;
@@ -119,7 +120,7 @@ export class MaterialController {
   async update(
     @Param('id') id: string,
     @Body() updateMaterialDto: UpdateMaterialDto,
-    @UploadedFile() file?: File,
+    @UploadedFile() file?: MulterFile,
   ) {
     const material = await this.materialService.update(
       id,

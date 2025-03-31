@@ -5,11 +5,14 @@ import { randomUUID } from 'crypto';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { ENV } from 'src/utils/config/env.enum';
+import { MulterFile } from 'src/utils/types';
+import { B2_BUCKETS } from 'src/utils/config/constants.config';
 
 @Injectable()
 export class StorageService {
   private s3: S3;
-  private bucketName: string;
+  private bucketMedia: string;
+  private bucketDocs: string;
   private endpoint: string;
 
   constructor(private readonly configService: ConfigService) {
@@ -22,7 +25,8 @@ export class StorageService {
         secretAccessKey: this.configService.get(ENV.B2_SECRET_KEY),
       },
     });
-    this.bucketName = this.configService.get<string>('BACKBLAZE_BUCKET_NAME');
+    this.bucketMedia = B2_BUCKETS.media;
+    this.bucketDocs = B2_BUCKETS.docs;
   }
 
   /**
@@ -31,19 +35,16 @@ export class StorageService {
    * @param isMedia Whether the file is a media file or document
    * @returns The URL of the uploaded file
    */
-  async uploadFile(
-    file: Express.Multer.File,
-    isMedia = false,
-  ): Promise<string> {
+  async uploadFile(file: MulterFile, isMedia = false): Promise<string> {
     // Determine folder based on file type
-    const folder = isMedia ? 'media' : 'documents';
+    const bucket = isMedia ? this.bucketMedia : this.bucketDocs;
 
     // Create a unique filename to prevent duplicates
-    const fileKey = `${folder}/${randomUUID()}-${file.originalname.replace(/\s+/g, '_')}`;
+    const fileKey = `${randomUUID()}-${file.originalname.replace(/\s+/g, '_')}`;
 
     // Upload file to Backblaze B2
     await this.s3.putObject({
-      Bucket: this.bucketName,
+      Bucket: bucket,
       Key: fileKey,
       Body: file.buffer,
       ContentType: file.mimetype,
@@ -51,7 +52,7 @@ export class StorageService {
     });
 
     // Return the public URL
-    return `${this.endpoint}/${this.bucketName}/${fileKey}`;
+    return `${this.endpoint}/${bucket}/${fileKey}`;
   }
 
   /**
@@ -67,7 +68,7 @@ export class StorageService {
     forceDownload = false,
   ): Promise<string> {
     const command = new GetObjectCommand({
-      Bucket: this.bucketName,
+      Bucket: this.bucketDocs,
       Key: fileKey,
       // Set response headers for force download if requested
       ...(forceDownload && {
@@ -88,7 +89,7 @@ export class StorageService {
   async deleteFile(fileKey: string, isMedia = false): Promise<boolean> {
     try {
       const command = new DeleteObjectCommand({
-        Bucket: this.bucketName,
+        Bucket: isMedia ? this.bucketMedia : this.bucketDocs,
         Key: fileKey,
       });
 

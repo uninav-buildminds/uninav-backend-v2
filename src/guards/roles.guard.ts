@@ -12,14 +12,13 @@ import { Request } from 'express';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { ROLES_KEY } from 'src/utils/decorators/roles.decorator';
 import envConfig from 'src/utils/config/env.config';
-import { UserRoleEnum } from 'src/utils/types/db.types';
+import { UserEntity, UserRoleEnum } from 'src/utils/types/db.types';
 import { UserService } from 'src/modules/user/user.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(
     @Inject(JWT_SYMBOL) private readonly jwtService: JwtService,
-    @Inject(envConfig.KEY)
     private readonly reflector: Reflector,
     private readonly userService: UserService,
   ) {}
@@ -36,15 +35,15 @@ export class RolesGuard implements CanActivate {
     try {
       const user = await this.authenticateRequest(request);
 
-      // If no specific roles are required, just having a valid token is enough
-      if (!requiredRoles || requiredRoles.length === 0) {
-        return true;
-      }
-
       // Fetch the user with their role from the database
       const dbUser = await this.userService.findOne(user.id);
       if (!dbUser) {
         throw new UnauthorizedException('User not found');
+      }
+      request.user = dbUser;
+      // If no specific roles are required, just having a valid token is enough
+      if (!requiredRoles || requiredRoles.length === 0) {
+        return true;
       }
 
       // Check if the user's role matches any of the required roles
@@ -54,7 +53,6 @@ export class RolesGuard implements CanActivate {
           'You do not have permission to access this resource',
         );
       }
-      request.user = dbUser; // Attach the user to the request object
       return authorized;
     } catch (error) {
       if (
