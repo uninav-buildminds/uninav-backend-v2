@@ -7,6 +7,7 @@ import { HttpExceptionFilter } from 'src/utils/exceptions/http-exception-filter'
 import { LoggerService } from 'src/utils/logger/logger.service';
 import { LoggerPaths } from 'src/utils/config/constants.config';
 import { ValidationPipe } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
 async function bootstrap() {
   console.log('Server Starting up....');
   const port = process.env.PORT ?? 3000;
@@ -22,7 +23,7 @@ async function bootstrap() {
   app.enableCors(AppEnum.CORS_OPTIONS);
   // * format exceptions response
   app.useGlobalFilters(new HttpExceptionFilter());
-  // app.useLogger(new LoggerService(LoggerPaths.APP));
+  app.use(cookieParser());
   await app.listen(port);
   if (EnvValidation.isDevelopment()) {
     console.log(`Server is running in development mode`);

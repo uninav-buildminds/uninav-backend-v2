@@ -22,7 +22,7 @@ import { ResourceType, UserEntity } from 'src/utils/types/db.types';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Request } from 'express';
 import { MulterFile } from 'src/utils/types';
-
+import { materialLogger as logger } from 'src/modules/material/material.module';
 @Controller('materials')
 export class MaterialController {
   constructor(private readonly materialService: MaterialService) {}
@@ -40,6 +40,7 @@ export class MaterialController {
 
     createMaterialDto.creatorId = user.id;
 
+    logger.log({ createMaterialDto });
     // Validate file upload for UPLOADED type
     if (createMaterialDto.resourceType === ResourceType.UPLOADED && !file) {
       throw new BadRequestException(

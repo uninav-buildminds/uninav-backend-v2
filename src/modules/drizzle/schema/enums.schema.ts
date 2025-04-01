@@ -11,7 +11,7 @@ export const materialStatusEnum = pgEnum('materialStatus', [
   'approved',
   'rejected',
 ]);
-export const materialTypeEnum = pgEnum('resourceType', [
+export const materialTypeEnum = pgEnum('materialType', [
   'pdf',
   'video',
   'article',
@@ -21,7 +21,7 @@ export const materialTypeEnum = pgEnum('resourceType', [
 export const resourceTypeEnum = pgEnum('resourceType', [
   'url',
   'GDrive',
-  'uploaded',
+  'upload',
 ]);
 export const visibilityEnum = pgEnum('visibilityEnum', ['public', 'private']);
 export const restrictionEnum = pgEnum('restrictionEnum', [

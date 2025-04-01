@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { MaterialRepository } from './material.repository';
@@ -9,7 +10,7 @@ import { UpdateMaterialDto } from './dto/update-material.dto';
 import { StorageService } from 'src/storage/storage.service';
 import { MaterialTypeEnum, ResourceType } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
-
+import { materialLogger as logger } from 'src/modules/material/material.module';
 @Injectable()
 export class MaterialService {
   constructor(
@@ -22,7 +23,7 @@ export class MaterialService {
     const { resourceType, resourceAddress, ...materialData } =
       createMaterialDto;
     let resourceDto = { resourceType, resourceAddress };
-
+    logger.log({ resourceDto });
     // Validate resource data based on resourceType
     if (resourceDto.resourceType === ResourceType.UPLOADED) {
       if (!file) {
@@ -30,22 +31,26 @@ export class MaterialService {
           'File is required for uploaded resources',
         );
       }
-      // Upload file to storage service
-      resourceDto.resourceAddress = await this.storageService.uploadFile(
-        file,
-        false,
-      );
+      try {
+        resourceDto.resourceAddress = await this.storageService.uploadFile(
+          file,
+          false,
+        );
+      } catch (error) {
+        logger.error(`Failed to upload file: ${error.message}`, error);
+        throw new InternalServerErrorException(
+          'Failed to upload file. Please try again.',
+        );
+      }
     } else if (!resourceDto.resourceAddress) {
       // For non-uploaded resources, resourceAddress is required
       throw new BadRequestException(
-        'Resource address is required for URL and GDrive resources',
+        'Resource address is required for URL and GDrive resources, attach the resourceAddress',
       );
     }
 
-    // Create the material entity
     const material = await this.materialRepository.create(materialData);
 
-    // Create the resource entity
     const resourceData = {
       materialId: material.id,
       resourceAddress: resourceDto.resourceAddress,
@@ -55,7 +60,6 @@ export class MaterialService {
 
     const resource = await this.materialRepository.createResource(resourceData);
 
-    // Return the complete material with resource
     return { ...material, resource };
   }
 

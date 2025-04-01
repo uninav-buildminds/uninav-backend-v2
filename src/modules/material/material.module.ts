@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { MaterialService } from './material.service';
 import { MaterialController } from './material.controller';
 import { MaterialRepository } from './material.repository';
@@ -12,3 +12,5 @@ import { StorageService } from 'src/storage/storage.service';
   exports: [MaterialService],
 })
 export class MaterialModule {}
+
+export const materialLogger = new Logger(MaterialModule.name);

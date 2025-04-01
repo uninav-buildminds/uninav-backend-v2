@@ -14,11 +14,11 @@ export class LoggerService {
     private loggerPath: LoggerPaths,
     fileLogging = false,
   ) {
-    // * create log files & folders
     const label =
       Object.keys(LoggerPaths)[Object.values(LoggerPaths).indexOf(loggerPath)];
 
     if (fileLogging) {
+      // * create log files & folders
       const fullPath = path.join(__dirname, '..', '..', loggerPath);
       const dirExists = fs.existsSync(path.dirname(fullPath));
       if (!dirExists) {

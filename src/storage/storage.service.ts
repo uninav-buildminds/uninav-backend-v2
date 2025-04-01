@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { S3 } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
@@ -14,7 +14,7 @@ export class StorageService {
   private bucketMedia: string;
   private bucketDocs: string;
   private endpoint: string;
-
+  private logger = new Logger(StorageService.name);
   constructor(private readonly configService: ConfigService) {
     this.endpoint = this.configService.get(ENV.B2_ENDPOINT);
     this.s3 = new S3({
@@ -39,9 +39,8 @@ export class StorageService {
     // Determine folder based on file type
     const bucket = isMedia ? this.bucketMedia : this.bucketDocs;
 
-    // Create a unique filename to prevent duplicates
     const fileKey = `${randomUUID()}-${file.originalname.replace(/\s+/g, '_')}`;
-
+    this.logger.log(`Uploading file to ${bucket}: ${fileKey}`, file);
     // Upload file to Backblaze B2
     await this.s3.putObject({
       Bucket: bucket,

@@ -1,5 +1,5 @@
 import { CookieOptions } from 'express';
-
+import * as moment from 'moment-timezone';
 export const DRIZZLE_SYMBOL = Symbol('Drizzle');
 export const JWT_SYMBOL = Symbol('JWT');
 
@@ -24,7 +24,8 @@ export const globalCookieOptions: CookieOptions = {
   httpOnly: true,
   sameSite: 'none',
   secure: true,
-  maxAge: 60 * 60 * 24 * cookie_duration,
+  expires: moment().add(cookie_duration, 'days').toDate(),
+  // maxAge: 60 * 60 * 24 * cookie_duration,
 };
 
 // Blackbase buckets

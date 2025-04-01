@@ -4,8 +4,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
-  ValidateNested,
 } from 'class-validator';
 import {
   MaterialTypeEnum,
@@ -13,7 +11,6 @@ import {
   RestrictionEnum,
   VisibilityEnum,
 } from 'src/utils/types/db.types';
-import { Type } from 'class-transformer';
 
 export class ResourceDto {
   @IsNotEmpty()
@@ -57,12 +54,6 @@ export class CreateMaterialDto {
   restriction?: RestrictionEnum;
 
   creatorId: string;
-
-  // @IsNotEmpty()
-  // @ValidateNested()
-  // @Type(() => ResourceDto)
-  // resource: ResourceDto;
-  // resource
   @IsNotEmpty()
   @IsEnum(ResourceType)
   resourceType: ResourceType;
