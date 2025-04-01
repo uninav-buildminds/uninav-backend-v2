@@ -67,7 +67,8 @@ export class RolesGuard implements CanActivate {
 
   private async authenticateRequest(request: Request): Promise<{ id: string }> {
     // Check if token exists in cookies or authorization header
-    let token = request.cookies?.Authorization;
+    console.log('cookies', request.cookies);
+    let token = request.cookies?.authorization;
 
     if (!token) {
       const authHeader = request.headers.authorization;

@@ -5,7 +5,7 @@ export class CreateDepartmentDto implements Omit<DepartmentEntity, 'id'> {
   @IsNotEmpty()
   @IsString()
   name: string;
-  k;
+
   @IsString()
   description: string;
 

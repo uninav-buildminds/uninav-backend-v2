@@ -64,6 +64,7 @@ export enum MaterialTypeEnum {
   VIDEO = 'video',
   ARTICLE = 'article',
   IMAGE = 'image',
+  OTHER = 'other',
 }
 
 export enum ResourceType {

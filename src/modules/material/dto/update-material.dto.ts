@@ -5,9 +5,4 @@ import { Type } from 'class-transformer';
 
 export class UpdateResourceDto extends PartialType(ResourceDto) {}
 
-export class UpdateMaterialDto extends PartialType(CreateMaterialDto) {
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => UpdateResourceDto)
-  resource?: UpdateResourceDto;
-}
+export class UpdateMaterialDto extends PartialType(CreateMaterialDto) {}

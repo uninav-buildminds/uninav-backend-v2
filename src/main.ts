@@ -13,7 +13,7 @@ async function bootstrap() {
   EnvValidation.validate();
   console.log(`=>     http://localhost:${port}`);
   const app = await NestFactory.create(AppModule, {
-    logger: new LoggerService(LoggerPaths.APP),
+    logger: new LoggerService(LoggerPaths.APP, false),
   });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),

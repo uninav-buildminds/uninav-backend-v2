@@ -24,7 +24,7 @@ export class MaterialRepository {
   ): Promise<MaterialEntity> {
     const result = await this.db
       .insert(material)
-      .values(createMaterialDto)
+      .values(createMaterialDto as any)
       .returning();
     return result[0];
   }
@@ -72,11 +72,14 @@ export class MaterialRepository {
 
   async update(
     id: string,
-    updateMaterialDto: UpdateMaterialDto,
+    updateMaterialDto: Omit<
+      UpdateMaterialDto,
+      'resourceType' | 'resourceAddress' | 'metaData'
+    >,
   ): Promise<MaterialEntity> {
     const result = await this.db
       .update(material)
-      .set(updateMaterialDto)
+      .set(updateMaterialDto as any)
       .where(eq(material.id, id))
       .returning();
     return result[0];

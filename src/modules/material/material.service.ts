@@ -119,8 +119,10 @@ export class MaterialService {
 
     // Extract and handle resource data if present
     let updatedResource;
-    if (updateMaterialDto.resource) {
-      const { resource: resourceDto, ...materialData } = updateMaterialDto;
+    if (updateMaterialDto.resourceAddress) {
+      const { resourceAddress, resourceType, metaData, ...materialData } =
+        updateMaterialDto;
+      let resourceDto = { resourceAddress, resourceType, metaData };
 
       // Handle file upload if resource type is UPLOADED and file is provided
       if (resourceDto?.resourceType === ResourceType.UPLOADED && file) {

@@ -56,9 +56,7 @@ export class CreateMaterialDto {
   @IsEnum(RestrictionEnum)
   restriction?: RestrictionEnum;
 
-  @IsOptional()
-  @IsUUID()
-  creatorId?: string;
+  creatorId: string;
 
   // @IsNotEmpty()
   // @ValidateNested()

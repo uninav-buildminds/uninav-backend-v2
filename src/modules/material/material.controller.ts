@@ -38,10 +38,7 @@ export class MaterialController {
     // Extract user from request (from auth guard)
     const user = req['user'] as UserEntity;
 
-    // Set creatorId if not provided in the DTO
-    if (!createMaterialDto.creatorId && user) {
-      createMaterialDto.creatorId = user.id;
-    }
+    createMaterialDto.creatorId = user.id;
 
     // Validate file upload for UPLOADED type
     if (createMaterialDto.resourceType === ResourceType.UPLOADED && !file) {

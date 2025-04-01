@@ -16,6 +16,7 @@ export const materialTypeEnum = pgEnum('resourceType', [
   'video',
   'article',
   'image',
+  'other',
 ]);
 export const resourceTypeEnum = pgEnum('resourceType', [
   'url',
