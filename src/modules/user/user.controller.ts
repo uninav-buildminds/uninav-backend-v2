@@ -14,13 +14,14 @@ import { Request } from 'express';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { UserEntity } from 'src/utils/types/db.types';
-
-// Import the extended Express type definition
-// import 'src/utils/types/express.types';
+import { AuthService } from 'src/modules/auth/auth.service';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
@@ -32,9 +33,10 @@ export class UserController {
   @UseGuards(RolesGuard)
   async getProfile(@Req() req: Request) {
     const user = req.user as UserEntity;
+    let auth = await this.authService.findOne(user.id, true);
     return ResponseDto.createSuccessResponse(
       'User profile retrieved successfully',
-      user,
+      { ...user, auth },
     );
   }
 

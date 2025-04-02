@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { UserEntity } from 'src/utils/types/db.types';
 import { AuthRepository } from './auth.repository';
+import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,13 @@ export class AuthService {
     @Inject(JWT_SYMBOL) private jwtService: JwtService,
   ) {
     this.BCRYPT_SALT = bcrypt.genSaltSync(+this.config.BCRYPT_SALT_ROUNDS);
+  }
+  async findOne(id: string, exclude: boolean = false) {
+    const auth = await this.authRepository.findByUserId(id);
+    if (!auth) {
+      throw new BadRequestException('auth for User not found');
+    }
+    return exclude ? DataFormatter.formatObject(auth, ['password']) : auth;
   }
 
   async signupStudent(createStudentDto: CreateStudentDto) {

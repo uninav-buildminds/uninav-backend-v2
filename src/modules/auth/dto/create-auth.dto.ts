@@ -20,6 +20,7 @@ export class CreateAuthDto {
   @IsString()
   @IsNotEmpty()
   @Length(6)
+  @IsOptional()
   matricNo?: string;
 
   @IsOptional()
