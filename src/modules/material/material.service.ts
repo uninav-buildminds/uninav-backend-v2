@@ -5,12 +5,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { MaterialRepository } from './material.repository';
-import { CreateMaterialDto, ResourceDto } from './dto/create-material.dto';
+import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { StorageService } from 'src/storage/storage.service';
 import { MaterialTypeEnum, ResourceType } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
+import {
+  RESOURCE_ADDRESS_EXPIRY_DAYS,
+  RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS,
+} from 'src/utils/config/constants.config';
+import * as moment from 'moment-timezone';
 @Injectable()
 export class MaterialService {
   constructor(
@@ -19,48 +24,98 @@ export class MaterialService {
   ) {}
 
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
-    // Extract resource data from the DTO
-    const { resourceType, resourceAddress, ...materialData } =
-      createMaterialDto;
-    let resourceDto = { resourceType, resourceAddress };
-    logger.log({ resourceDto });
-    // Validate resource data based on resourceType
-    if (resourceDto.resourceType === ResourceType.UPLOADED) {
-      if (!file) {
-        throw new BadRequestException(
-          'File is required for uploaded resources',
-        );
-      }
-      try {
-        resourceDto.resourceAddress = await this.storageService.uploadFile(
+    try {
+      const { resourceType, resourceAddress, metaData, ...materialData } =
+        createMaterialDto;
+
+      // Create material first
+      const material = await this.createMaterial(materialData);
+
+      // Create associated resource
+      await this.createResource(
+        material.id,
+        {
+          resourceType,
+          resourceAddress,
+          metaData,
+        },
+        file,
+      );
+
+      // Return complete material with resource
+      const materialWithResource = await this.materialRepository.findOne(
+        material.id,
+      );
+      return materialWithResource;
+    } catch (error) {
+      logger.error(`Failed to create material with resource: ${error.message}`);
+      throw new InternalServerErrorException(
+        'Failed to create material with resource',
+      );
+    }
+  }
+
+  private async createResource(
+    materialId: string,
+    resourceDto: {
+      resourceType: ResourceType;
+      resourceAddress?: string;
+      metaData?: string[];
+      fileKey?: string;
+    },
+    file?: MulterFile,
+  ) {
+    try {
+      // Validate resource data based on resourceType
+      if (resourceDto.resourceType === ResourceType.UPLOAD) {
+        if (!file) {
+          throw new BadRequestException(
+            'File is required for uploaded resources',
+          );
+        }
+        const { publicUrl, fileKey } = await this.storageService.uploadFile(
           file,
           false,
         );
-      } catch (error) {
-        logger.error(`Failed to upload file: ${error.message}`, error);
-        throw new InternalServerErrorException(
-          'Failed to upload file. Please try again.',
+        const signedUrl = await this.storageService.getSignedUrl(
+          fileKey,
+          3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS, // 7 days expiration
+        );
+        resourceDto.resourceAddress = signedUrl;
+        resourceDto.fileKey = fileKey;
+      } else if (!resourceDto.resourceAddress) {
+        throw new BadRequestException(
+          'Resource address is required for URL and GDrive resources',
         );
       }
-    } else if (!resourceDto.resourceAddress) {
-      // For non-uploaded resources, resourceAddress is required
-      throw new BadRequestException(
-        'Resource address is required for URL and GDrive resources, attach the resourceAddress',
-      );
+
+      const resourceData = {
+        materialId,
+        resourceAddress: resourceDto.resourceAddress,
+        resourceType: resourceDto.resourceType,
+        metaData: resourceDto.metaData || [],
+        fileKey: resourceDto.fileKey,
+      };
+
+      return await this.materialRepository.createResource(resourceData);
+    } catch (error) {
+      logger.error(`Failed to create resource: ${error.message}`);
+      throw new InternalServerErrorException('Failed to create resource');
     }
+  }
 
-    const material = await this.materialRepository.create(materialData);
-
-    const resourceData = {
-      materialId: material.id,
-      resourceAddress: resourceDto.resourceAddress,
-      resourceType: resourceDto.resourceType,
-      metaData: [], //
-    };
-
-    const resource = await this.materialRepository.createResource(resourceData);
-
-    return { ...material, resource };
+  private async createMaterial(
+    materialData: Omit<
+      CreateMaterialDto,
+      'resourceType' | 'resourceAddress' | 'metaData'
+    >,
+  ) {
+    try {
+      return await this.materialRepository.create(materialData);
+    } catch (error) {
+      logger.error(`Failed to create material: ${error.message}`);
+      throw new InternalServerErrorException('Failed to create material');
+    }
   }
 
   async findAll() {
@@ -75,7 +130,7 @@ export class MaterialService {
     return material;
   }
 
-  async getDownloadUrl(id: string, forceDownload = false) {
+  async getMaterial(id: string) {
     const material = await this.findOne(id);
 
     // Get the associated resource
@@ -87,28 +142,52 @@ export class MaterialService {
     const { resource: materialResource } = materialWithResource;
 
     // For uploaded resources, generate a signed URL
-    if (materialResource.resourceType === ResourceType.UPLOADED) {
-      // Extract the file key from the resource address
-      // We assume the format is https://{endpoint}/{bucket}/{fileKey}
-      const resourceUrl = new URL(materialResource.resourceAddress);
-      const pathParts = resourceUrl.pathname.split('/');
-      const fileKey = pathParts.slice(2).join('/'); // Skip the first empty string and bucket name
-
-      // Generate a signed URL for the file
-      const signedUrl = await this.storageService.getSignedUrl(
-        fileKey,
-        3600,
-        forceDownload,
+    if (materialResource.resourceType === ResourceType.UPLOAD) {
+      // ? Check if resourceAddress link has expired
+      const isExpired = moment(material.resource.updatedAt).isBefore(
+        moment().subtract(RESOURCE_ADDRESS_EXPIRY_DAYS, 'days'),
       );
+      if (isExpired) {
+        let fileKey = materialResource.fileKey;
+        // Generate a signed URL for the file
+        const signedUrl = await this.storageService.getSignedUrl(
+          fileKey,
+          3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS, // 7 days expiration
+          false,
+        );
+        this.materialRepository.updateResource(id, {
+          resourceAddress: signedUrl,
+        });
+        this.materialRepository.incrementClickCount(id);
 
-      // Increment download count
-      await this.materialRepository.incrementDownloadCount(id);
-
-      return { url: signedUrl, material };
+        material.resource.resourceAddress = signedUrl; // Update the resource address in the material
+      }
     }
 
-    // For other resource types, just return the resource address
-    return { url: materialResource.resourceAddress, material };
+    return material;
+  }
+
+  async getDownloadUrl(id: string) {
+    const material = await this.findOne(id);
+
+    // Get the associated resource
+    const materialWithResource = await this.materialRepository.findOne(id);
+    if (!materialWithResource?.resource) {
+      throw new NotFoundException(`Resource for material id ${id} not found`);
+    }
+
+    const { resource: materialResource } = materialWithResource;
+
+    // For uploaded resources, generate a signed URL
+    if (materialResource.resourceType === ResourceType.UPLOAD) {
+      // Generate a signed URL for the file
+      const signedUrl = await this.storageService.getSignedUrl(
+        materialResource.fileKey,
+        3600 * 24 * RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS, // 7 days expiration
+        true,
+      );
+      return signedUrl;
+    }
   }
 
   async update(
@@ -122,38 +201,40 @@ export class MaterialService {
     }
 
     // Extract and handle resource data if present
-    let updatedResource;
     if (updateMaterialDto.resourceAddress) {
       const { resourceAddress, resourceType, metaData, ...materialData } =
         updateMaterialDto;
-      let resourceDto = { resourceAddress, resourceType, metaData };
+      let resourceDto = {
+        resourceAddress,
+        resourceType,
+        metaData,
+        fileKey: null,
+      };
 
       // Handle file upload if resource type is UPLOADED and file is provided
-      if (resourceDto?.resourceType === ResourceType.UPLOADED && file) {
-        resourceDto.resourceAddress = await this.storageService.uploadFile(
+      if (resourceDto?.resourceType === ResourceType.UPLOAD && file) {
+        const { publicUrl, fileKey } = await this.storageService.uploadFile(
           file,
           false,
         );
+        resourceDto.resourceAddress = publicUrl;
+        resourceDto.fileKey = fileKey;
+        // Update the resource
+        if (resourceDto) {
+          const resourceUpdateData: any = {};
+          if (resourceDto.resourceAddress)
+            resourceUpdateData.resourceAddress = resourceDto.resourceAddress;
+          if (resourceDto.resourceType)
+            resourceUpdateData.resourceType = resourceDto.resourceType;
+          if (resourceDto.metaData)
+            resourceUpdateData.metaData = resourceDto.metaData;
+
+          await this.materialRepository.updateResource(id, resourceUpdateData);
+        }
+
+        // Update material
+        return this.materialRepository.update(id, materialData);
       }
-
-      // Update the resource
-      if (resourceDto) {
-        const resourceUpdateData: any = {};
-        if (resourceDto.resourceAddress)
-          resourceUpdateData.resourceAddress = resourceDto.resourceAddress;
-        if (resourceDto.resourceType)
-          resourceUpdateData.resourceType = resourceDto.resourceType;
-        if (resourceDto.metaData)
-          resourceUpdateData.metaData = resourceDto.metaData;
-
-        updatedResource = await this.materialRepository.updateResource(
-          id,
-          resourceUpdateData,
-        );
-      }
-
-      // Update material
-      return this.materialRepository.update(id, materialData);
     }
 
     // If no resource data, just update the material
@@ -167,12 +248,10 @@ export class MaterialService {
     // Handle resource deletion if needed
     if (
       material.resource &&
-      material.resource.resourceType === ResourceType.UPLOADED
+      material.resource.resourceType === ResourceType.UPLOAD
     ) {
       // Extract filename from resource URL
-      const resourceUrl = new URL(material.resource.resourceAddress);
-      const pathParts = resourceUrl.pathname.split('/');
-      const fileKey = pathParts.slice(2).join('/');
+      const fileKey = material.resource.fileKey;
 
       // Delete the file from S3
       await this.storageService.deleteFile(fileKey, false);

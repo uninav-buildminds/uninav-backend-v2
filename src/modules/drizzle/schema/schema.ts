@@ -11,3 +11,4 @@ export * from './blog.schema';
 export * from './comments.schema';
 export * from './advert.schema';
 export * from './enums.schema';
+export * from './resource.schema';

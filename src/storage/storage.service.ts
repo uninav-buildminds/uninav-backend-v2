@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { S3 } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
@@ -16,7 +20,10 @@ export class StorageService {
   private endpoint: string;
   private logger = new Logger(StorageService.name);
   constructor(private readonly configService: ConfigService) {
-    this.endpoint = this.configService.get(ENV.B2_ENDPOINT);
+    let endpoint = this.configService.get(ENV.B2_ENDPOINT) as string;
+    this.endpoint = endpoint.startsWith('https')
+      ? endpoint
+      : `https://${endpoint}`;
     this.s3 = new S3({
       endpoint: this.endpoint,
       region: this.configService.get(ENV.B2_REGION),
@@ -35,23 +42,33 @@ export class StorageService {
    * @param isMedia Whether the file is a media file or document
    * @returns The URL of the uploaded file
    */
-  async uploadFile(file: MulterFile, isMedia = false): Promise<string> {
+  async uploadFile(
+    file: MulterFile,
+    isMedia = false,
+  ): Promise<{ publicUrl: string; fileKey: string }> {
     // Determine folder based on file type
     const bucket = isMedia ? this.bucketMedia : this.bucketDocs;
 
     const fileKey = `${randomUUID()}-${file.originalname.replace(/\s+/g, '_')}`;
-    this.logger.log(`Uploading file to ${bucket}: ${fileKey}`, file);
+    this.logger.log(`Uploading file to ${bucket}: ${fileKey}`);
     // Upload file to Backblaze B2
-    await this.s3.putObject({
-      Bucket: bucket,
-      Key: fileKey,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-      ACL: 'public-read', // Make the file publicly accessible
-    });
+    try {
+      await this.s3.putObject({
+        Bucket: bucket,
+        Key: fileKey,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read', // Make the file publicly accessible
+      });
+    } catch (error) {
+      this.logger.error(`Failed to upload file: ${error.message}`, error);
+      throw new InternalServerErrorException(
+        'Failed to upload file. Please try again.',
+      );
+    }
 
-    // Return the public URL
-    return `${this.endpoint}/${bucket}/${fileKey}`;
+    // Return the public URL and file key
+    return { publicUrl: `${this.endpoint}/${bucket}/${fileKey}`, fileKey };
   }
 
   /**
@@ -63,7 +80,7 @@ export class StorageService {
    */
   async getSignedUrl(
     fileKey: string,
-    expiresIn = 3600,
+    expiresIn = 3600 * 24 * 7,
     forceDownload = false,
   ): Promise<string> {
     const command = new GetObjectCommand({
@@ -75,8 +92,19 @@ export class StorageService {
       }),
     });
 
-    // Generate and return the signed URL
-    return getSignedUrl(this.s3, command, { expiresIn });
+    try {
+      // generate the signed url
+      const url = getSignedUrl(this.s3, command, { expiresIn });
+      return url;
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate signed URL: ${error.message}`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        'Failed to generate signed URL. Please try again.',
+      );
+    }
   }
 
   /**

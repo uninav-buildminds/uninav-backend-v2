@@ -11,6 +11,7 @@ import { material } from 'src/modules/drizzle/schema/material.schema';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
+import { CreateResourceDto } from 'src/modules/material/dto/create-resource.dto';
 
 @Injectable()
 export class MaterialRepository {
@@ -32,8 +33,16 @@ export class MaterialRepository {
   async findAll(): Promise<MaterialEntity[]> {
     return this.db.query.material.findMany({
       with: {
-        creator: true,
-        resource: true,
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            departmentId: true,
+            level: true,
+          },
+        },
       },
     });
   }
@@ -42,13 +51,22 @@ export class MaterialRepository {
     return this.db.query.material.findFirst({
       where: eq(material.id, id),
       with: {
-        creator: true,
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            departmentId: true,
+            level: true,
+          },
+        },
         resource: true,
       },
     });
   }
 
-  async incrementDownloadCount(id: string): Promise<MaterialEntity> {
+  async incrementDownloadCount(id: string) {
     const result = await this.db
       .update(material)
       .set({
@@ -56,7 +74,14 @@ export class MaterialRepository {
       } as any)
       .where(eq(material.id, id))
       .returning();
-    return result[0];
+  }
+  async incrementClickCount(id: string) {
+    await this.db
+      .update(material)
+      .set({
+        clickCOunt: sql`${material.clickCount} + 1`,
+      } as any)
+      .where(eq(material.id, id));
   }
 
   async incrementLikes(id: string): Promise<MaterialEntity> {
@@ -93,13 +118,13 @@ export class MaterialRepository {
     return result[0];
   }
 
-  // Resource related operations
-  async createResource(resourceData: {
-    materialId: string;
-    resourceAddress: string;
-    resourceType: string;
-    metaData?: string[];
-  }) {
+  async createResource(
+    resourceData: Required<CreateResourceDto> & {
+      materialId: string;
+      fileKey: string;
+    },
+  ) {
+    // let today = moment().tz('Africa/Lagos').toDate();
     const result = await this.db
       .insert(resource)
       .values(resourceData)

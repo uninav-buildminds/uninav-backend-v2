@@ -33,3 +33,7 @@ export enum B2_BUCKETS {
   media = 'uninav-media',
   docs = 'uninav-docs',
 }
+
+// Material Resource config
+export const RESOURCE_ADDRESS_EXPIRY_DAYS = 7;
+export const RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS = 7;

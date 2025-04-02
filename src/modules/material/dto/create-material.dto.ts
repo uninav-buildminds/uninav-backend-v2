@@ -27,7 +27,7 @@ export class ResourceDto {
   metaData?: string[];
 }
 
-export class CreateMaterialDto {
+export class CreateMaterialDto extends ResourceDto {
   @IsNotEmpty()
   @IsString()
   label: string;
@@ -54,16 +54,4 @@ export class CreateMaterialDto {
   restriction?: RestrictionEnum;
 
   creatorId: string;
-  @IsNotEmpty()
-  @IsEnum(ResourceType)
-  resourceType: ResourceType;
-
-  @IsOptional()
-  @IsString()
-  resourceAddress?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  metaData?: string[];
 }

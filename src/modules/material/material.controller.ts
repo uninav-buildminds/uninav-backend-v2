@@ -42,7 +42,7 @@ export class MaterialController {
 
     logger.log({ createMaterialDto });
     // Validate file upload for UPLOADED type
-    if (createMaterialDto.resourceType === ResourceType.UPLOADED && !file) {
+    if (createMaterialDto.resourceType === ResourceType.UPLOAD && !file) {
       throw new BadRequestException(
         'File upload is required for uploaded resources',
       );
@@ -66,22 +66,19 @@ export class MaterialController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    const material = await this.materialService.findOne(id);
+    const material = await this.materialService.getMaterial(id);
     return ResponseDto.createSuccessResponse(
       'Material retrieved successfully',
       material,
     );
   }
 
-  @Get(':id/download')
-  async download(
-    @Param('id') id: string,
-    @Query('forceDownload') forceDownload: boolean,
-  ) {
-    const result = await this.materialService.getDownloadUrl(id, forceDownload);
+  @Get('download/:id')
+  async download(@Param('id') id: string) {
+    const url = await this.materialService.getDownloadUrl(id);
     return ResponseDto.createSuccessResponse(
       'Download URL generated successfully',
-      result,
+      { url },
     );
   }
 

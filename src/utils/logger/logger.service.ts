@@ -77,8 +77,13 @@ export class LoggerService {
       let label = args.pop();
       message = `(${label}) ${message}`;
     }
-    if (args.length === 0) {
+    if (args.length === 0 && typeof message === 'string') {
       this.logger[level](message);
+    } else if (args.length === 1 && typeof message === 'object') {
+      this.logger[level]({
+        msg: (message as Object).toString(),
+        ...(message as Object),
+      });
     } else if (args.length === 1 && typeof args[0] === 'object') {
       this.logger[level]({ msg: message, ...args[0] });
     } else {

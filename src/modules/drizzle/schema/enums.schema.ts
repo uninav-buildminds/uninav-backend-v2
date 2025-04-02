@@ -6,7 +6,7 @@ export const userRoleEnum = pgEnum('userRole', [
   'moderator',
   'admin',
 ]);
-export const materialStatusEnum = pgEnum('materialStatus', [
+export const materialReviewStatusEnum = pgEnum('materialStatus', [
   'pending',
   'approved',
   'rejected',

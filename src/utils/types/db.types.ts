@@ -81,7 +81,7 @@ export enum ResourceType {
   GDRIVE = 'GDrive',
 
   // uploaded means the file is uploaded to the server
-  UPLOADED = 'uploaded',
+  UPLOAD = 'upload',
 }
 
 export enum UserIdTypeEnum {

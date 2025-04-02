@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import {
-  materialStatusEnum,
+  materialReviewStatusEnum,
   visibilityEnum,
   restrictionEnum,
   materialTypeEnum,
@@ -16,16 +16,21 @@ export const material = pgTable('material', {
   id: uuid('id').primaryKey().defaultRandom(),
   type: materialTypeEnum('type').notNull(),
   tags: text('tags').array(),
-  downloadCount: integer('downloadCount').default(0),
+  // statistics
+  clickCount: integer('click_count').default(0),
+  viewCount: integer('view_count').default(0),
+  downloadCount: integer('download_count').default(0),
   likes: integer('likes').default(0),
+
   creatorId: uuid('creator').references(() => user.id, {
     onDelete: 'set null',
   }),
   label: text('label'),
   description: text('description'),
-  status: materialStatusEnum('status').default('pending'),
   visibility: visibilityEnum('visibility').default('public'),
   restriction: restrictionEnum('restriction').default('readonly'),
+
+  reviewStatus: materialReviewStatusEnum('review_status').default('pending'),
   reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
     onDelete: 'set null',
   }),
