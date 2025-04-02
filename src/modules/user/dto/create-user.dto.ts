@@ -1,25 +1,24 @@
-import { IsIn, IsNumber, IsString, MinLength } from 'class-validator';
-import { UserEntity } from 'src/utils/types/db.types';
-export class CreateUserDto
-  implements Omit<UserEntity, 'id' | 'createdAt' | 'updatedAt' | 'role'>
-{
-  @IsString()
+import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+
+export class CreateUserDto {
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @IsString()
-  @MinLength(5)
-  password: string;
-
-  @IsString()
+  @IsNotEmpty()
   firstName: string;
 
   @IsString()
+  @IsNotEmpty()
   lastName: string;
 
   @IsString()
+  @IsNotEmpty()
   username: string;
 
   @IsString()
+  @IsNotEmpty()
   departmentId: string;
 
   @IsNumber()

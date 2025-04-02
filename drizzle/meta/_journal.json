@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1743207064542,
-      "tag": "0000_legal_ultron",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1743283290836,
-      "tag": "0001_optimal_night_thrasher",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1743341899027,
-      "tag": "0002_abnormal_zaladane",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1743535649694,
-      "tag": "0003_whole_maelstrom",
+      "when": 1743580324707,
+      "tag": "0000_large_doctor_doom",
       "breakpoints": true
     }
   ]

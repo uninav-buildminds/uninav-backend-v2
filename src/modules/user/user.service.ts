@@ -4,14 +4,12 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRepository } from 'src/modules/user/user.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { DepartmentService } from 'src/modules/department/department.service';
-import { LoginDto } from 'src/modules/auth/dto/login.dto';
 
 @Injectable()
 export class UserService {
@@ -20,13 +18,9 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly departmentService: DepartmentService,
   ) {}
+
   async createStudent(createUserDto: CreateUserDto) {
-    let userWithEmail = await this.userRepository.findByEmail(
-      createUserDto.email,
-    );
-    if (userWithEmail) {
-      throw new BadRequestException('User with this email already exists');
-    }
+    // * email should be verified from auth
     let userWithUsername = await this.userRepository.findByUsername(
       createUserDto.username,
     );
@@ -45,15 +39,14 @@ export class UserService {
 
     try {
       const user = await this.userRepository.create(createUserDto);
-      DataFormatter.formatObject(user, ['password']);
-      return user as Omit<typeof user, 'password'>;
+      return user;
     } catch (error) {
       this.logger.log(
         `Error creating user with email ${createUserDto.email} and username ${createUserDto.username}`,
         error,
       );
       throw new InternalServerErrorException(
-        `Error Student Account : ${error.message}`,
+        `Error creating Student Account: ${error.message}`,
       );
     }
   }
@@ -61,9 +54,7 @@ export class UserService {
   async findAll() {
     try {
       const users = await this.userRepository.findAll();
-      return users.map((user) =>
-        DataFormatter.formatObject(user, ['password']),
-      );
+      return users;
     } catch (error) {
       this.logger.error(
         `Error retrieving users: ${error.message}`,
@@ -81,7 +72,7 @@ export class UserService {
       if (!user) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
-      return DataFormatter.formatObject(user, ['password']);
+      return user;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -175,7 +166,7 @@ export class UserService {
       }
 
       const updatedUser = await this.userRepository.update(id, updateUserDto);
-      return DataFormatter.formatObject(updatedUser, ['password']);
+      return updatedUser;
     } catch (error) {
       if (
         error instanceof NotFoundException ||

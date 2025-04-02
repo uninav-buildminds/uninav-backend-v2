@@ -1,5 +1,5 @@
 {
-  "id": "9b14ed74-4231-47cf-8e55-5d537b4954f8",
+  "id": "ad55ef47-8209-465a-aa73-c6dc38039188",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -71,10 +71,41 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
-          "default": "now()"
+          "default": "(CURRENT_TIMESTAMP)"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "users_email_index": {
+          "name": "users_email_index",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "user_username_index": {
+          "name": "user_username_index",
+          "columns": [
+            {
+              "expression": "username",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "users_department_department_id_fk": {
           "name": "users_department_department_id_fk",
@@ -104,6 +135,144 @@
           "nullsNotDistinct": false,
           "columns": [
             "username"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.auth": {
+      "name": "auth",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "matric_no": {
+          "name": "matric_no",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id_type": {
+          "name": "user_id_type",
+          "type": "studentIdType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id_image": {
+          "name": "user_id_image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id_verified": {
+          "name": "user_id_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "(CURRENT_TIMESTAMP)"
+        }
+      },
+      "indexes": {
+        "auth_matric_no_index": {
+          "name": "auth_matric_no_index",
+          "columns": [
+            {
+              "expression": "matric_no",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "auth_email_index": {
+          "name": "auth_email_index",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "auth_user_id_users_id_fk": {
+          "name": "auth_user_id_users_id_fk",
+          "tableFrom": "auth",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "auth_email_unique": {
+          "name": "auth_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "auth_matric_no_unique": {
+          "name": "auth_matric_no_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "matric_no"
           ]
         }
       },
@@ -212,14 +381,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "materialStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
         }
       },
       "indexes": {},
@@ -477,7 +638,7 @@
         },
         "type": {
           "name": "type",
-          "type": "resourceType",
+          "type": "materialType",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1136,13 +1297,24 @@
         "rejected"
       ]
     },
+    "public.materialType": {
+      "name": "materialType",
+      "schema": "public",
+      "values": [
+        "pdf",
+        "video",
+        "article",
+        "image",
+        "other"
+      ]
+    },
     "public.resourceType": {
       "name": "resourceType",
       "schema": "public",
       "values": [
         "url",
         "GDrive",
-        "uploaded"
+        "upload"
       ]
     },
     "public.restrictionEnum": {
@@ -1151,6 +1323,14 @@
       "values": [
         "readonly",
         "downloadable"
+      ]
+    },
+    "public.studentIdType": {
+      "name": "studentIdType",
+      "schema": "public",
+      "values": [
+        "id_card",
+        "admission_letter"
       ]
     },
     "public.userRole": {

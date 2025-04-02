@@ -12,9 +12,13 @@ import { collection } from 'src/modules/drizzle/schema/collection.schema';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { comments } from 'src/modules/drizzle/schema/comments.schema';
 import { advert } from 'src/modules/drizzle/schema/advert.schema';
+import { auth } from 'src/modules/drizzle/schema/schema';
 export type DrizzleDB = NodePgDatabase<typeof schema>;
 
-export type UserEntity = InferSelectModel<typeof user>;
+export type UserEntity = Omit<
+  InferSelectModel<typeof user>,
+  'password' | 'email' | 'matricNo' | 'studentIdType' | 'studentIdImage'
+>;
 export type ModeratorEntity = InferSelectModel<typeof moderator>;
 export type FacultyEntity = InferSelectModel<typeof faculty>;
 export type DepartmentEntity = InferSelectModel<typeof department>;
@@ -24,6 +28,8 @@ export type CollectionEntity = InferSelectModel<typeof collection>;
 export type BlogEntity = InferSelectModel<typeof blogs>;
 export type CommentEntity = InferSelectModel<typeof comments>;
 export type AdvertEntity = InferSelectModel<typeof advert>;
+
+export type AuthEntity = InferSelectModel<typeof auth>;
 
 export enum UserRoleEnum {
   ADMIN = 'admin',
@@ -76,4 +82,9 @@ export enum ResourceType {
 
   // uploaded means the file is uploaded to the server
   UPLOADED = 'uploaded',
+}
+
+export enum UserIdTypeEnum {
+  ID_CARD = 'id_card',
+  ADMISSION_LETTER = 'admission_letter',
 }

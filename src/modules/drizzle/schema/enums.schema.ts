@@ -40,3 +40,7 @@ export const blogTypeEnum = pgEnum('blogType', [
   'scheme_of_work',
   'tutorial',
 ]);
+export const userIdTypeEnum = pgEnum('studentIdType', [
+  'id_card',
+  'admission_letter',
+]);

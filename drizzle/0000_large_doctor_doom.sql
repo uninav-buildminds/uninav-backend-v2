@@ -2,8 +2,10 @@ CREATE TYPE "public"."advertStatus" AS ENUM('pending', 'approved', 'rejected');-
 CREATE TYPE "public"."advertType" AS ENUM('free', 'paid');--> statement-breakpoint
 CREATE TYPE "public"."blogType" AS ENUM('article', 'guideline', 'scheme_of_work', 'tutorial');--> statement-breakpoint
 CREATE TYPE "public"."materialStatus" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
-CREATE TYPE "public"."resourceType" AS ENUM('url', 'GDrive', 'uploaded');--> statement-breakpoint
+CREATE TYPE "public"."materialType" AS ENUM('pdf', 'video', 'article', 'image', 'other');--> statement-breakpoint
+CREATE TYPE "public"."resourceType" AS ENUM('url', 'GDrive', 'upload');--> statement-breakpoint
 CREATE TYPE "public"."restrictionEnum" AS ENUM('readonly', 'downloadable');--> statement-breakpoint
+CREATE TYPE "public"."studentIdType" AS ENUM('id_card', 'admission_letter');--> statement-breakpoint
 CREATE TYPE "public"."userRole" AS ENUM('student', 'moderator', 'admin');--> statement-breakpoint
 CREATE TYPE "public"."visibilityEnum" AS ENUM('public', 'private');--> statement-breakpoint
 CREATE TABLE "users" (
@@ -16,9 +18,24 @@ CREATE TABLE "users" (
 	"level" integer NOT NULL,
 	"role" "userRole" DEFAULT 'student',
 	"createdAt" timestamp DEFAULT now(),
-	"updatedAt" timestamp DEFAULT now(),
+	"updatedAt" timestamp DEFAULT (CURRENT_TIMESTAMP),
 	CONSTRAINT "users_email_unique" UNIQUE("email"),
 	CONSTRAINT "users_username_unique" UNIQUE("username")
+);
+--> statement-breakpoint
+CREATE TABLE "auth" (
+	"user_id" uuid PRIMARY KEY NOT NULL,
+	"email" text NOT NULL,
+	"email_verified" boolean DEFAULT false,
+	"password" text NOT NULL,
+	"matric_no" text,
+	"user_id_type" "studentIdType",
+	"user_id_image" text,
+	"user_id_verified" boolean DEFAULT false,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT (CURRENT_TIMESTAMP),
+	CONSTRAINT "auth_email_unique" UNIQUE("email"),
+	CONSTRAINT "auth_matric_no_unique" UNIQUE("matric_no")
 );
 --> statement-breakpoint
 CREATE TABLE "moderator" (
@@ -32,7 +49,6 @@ CREATE TABLE "faculty" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
-	"status" "materialStatus" DEFAULT 'pending',
 	CONSTRAINT "faculty_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
@@ -66,7 +82,7 @@ CREATE TABLE "student_courses" (
 --> statement-breakpoint
 CREATE TABLE "material" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"type" "resourceType" NOT NULL,
+	"type" "materialType" NOT NULL,
 	"tags" text[],
 	"downloadCount" integer DEFAULT 0,
 	"likes" integer DEFAULT 0,
@@ -141,6 +157,7 @@ CREATE TABLE "advert" (
 );
 --> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_department_department_id_fk" FOREIGN KEY ("department") REFERENCES "public"."department"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "auth" ADD CONSTRAINT "auth_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "moderator" ADD CONSTRAINT "moderator_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "moderator" ADD CONSTRAINT "moderator_department_department_id_fk" FOREIGN KEY ("department") REFERENCES "public"."department"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "moderator" ADD CONSTRAINT "moderator_faculty_faculty_id_fk" FOREIGN KEY ("faculty") REFERENCES "public"."faculty"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -161,4 +178,8 @@ ALTER TABLE "blogs" ADD CONSTRAINT "blogs_creator_users_id_fk" FOREIGN KEY ("cre
 ALTER TABLE "comments" ADD CONSTRAINT "comments_blogId_blogs_id_fk" FOREIGN KEY ("blogId") REFERENCES "public"."blogs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comments" ADD CONSTRAINT "comments_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advert" ADD CONSTRAINT "advert_material_id_material_id_fk" FOREIGN KEY ("material_id") REFERENCES "public"."material"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "advert" ADD CONSTRAINT "advert_collection_id_collection_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collection"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "advert" ADD CONSTRAINT "advert_collection_id_collection_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collection"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "users_email_index" ON "users" USING btree ("email");--> statement-breakpoint
+CREATE INDEX "user_username_index" ON "users" USING btree ("username");--> statement-breakpoint
+CREATE INDEX "auth_matric_no_index" ON "auth" USING btree ("matric_no");--> statement-breakpoint
+CREATE INDEX "auth_email_index" ON "auth" USING btree ("email");

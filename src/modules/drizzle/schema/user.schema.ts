@@ -9,6 +9,7 @@ import {
 import { relations, sql } from 'drizzle-orm';
 import { userRoleEnum } from './enums.schema';
 import { department } from './department.schema';
+import { auth } from './auth.schema';
 
 // Table Definition with Index on email
 export const user = pgTable(
@@ -16,7 +17,6 @@ export const user = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     email: text('email').notNull().unique(),
-    password: text('password').notNull(),
     firstName: text('firstName').notNull(),
     lastName: text('lastName').notNull(),
     username: text('username').notNull().unique(),
@@ -61,4 +61,8 @@ export const userRelations = relations(user, ({ one, many }) => ({
   bookmarks: many(bookmarks),
   comments: many(comments),
   blogs: many(blogs),
+  auth: one(auth, {
+    fields: [user.id],
+    references: [auth.userId],
+  }),
 }));

@@ -7,11 +7,13 @@ import { getJwtConfig } from 'src/utils/config/jwt.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { LocalStrategy } from 'src/modules/auth/strategies/local.strategy';
+import { AuthRepository } from './auth.repository';
+import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
 
 @Global()
-// The Global decorator makes the module available globally, so it can be imported in other modules without needing to import it explicitly.
 @Module({
   imports: [
+    DrizzleModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => getJwtConfig(configService),
@@ -21,6 +23,7 @@ import { LocalStrategy } from 'src/modules/auth/strategies/local.strategy';
   controllers: [AuthController],
   providers: [
     AuthService,
+    AuthRepository,
     LocalStrategy,
     {
       provide: JWT_SYMBOL,
@@ -32,6 +35,8 @@ import { LocalStrategy } from 'src/modules/auth/strategies/local.strategy';
       provide: JWT_SYMBOL,
       useExisting: JwtService,
     },
+    AuthService,
+    AuthRepository,
   ],
 })
 export class AuthModule {}

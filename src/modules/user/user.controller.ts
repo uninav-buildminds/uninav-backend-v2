@@ -46,22 +46,4 @@ export class UserController {
       user,
     );
   }
-
-  // @Patch(':id')
-  // async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-  //   const updatedUser = await this.userService.update(id, updateUserDto);
-  //   return ResponseDto.createSuccessResponse(
-  //     'User updated successfully',
-  //     updatedUser,
-  //   );
-  // }
-
-  // @Delete(':id')
-  // async remove(@Param('id') id: string) {
-  //   const result = await this.userService.remove(id);
-  //   return ResponseDto.createSuccessResponse(
-  //     'User deleted successfully',
-  //     result,
-  //   );
-  // }
 }
