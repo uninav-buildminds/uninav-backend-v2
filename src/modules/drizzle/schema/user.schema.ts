@@ -1,15 +1,16 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  integer,
-  timestamp,
-  index,
-} from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
+import { pgTable, uuid, text, integer, index } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 import { userRoleEnum } from './enums.schema';
 import { department } from './department.schema';
 import { auth } from './auth.schema';
+import { moderator } from './moderator.schema';
+import { material } from './material.schema';
+import { collection } from './collection.schema';
+import { studentCourses } from './course.schema';
+import { bookmarks } from './collection.schema';
+import { comments } from './comments.schema';
+import { blogs } from 'src/modules/drizzle/schema/blog.schema';
+import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 
 // Table Definition with Index on email
 export const user = pgTable(
@@ -25,10 +26,7 @@ export const user = pgTable(
     }),
     level: integer('level').notNull(),
     role: userRoleEnum('role').default('student'),
-    createdAt: timestamp('createdAt').defaultNow(),
-    updatedAt: timestamp('updatedAt')
-      .default(sql`(CURRENT_TIMESTAMP)`)
-      .$onUpdate(() => sql`(CURRENT_TIMESTAMP)`),
+    ...timestamps,
   },
   (table) => ({
     emailIndex: index('users_email_index').on(table.email),
@@ -37,14 +35,6 @@ export const user = pgTable(
 );
 
 // Relations  ------
-// Used by other schemas to import the user type
-import { moderator } from './moderator.schema';
-import { material } from './material.schema';
-import { collection } from './collection.schema';
-import { studentCourses } from './course.schema';
-import { bookmarks } from './collection.schema';
-import { comments } from './comments.schema';
-import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 
 export const userRelations = relations(user, ({ one, many }) => ({
   department: one(department, {

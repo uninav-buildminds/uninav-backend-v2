@@ -60,7 +60,7 @@ export class UserRepository {
   async update(id: string, updateUserDto: UpdateUserDto) {
     const updatedUser = await this.db
       .update(user)
-      .set(updateUserDto)
+      .set({ ...updateUserDto, updatedAt: new Date() } as any)
       .where(eq(user.id, id))
       .returning();
 

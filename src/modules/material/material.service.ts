@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -8,7 +9,11 @@ import { MaterialRepository } from './material.repository';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { StorageService } from 'src/storage/storage.service';
-import { MaterialTypeEnum, ResourceType } from 'src/utils/types/db.types';
+import {
+  MaterialEntity,
+  MaterialTypeEnum,
+  ResourceType,
+} from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
 import {
@@ -16,6 +21,8 @@ import {
   RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS,
 } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
+('updateMaterialDto');
+
 @Injectable()
 export class MaterialService {
   constructor(
@@ -129,6 +136,13 @@ export class MaterialService {
     }
     return material;
   }
+  async findMaterialResource(id: string) {
+    const resource = await this.materialRepository.findMaterialResource(id);
+    if (!resource) {
+      throw new NotFoundException('Resource not found');
+    }
+    return resource;
+  }
 
   async getMaterial(id: string) {
     const material = await this.findOne(id);
@@ -190,71 +204,152 @@ export class MaterialService {
     }
   }
 
+  /**
+   * Ensures the user is authorized to modify the material
+   * @param materialId Material ID to check
+   * @param userId User ID to verify against
+   * @throws ForbiddenException if user is not the creator
+   */
+  async ensureOwnership(
+    material: MaterialEntity,
+    userId: string,
+  ): Promise<void> {
+    const isOwner = material.creatorId === userId;
+    if (!isOwner) {
+      logger.warn(
+        `User ${userId} attempted to modify material ${material.id} without ownership`,
+      );
+      throw new ForbiddenException(
+        'You do not have permission to modify this material',
+      );
+    }
+  }
+
   async update(
     id: string,
     updateMaterialDto: UpdateMaterialDto,
+    userId: string,
     file?: MulterFile,
   ) {
-    const material = await this.findOne(id); // Check if exists
-    if (!material) {
-      throw new NotFoundException(`Material with id ${id} wasn't found`);
-    }
+    try {
+      const material = await this.findOne(id); // Check if exists
 
-    // Extract and handle resource data if present
-    if (updateMaterialDto.resourceAddress) {
-      const { resourceAddress, resourceType, metaData, ...materialData } =
+      // Ensure user is the creator of the material
+      await this.ensureOwnership(material, userId);
+
+      // Extract and separate resource data from material data
+      const { resourceType, resourceAddress, metaData, ...materialData } =
         updateMaterialDto;
-      let resourceDto = {
-        resourceAddress,
-        resourceType,
-        metaData,
-        fileKey: null,
-      };
 
-      // Handle file upload if resource type is UPLOADED and file is provided
-      if (resourceDto?.resourceType === ResourceType.UPLOAD && file) {
-        const { publicUrl, fileKey } = await this.storageService.uploadFile(
-          file,
-          false,
-        );
-        resourceDto.resourceAddress = publicUrl;
-        resourceDto.fileKey = fileKey;
-        // Update the resource
-        if (resourceDto) {
-          const resourceUpdateData: any = {};
-          if (resourceDto.resourceAddress)
-            resourceUpdateData.resourceAddress = resourceDto.resourceAddress;
-          if (resourceDto.resourceType)
-            resourceUpdateData.resourceType = resourceDto.resourceType;
-          if (resourceDto.metaData)
-            resourceUpdateData.metaData = resourceDto.metaData;
+      // Handle resource updates if resource data is provided
+      if (
+        resourceType !== undefined ||
+        resourceAddress !== undefined ||
+        metaData !== undefined
+      ) {
+        const currentResource =
+          await this.materialRepository.findMaterialResource(id);
 
-          await this.materialRepository.updateResource(id, resourceUpdateData);
+        // Prepare resource update data
+        let resourceDto = {
+          resourceType: resourceType || currentResource?.resourceType,
+          resourceAddress: resourceAddress,
+          metaData: metaData || currentResource?.metaData,
+          fileKey: currentResource?.fileKey,
+        };
+
+        // Handle file uploads for ResourceType.UPLOAD
+        if (resourceType === ResourceType.UPLOAD) {
+          if (!file) {
+            throw new BadRequestException(
+              'File upload is required for uploaded resources',
+            );
+          }
+
+          // Upload the new file
+          const { publicUrl, fileKey } = await this.storageService.uploadFile(
+            file,
+            false,
+          );
+          const signedUrl = await this.storageService.getSignedUrl(
+            fileKey,
+            3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
+          );
+          resourceDto.resourceAddress = signedUrl;
+          resourceDto.fileKey = fileKey;
+
+          // Delete the old file if it exists and is an uploaded file
+          if (
+            currentResource?.resourceType === ResourceType.UPLOAD &&
+            currentResource?.fileKey
+          ) {
+            try {
+              await this.storageService.deleteFile(
+                currentResource.fileKey,
+                false,
+              );
+            } catch (error) {
+              logger.error(
+                `Failed to delete old file when updating material: ${error.message}`,
+              );
+              // Continue with update even if file deletion fails
+            }
+          }
+        } else if (resourceType && !resourceAddress) {
+          // If changing resource type but no address provided
+          throw new BadRequestException(
+            'Resource address is required when changing resource type',
+          );
         }
 
-        // Update material
-        return this.materialRepository.update(id, materialData);
+        // Update the resource
+        await this.materialRepository.updateResource(id, resourceDto);
       }
-    }
 
-    // If no resource data, just update the material
-    return this.materialRepository.update(id, updateMaterialDto);
+      if (Object.values(materialData).length !== 0) {
+        await this.materialRepository.update(id, materialData);
+      }
+
+      // Return the updated material with its resource
+      return this.materialRepository.findOne(id);
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
+        throw error; // Re-throw specific exceptions
+      }
+
+      logger.error(`Failed to update material: ${error.message}`);
+      throw new InternalServerErrorException('Failed to update material');
+    }
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     // Find material first to ensure it exists
     const material = await this.findOne(id);
+
+    // Ensure user is the creator of the material
+    await this.ensureOwnership(material, userId);
 
     // Handle resource deletion if needed
     if (
       material.resource &&
       material.resource.resourceType === ResourceType.UPLOAD
     ) {
-      // Extract filename from resource URL
-      const fileKey = material.resource.fileKey;
-
-      // Delete the file from S3
-      await this.storageService.deleteFile(fileKey, false);
+      // Delete the file from storage
+      try {
+        await this.storageService.deleteFile(material.resource.fileKey, false);
+        logger.log(
+          `Successfully deleted file ${material.resource.fileKey} when removing material ${id}`,
+        );
+      } catch (error) {
+        logger.error(
+          `Failed to delete file when removing material: ${error.message}`,
+        );
+        // Continue with the deletion even if file deletion fails
+      }
     }
 
     return this.materialRepository.remove(id);

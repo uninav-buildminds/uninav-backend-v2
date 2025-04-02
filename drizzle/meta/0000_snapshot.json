@@ -1,5 +1,5 @@
 {
-  "id": "ad55ef47-8209-465a-aa73-c6dc38039188",
+  "id": "77fb929d-fe86-4bac-8527-466d4a6ddaf6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -63,15 +63,15 @@
           "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
-          "default": "(CURRENT_TIMESTAMP)"
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
@@ -196,20 +196,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "(CURRENT_TIMESTAMP)"
         }
       },
       "indexes": {
@@ -649,8 +635,22 @@
           "primaryKey": false,
           "notNull": false
         },
-        "downloadCount": {
-          "name": "downloadCount",
+        "click_count": {
+          "name": "click_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "view_count": {
+          "name": "view_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "download_count": {
+          "name": "download_count",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -681,14 +681,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "materialStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
-        },
         "visibility": {
           "name": "visibility",
           "type": "visibilityEnum",
@@ -705,6 +697,14 @@
           "notNull": false,
           "default": "'readonly'"
         },
+        "review_status": {
+          "name": "review_status",
+          "type": "materialStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
         "reviewedBy": {
           "name": "reviewedBy",
           "type": "uuid",
@@ -715,14 +715,14 @@
           "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         }
       },
@@ -1021,14 +1021,14 @@
           "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         }
       },
@@ -1087,14 +1087,14 @@
           "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         }
       },
@@ -1213,14 +1213,14 @@
           "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         }
       },
@@ -1245,6 +1245,78 @@
           "tableTo": "collection",
           "columnsFrom": [
             "collection_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.resource": {
+      "name": "resource",
+      "schema": "",
+      "columns": {
+        "materialId": {
+          "name": "materialId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "resourceAddress": {
+          "name": "resourceAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resourceType": {
+          "name": "resourceType",
+          "type": "resourceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fileKey": {
+          "name": "fileKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metaData": {
+          "name": "metaData",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "resource_materialId_material_id_fk": {
+          "name": "resource_materialId_material_id_fk",
+          "tableFrom": "resource",
+          "tableTo": "material",
+          "columnsFrom": [
+            "materialId"
           ],
           "columnsTo": [
             "id"

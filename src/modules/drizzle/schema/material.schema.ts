@@ -11,6 +11,7 @@ import { moderator } from './moderator.schema';
 import { collectionMaterial } from './collection.schema';
 import { advert } from './advert.schema';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
+import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 
 export const material = pgTable('material', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -34,8 +35,7 @@ export const material = pgTable('material', {
   reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
     onDelete: 'set null',
   }),
-  createdAt: timestamp('createdAt').defaultNow(),
-  updatedAt: timestamp('updatedAt').defaultNow(),
+  ...timestamps,
 });
 
 export const materialRelations = relations(material, ({ one, many }) => ({

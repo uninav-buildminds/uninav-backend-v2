@@ -8,7 +8,6 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
-  Query,
   BadRequestException,
   UseGuards,
   Req,
@@ -72,6 +71,14 @@ export class MaterialController {
       material,
     );
   }
+  @Get('resource/:materialId')
+  async findMaterialResource(@Param('materialId') id: string) {
+    const resource = await this.materialService.findMaterialResource(id);
+    return ResponseDto.createSuccessResponse(
+      'Resource retrieved successfully',
+      resource,
+    );
+  }
 
   @Get('download/:id')
   async download(@Param('id') id: string) {
@@ -79,15 +86,6 @@ export class MaterialController {
     return ResponseDto.createSuccessResponse(
       'Download URL generated successfully',
       { url },
-    );
-  }
-
-  @Post(':id/like')
-  async likeMaterial(@Param('id') id: string) {
-    const material = await this.materialService.likeMaterial(id);
-    return ResponseDto.createSuccessResponse(
-      'Material liked successfully',
-      material,
     );
   }
 
@@ -113,13 +111,16 @@ export class MaterialController {
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('file'))
   async update(
+    @Req() req: Request,
     @Param('id') id: string,
     @Body() updateMaterialDto: UpdateMaterialDto,
     @UploadedFile() file?: MulterFile,
   ) {
+    const user = req['user'] as UserEntity;
     const material = await this.materialService.update(
       id,
       updateMaterialDto,
+      user.id,
       file,
     );
     return ResponseDto.createSuccessResponse(
@@ -130,8 +131,9 @@ export class MaterialController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  async remove(@Param('id') id: string) {
-    const material = await this.materialService.remove(id);
+  async remove(@Req() req: Request, @Param('id') id: string) {
+    const user = req['user'] as UserEntity;
+    const material = await this.materialService.remove(id, user.id);
     return ResponseDto.createSuccessResponse(
       'Material deleted successfully',
       material,

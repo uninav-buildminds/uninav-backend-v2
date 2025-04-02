@@ -27,10 +27,6 @@ export const auth = pgTable(
     userIdType: userIdTypeEnum('user_id_type'),
     userIdImage: text('user_id_image'), // URL to the ID image
     userIdVerified: boolean('user_id_verified').default(false),
-    createdAt: timestamp('created_at').defaultNow(),
-    updatedAt: timestamp('updated_at')
-      .default(sql`(CURRENT_TIMESTAMP)`)
-      .$onUpdate(() => sql`(CURRENT_TIMESTAMP)`),
   },
   (table) => ({
     matricNoIndex: index('auth_matric_no_index').on(table.matricNo),

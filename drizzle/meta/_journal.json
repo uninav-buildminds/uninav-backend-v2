@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1743580324707,
-      "tag": "0000_large_doctor_doom",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1743583624337,
-      "tag": "0001_rare_darwin",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1743583948902,
-      "tag": "0002_wandering_sumo",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1743588979118,
-      "tag": "0003_overrated_puff_adder",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1743591868652,
-      "tag": "0004_long_fenris",
+      "when": 1743625025896,
+      "tag": "0000_cool_kylun",
       "breakpoints": true
     }
   ]

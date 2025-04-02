@@ -133,7 +133,6 @@ export class UserService {
     try {
       // Check if user exists
       await this.findOne(id);
-
       // Check department if it's being updated
       if (updateUserDto.departmentId) {
         const department = await this.departmentService.findOne(
@@ -143,16 +142,6 @@ export class UserService {
           throw new NotFoundException(
             `Department with ID ${updateUserDto.departmentId} does not exist`,
           );
-        }
-      }
-
-      // Check email uniqueness if updating email
-      if (updateUserDto.email) {
-        const existingUserWithEmail = await this.userRepository.findByEmail(
-          updateUserDto.email,
-        );
-        if (existingUserWithEmail && existingUserWithEmail.id !== id) {
-          throw new BadRequestException('Email already in use');
         }
       }
 

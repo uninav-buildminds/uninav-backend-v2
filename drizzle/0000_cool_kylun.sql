@@ -17,8 +17,8 @@ CREATE TABLE "users" (
 	"department" uuid,
 	"level" integer NOT NULL,
 	"role" "userRole" DEFAULT 'student',
-	"createdAt" timestamp DEFAULT now(),
-	"updatedAt" timestamp DEFAULT (CURRENT_TIMESTAMP),
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email"),
 	CONSTRAINT "users_username_unique" UNIQUE("username")
 );
@@ -32,8 +32,6 @@ CREATE TABLE "auth" (
 	"user_id_type" "studentIdType",
 	"user_id_image" text,
 	"user_id_verified" boolean DEFAULT false,
-	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT (CURRENT_TIMESTAMP),
 	CONSTRAINT "auth_email_unique" UNIQUE("email"),
 	CONSTRAINT "auth_matric_no_unique" UNIQUE("matric_no")
 );
@@ -84,17 +82,19 @@ CREATE TABLE "material" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"type" "materialType" NOT NULL,
 	"tags" text[],
-	"downloadCount" integer DEFAULT 0,
+	"click_count" integer DEFAULT 0,
+	"view_count" integer DEFAULT 0,
+	"download_count" integer DEFAULT 0,
 	"likes" integer DEFAULT 0,
 	"creator" uuid,
 	"label" text,
 	"description" text,
-	"status" "materialStatus" DEFAULT 'pending',
 	"visibility" "visibilityEnum" DEFAULT 'public',
 	"restriction" "restrictionEnum" DEFAULT 'readonly',
+	"review_status" "materialStatus" DEFAULT 'pending',
 	"reviewedBy" uuid,
-	"createdAt" timestamp DEFAULT now(),
-	"updatedAt" timestamp DEFAULT now()
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "bookmarks" (
@@ -127,8 +127,8 @@ CREATE TABLE "blogs" (
 	"body" text NOT NULL,
 	"likes" integer DEFAULT 0,
 	"clicks" integer DEFAULT 0,
-	"createdAt" timestamp DEFAULT now(),
-	"updatedAt" timestamp DEFAULT now()
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "comments" (
@@ -136,8 +136,8 @@ CREATE TABLE "comments" (
 	"blogId" uuid,
 	"userId" uuid,
 	"text" text NOT NULL,
-	"createdAt" timestamp DEFAULT now(),
-	"updatedAt" timestamp DEFAULT now()
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "advert" (
@@ -152,8 +152,18 @@ CREATE TABLE "advert" (
 	"clicks" integer DEFAULT 0,
 	"impressions" integer DEFAULT 0,
 	"status" "advertStatus" DEFAULT 'pending',
-	"createdAt" timestamp DEFAULT now(),
-	"updatedAt" timestamp DEFAULT now()
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "resource" (
+	"materialId" uuid PRIMARY KEY NOT NULL,
+	"resourceAddress" text NOT NULL,
+	"resourceType" "resourceType" NOT NULL,
+	"fileKey" text,
+	"metaData" text[],
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_department_department_id_fk" FOREIGN KEY ("department") REFERENCES "public"."department"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -179,6 +189,7 @@ ALTER TABLE "comments" ADD CONSTRAINT "comments_blogId_blogs_id_fk" FOREIGN KEY 
 ALTER TABLE "comments" ADD CONSTRAINT "comments_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advert" ADD CONSTRAINT "advert_material_id_material_id_fk" FOREIGN KEY ("material_id") REFERENCES "public"."material"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advert" ADD CONSTRAINT "advert_collection_id_collection_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collection"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "resource" ADD CONSTRAINT "resource_materialId_material_id_fk" FOREIGN KEY ("materialId") REFERENCES "public"."material"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "users_email_index" ON "users" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "user_username_index" ON "users" USING btree ("username");--> statement-breakpoint
 CREATE INDEX "auth_matric_no_index" ON "auth" USING btree ("matric_no");--> statement-breakpoint

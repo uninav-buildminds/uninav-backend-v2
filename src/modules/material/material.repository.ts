@@ -12,6 +12,7 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { CreateResourceDto } from 'src/modules/material/dto/create-resource.dto';
+import { materialLogger } from 'src/modules/material/material.module';
 
 @Injectable()
 export class MaterialRepository {
@@ -65,6 +66,11 @@ export class MaterialRepository {
       },
     });
   }
+  async findMaterialResource(id: string) {
+    return this.db.query.resource.findFirst({
+      where: eq(resource.materialId, id),
+    });
+  }
 
   async incrementDownloadCount(id: string) {
     const result = await this.db
@@ -79,7 +85,7 @@ export class MaterialRepository {
     await this.db
       .update(material)
       .set({
-        clickCOunt: sql`${material.clickCount} + 1`,
+        clickCount: sql`${material.clickCount} + 1`,
       } as any)
       .where(eq(material.id, id));
   }
@@ -100,11 +106,13 @@ export class MaterialRepository {
     updateMaterialDto: Omit<
       UpdateMaterialDto,
       'resourceType' | 'resourceAddress' | 'metaData'
-    >,
+    > & { reviewStatus?: string },
   ): Promise<MaterialEntity> {
+    materialLogger.log('updateMaterialDto', updateMaterialDto);
+    console.log('updateMaterialDto', updateMaterialDto);
     const result = await this.db
       .update(material)
-      .set(updateMaterialDto as any)
+      .set({ ...updateMaterialDto, updatedAt: new Date() } as any)
       .where(eq(material.id, id))
       .returning();
     return result[0];
@@ -142,7 +150,7 @@ export class MaterialRepository {
   ) {
     const result = await this.db
       .update(resource)
-      .set(resourceData)
+      .set({ ...resourceData, updatedAt: new Date() } as any)
       .where(eq(resource.materialId, materialId))
       .returning();
     return result[0];
@@ -151,9 +159,6 @@ export class MaterialRepository {
   async findByCreator(creatorId: string): Promise<MaterialEntity[]> {
     return this.db.query.material.findMany({
       where: eq(material.creatorId, creatorId),
-      with: {
-        resource: true,
-      },
     });
   }
 

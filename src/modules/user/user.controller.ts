@@ -7,6 +7,7 @@ import {
   Delete,
   UseGuards,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -15,6 +16,7 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { UserEntity } from 'src/utils/types/db.types';
 import { AuthService } from 'src/modules/auth/auth.service';
+import { UpdateUserDto } from 'src/modules/user/dto/update-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -37,6 +39,17 @@ export class UserController {
     return ResponseDto.createSuccessResponse(
       'User profile retrieved successfully',
       { ...user, auth },
+    );
+  }
+
+  @Patch()
+  @UseGuards(RolesGuard)
+  async update(@Req() req: Request, @Body() updateUserDto: UpdateUserDto) {
+    const user = req.user as UserEntity;
+    const updatedUser = await this.userService.update(user.id, updateUserDto);
+    return ResponseDto.createSuccessResponse(
+      'User updated successfully',
+      updatedUser,
     );
   }
 

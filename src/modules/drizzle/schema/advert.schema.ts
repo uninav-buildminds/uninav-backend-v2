@@ -10,6 +10,7 @@ import { relations } from 'drizzle-orm';
 import { advertStatusEnum, advertTypeEnum } from './enums.schema';
 import { material } from './material.schema';
 import { collection } from './collection.schema';
+import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 
 export const advert = pgTable('advert', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -27,8 +28,7 @@ export const advert = pgTable('advert', {
   clicks: integer('clicks').default(0),
   impressions: integer('impressions').default(0),
   status: advertStatusEnum('status').default('pending'),
-  createdAt: timestamp('createdAt').defaultNow(),
-  updatedAt: timestamp('updatedAt').defaultNow(),
+  ...timestamps,
 });
 
 export const advertRelations = relations(advert, ({ one }) => ({

@@ -1,7 +1,8 @@
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { material } from 'src/modules/drizzle/schema/material.schema';
 import { resourceTypeEnum } from 'src/modules/drizzle/schema/enums.schema';
+import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 
 export const resource = pgTable('resource', {
   materialId: uuid('materialId')
@@ -11,12 +12,11 @@ export const resource = pgTable('resource', {
     }),
 
   resourceAddress: text('resourceAddress').notNull(),
-  resourceType: resourceTypeEnum('resourceType'),
-  fileKey: text('fileKey').notNull(),
+  resourceType: resourceTypeEnum('resourceType').notNull(),
+  fileKey: text('fileKey'),
   metaData: text('metaData').array(),
 
-  createdAt: timestamp('createdAt').defaultNow(),
-  updatedAt: timestamp('updatedAt').defaultNow(),
+  ...timestamps,
 });
 
 export const resourceRelation = relations(resource, ({ one }) => ({
