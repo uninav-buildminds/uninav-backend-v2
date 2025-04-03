@@ -37,7 +37,7 @@ export enum UserRoleEnum {
   STUDENT = 'student',
 }
 
-export enum EntityStatus {
+export enum ApprovalStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',

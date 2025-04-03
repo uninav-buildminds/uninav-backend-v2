@@ -1,13 +1,12 @@
-CREATE TYPE "public"."advertStatus" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
-CREATE TYPE "public"."advertType" AS ENUM('free', 'pro', 'boost', 'targeted');--> statement-breakpoint
-CREATE TYPE "public"."blogType" AS ENUM('article', 'guideline', 'scheme_of_work', 'tutorial');--> statement-breakpoint
-CREATE TYPE "public"."materialStatus" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
-CREATE TYPE "public"."materialType" AS ENUM('pdf', 'video', 'article', 'image', 'other');--> statement-breakpoint
-CREATE TYPE "public"."resourceType" AS ENUM('url', 'GDrive', 'upload');--> statement-breakpoint
-CREATE TYPE "public"."restrictionEnum" AS ENUM('readonly', 'downloadable');--> statement-breakpoint
-CREATE TYPE "public"."studentIdType" AS ENUM('id_card', 'admission_letter');--> statement-breakpoint
-CREATE TYPE "public"."userRole" AS ENUM('student', 'moderator', 'admin');--> statement-breakpoint
-CREATE TYPE "public"."visibilityEnum" AS ENUM('public', 'private');--> statement-breakpoint
+CREATE TYPE "public"."advert_type" AS ENUM('free', 'pro', 'boost', 'targeted');--> statement-breakpoint
+CREATE TYPE "public"."approval_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
+CREATE TYPE "public"."blog_type" AS ENUM('article', 'guideline', 'scheme_of_work', 'tutorial');--> statement-breakpoint
+CREATE TYPE "public"."material_type" AS ENUM('pdf', 'video', 'article', 'image', 'other');--> statement-breakpoint
+CREATE TYPE "public"."resource_type" AS ENUM('url', 'GDrive', 'upload');--> statement-breakpoint
+CREATE TYPE "public"."restriction_enum" AS ENUM('readonly', 'downloadable');--> statement-breakpoint
+CREATE TYPE "public"."user_id_type" AS ENUM('id_card', 'admission_letter');--> statement-breakpoint
+CREATE TYPE "public"."user_role" AS ENUM('student', 'moderator', 'admin');--> statement-breakpoint
+CREATE TYPE "public"."visibility_enum" AS ENUM('public', 'private');--> statement-breakpoint
 CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
@@ -16,7 +15,7 @@ CREATE TABLE "users" (
 	"username" text NOT NULL,
 	"department" uuid,
 	"level" integer NOT NULL,
-	"role" "userRole" DEFAULT 'student',
+	"role" "user_role" DEFAULT 'student',
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	"updatedAt" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email"),
@@ -29,7 +28,7 @@ CREATE TABLE "auth" (
 	"email_verified" boolean DEFAULT false,
 	"password" text NOT NULL,
 	"matric_no" text,
-	"user_id_type" "studentIdType",
+	"user_id_type" "user_id_type",
 	"user_id_image" text,
 	"user_id_verified" boolean DEFAULT false,
 	CONSTRAINT "auth_email_unique" UNIQUE("email"),
@@ -40,7 +39,7 @@ CREATE TABLE "moderator" (
 	"userId" uuid PRIMARY KEY NOT NULL,
 	"department" uuid,
 	"faculty" uuid,
-	"status" "materialStatus" DEFAULT 'pending'
+	"review_status" "approval_status" DEFAULT 'pending'
 );
 --> statement-breakpoint
 CREATE TABLE "faculty" (
@@ -62,7 +61,11 @@ CREATE TABLE "courses" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"courseName" text NOT NULL,
 	"courseCode" text NOT NULL,
-	"description" text,
+	"description" text NOT NULL,
+	"review_status" "approval_status" DEFAULT 'pending',
+	"reviewedBy" uuid,
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "courses_courseCode_unique" UNIQUE("courseCode")
 );
 --> statement-breakpoint
@@ -70,6 +73,8 @@ CREATE TABLE "department_level_courses" (
 	"departmentId" uuid,
 	"courseId" uuid,
 	"level" integer NOT NULL,
+	"review_status" "approval_status" DEFAULT 'pending',
+	"reviewedBy" uuid,
 	CONSTRAINT "department_level_courses_departmentId_courseId_pk" PRIMARY KEY("departmentId","courseId")
 );
 --> statement-breakpoint
@@ -81,7 +86,7 @@ CREATE TABLE "student_courses" (
 --> statement-breakpoint
 CREATE TABLE "material" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"type" "materialType" NOT NULL,
+	"type" "material_type" NOT NULL,
 	"tags" text[],
 	"click_count" integer DEFAULT 0,
 	"view_count" integer DEFAULT 0,
@@ -90,10 +95,10 @@ CREATE TABLE "material" (
 	"creator" uuid,
 	"label" text,
 	"description" text,
-	"visibility" "visibilityEnum" DEFAULT 'public',
-	"restriction" "restrictionEnum" DEFAULT 'readonly',
+	"visibility" "visibility_enum" DEFAULT 'public',
+	"restriction" "restriction_enum" DEFAULT 'readonly',
 	"target_course" uuid,
-	"review_status" "materialStatus" DEFAULT 'pending',
+	"review_status" "approval_status" DEFAULT 'pending',
 	"reviewedBy" uuid,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	"updatedAt" timestamp DEFAULT now() NOT NULL
@@ -111,7 +116,7 @@ CREATE TABLE "collection" (
 	"creator" uuid,
 	"label" text NOT NULL,
 	"description" text,
-	"visibility" "visibilityEnum" DEFAULT 'public'
+	"visibility" "visibility_enum" DEFAULT 'public'
 );
 --> statement-breakpoint
 CREATE TABLE "collection_material" (
@@ -125,7 +130,7 @@ CREATE TABLE "blogs" (
 	"creator" uuid NOT NULL,
 	"title" text NOT NULL,
 	"description" text NOT NULL,
-	"type" "blogType" NOT NULL,
+	"type" "blog_type" NOT NULL,
 	"body" text NOT NULL,
 	"likes" integer DEFAULT 0,
 	"clicks" integer DEFAULT 0,
@@ -144,7 +149,7 @@ CREATE TABLE "comments" (
 --> statement-breakpoint
 CREATE TABLE "advert" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"type" "advertType" NOT NULL,
+	"type" "advert_type" NOT NULL,
 	"amount" numeric,
 	"material_id" uuid,
 	"collection_id" uuid,
@@ -153,7 +158,7 @@ CREATE TABLE "advert" (
 	"description" text,
 	"clicks" integer DEFAULT 0,
 	"impressions" integer DEFAULT 0,
-	"status" "advertStatus" DEFAULT 'pending',
+	"review_status" "approval_status" DEFAULT 'pending',
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
@@ -161,7 +166,7 @@ CREATE TABLE "advert" (
 CREATE TABLE "resource" (
 	"materialId" uuid PRIMARY KEY NOT NULL,
 	"resourceAddress" text NOT NULL,
-	"resourceType" "resourceType" NOT NULL,
+	"resourceType" "resource_type" NOT NULL,
 	"fileKey" text,
 	"metaData" text[],
 	"createdAt" timestamp DEFAULT now() NOT NULL,
@@ -174,8 +179,10 @@ ALTER TABLE "moderator" ADD CONSTRAINT "moderator_userId_users_id_fk" FOREIGN KE
 ALTER TABLE "moderator" ADD CONSTRAINT "moderator_department_department_id_fk" FOREIGN KEY ("department") REFERENCES "public"."department"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "moderator" ADD CONSTRAINT "moderator_faculty_faculty_id_fk" FOREIGN KEY ("faculty") REFERENCES "public"."faculty"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "department" ADD CONSTRAINT "department_facultyId_faculty_id_fk" FOREIGN KEY ("facultyId") REFERENCES "public"."faculty"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "courses" ADD CONSTRAINT "courses_reviewedBy_moderator_userId_fk" FOREIGN KEY ("reviewedBy") REFERENCES "public"."moderator"("userId") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "department_level_courses" ADD CONSTRAINT "department_level_courses_departmentId_department_id_fk" FOREIGN KEY ("departmentId") REFERENCES "public"."department"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "department_level_courses" ADD CONSTRAINT "department_level_courses_courseId_courses_id_fk" FOREIGN KEY ("courseId") REFERENCES "public"."courses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "department_level_courses" ADD CONSTRAINT "department_level_courses_reviewedBy_moderator_userId_fk" FOREIGN KEY ("reviewedBy") REFERENCES "public"."moderator"("userId") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "student_courses" ADD CONSTRAINT "student_courses_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "student_courses" ADD CONSTRAINT "student_courses_courseId_courses_id_fk" FOREIGN KEY ("courseId") REFERENCES "public"."courses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "material" ADD CONSTRAINT "material_creator_users_id_fk" FOREIGN KEY ("creator") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint

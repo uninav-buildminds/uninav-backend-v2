@@ -1,10 +1,10 @@
 import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import {
-  materialReviewStatusEnum,
   visibilityEnum,
   restrictionEnum,
   materialTypeEnum,
+  approvalStatusEnum,
 } from './enums.schema';
 import { user } from './user.schema';
 import { moderator } from './moderator.schema';
@@ -35,7 +35,7 @@ export const material = pgTable('material', {
   targetCourse: uuid('target_course').references(() => courses.id, {
     onDelete: 'set null',
   }),
-  reviewStatus: materialReviewStatusEnum('review_status').default('pending'),
+  reviewStatus: approvalStatusEnum('review_status').default('pending'),
   reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
     onDelete: 'set null',
   }),

@@ -2,15 +2,15 @@ import { pgTable, uuid, text, primaryKey, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { department } from './department.schema';
 import { user } from './user.schema';
-import { courseStatusEnum } from 'src/modules/drizzle/schema/enums.schema';
 import { moderator } from 'src/modules/drizzle/schema/moderator.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { approvalStatusEnum } from 'src/modules/drizzle/schema/enums.schema';
 export const courses = pgTable('courses', {
   id: uuid('id').primaryKey().defaultRandom(),
   courseName: text('courseName').notNull(),
   courseCode: text('courseCode').notNull().unique(),
   description: text('description').notNull(),
-  reviewStatus: courseStatusEnum('reviewStatus').default('pending'),
+  reviewStatus: approvalStatusEnum('review_status').default('pending'),
   reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
     onDelete: 'set null',
   }),
@@ -27,6 +27,11 @@ export const departmentLevelCourses = pgTable(
       onDelete: 'cascade',
     }),
     level: integer('level').notNull(),
+
+    reviewStatus: approvalStatusEnum('review_status').default('pending'),
+    reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
+      onDelete: 'set null',
+    }),
   },
   (table) => {
     return {

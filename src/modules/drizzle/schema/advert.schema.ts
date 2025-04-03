@@ -1,13 +1,6 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  numeric,
-  integer,
-  timestamp,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { advertStatusEnum, advertTypeEnum } from './enums.schema';
+import { advertTypeEnum, approvalStatusEnum } from './enums.schema';
 import { material } from './material.schema';
 import { collection } from './collection.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
@@ -28,7 +21,7 @@ export const advert = pgTable('advert', {
   description: text('description'),
   clicks: integer('clicks').default(0),
   impressions: integer('impressions').default(0),
-  status: advertStatusEnum('status').default('pending'),
+  review_status: approvalStatusEnum('review_status').default('pending'),
   ...timestamps,
 });
 

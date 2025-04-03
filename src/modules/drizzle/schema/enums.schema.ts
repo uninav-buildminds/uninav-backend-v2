@@ -6,11 +6,6 @@ export const userRoleEnum = pgEnum('user_role', [
   'moderator',
   'admin',
 ]);
-export const materialReviewStatusEnum = pgEnum('material_status', [
-  'pending',
-  'approved',
-  'rejected',
-]);
 export const materialTypeEnum = pgEnum('material_type', [
   'pdf',
   'video',
@@ -28,11 +23,6 @@ export const restrictionEnum = pgEnum('restriction_enum', [
   'readonly',
   'downloadable',
 ]);
-export const advertStatusEnum = pgEnum('advert_status', [
-  'pending',
-  'approved',
-  'rejected',
-]);
 export const advertTypeEnum = pgEnum('advert_type', [
   'free',
   'pro',
@@ -40,11 +30,12 @@ export const advertTypeEnum = pgEnum('advert_type', [
   'targeted',
 ]);
 
-export const courseStatusEnum = pgEnum('course_status', [
+export const approvalStatusEnum = pgEnum('approval_status', [
   'pending',
   'approved',
   'rejected',
 ]);
+
 export const blogTypeEnum = pgEnum('blog_type', [
   'article',
   'guideline',

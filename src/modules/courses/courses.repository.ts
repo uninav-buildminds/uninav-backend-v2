@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { CourseEntity, DrizzleDB } from 'src/utils/types/db.types';
 import { CreateCourseDto } from './dto/create-course.dto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import {
   courses,
   departmentLevelCourses,
@@ -12,24 +12,79 @@ import {
 export class CoursesRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
 
+  async findExistingDepartmentLevelCourse(
+    courseId: string,
+    departmentId: string,
+    level: number,
+  ) {
+    return await this.db.query.departmentLevelCourses.findFirst({
+      where: and(
+        eq(departmentLevelCourses.courseId, courseId),
+        eq(departmentLevelCourses.departmentId, departmentId),
+        eq(departmentLevelCourses.level, level),
+      ),
+    });
+  }
+
+  async createDepartmentLevelCourse(
+    courseId: string,
+    departmentId: string,
+    level: number,
+  ) {
+    return await this.db
+      .insert(departmentLevelCourses)
+      .values({
+        departmentId,
+        courseId,
+        level,
+      } as any)
+      .returning();
+  }
+
   async create(createCourseDto: CreateCourseDto) {
     const { departmentId, level, ...courseData } = createCourseDto;
 
-    // Start a transaction
     return await this.db.transaction(async (tx) => {
-      // Create the course
-      const [course] = await tx
-        .insert(courses)
-        .values(courseData as any)
-        .returning();
+      // Try to find existing course
+      const existingCourse = await tx.query.courses.findFirst({
+        where: or(
+          eq(courses.courseCode, courseData.courseCode),
+          eq(courses.courseName, courseData.courseName),
+        ),
+      });
 
-      // Create department-level course relationship
-      await tx.insert(departmentLevelCourses).values({
-        departmentId: departmentId,
-        courseId: course.id,
-        level: level,
-      } as any);
+      let course;
+      if (existingCourse) {
+        course = existingCourse;
+      } else {
+        // Create new course if it doesn't exist
+        [course] = await tx
+          .insert(courses)
+          .values(courseData as any)
+          .returning();
+      }
 
+      // Check if department-level course combination already exists
+      const existingDeptLevel = await tx.query.departmentLevelCourses.findFirst(
+        {
+          where: and(
+            eq(departmentLevelCourses.courseId, course.id),
+            eq(departmentLevelCourses.departmentId, departmentId),
+            eq(departmentLevelCourses.level, level),
+          ),
+        },
+      );
+
+      if (!existingDeptLevel) {
+        // Create new department-level course relationship
+        await tx.insert(departmentLevelCourses).values({
+          departmentId,
+          courseId: course.id,
+          level,
+        } as any);
+      } else {
+        return null;
+      }
       return course;
     });
   }
@@ -103,6 +158,15 @@ export class CoursesRepository {
           },
         },
       },
+    });
+  }
+
+  async findByCourseCodeOrName(courseCode: string, courseName: string) {
+    return this.db.query.courses.findFirst({
+      where: or(
+        eq(courses.courseCode, courseCode),
+        eq(courses.courseName, courseName),
+      ),
     });
   }
 }

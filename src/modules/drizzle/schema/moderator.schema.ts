@@ -1,6 +1,6 @@
 import { pgTable, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { materialReviewStatusEnum } from './enums.schema';
+import { approvalStatusEnum } from './enums.schema';
 import { user } from './user.schema';
 import { department } from './department.schema';
 import { faculty } from './faculty.schema';
@@ -16,7 +16,7 @@ export const moderator = pgTable('moderator', {
   facultyId: uuid('faculty').references(() => faculty.id, {
     onDelete: 'set null',
   }),
-  status: materialReviewStatusEnum('status').default('pending'),
+  reviewStatus: approvalStatusEnum('review_status').default('pending'),
 });
 
 export const moderatorRelations = relations(moderator, ({ one, many }) => ({

@@ -25,7 +25,14 @@ export class CoursesService {
       );
     }
 
-    return this.coursesRepository.create(createCourseDto);
+    // Create or update course with department level
+    const course = this.coursesRepository.create(createCourseDto);
+    if (!course) {
+      throw new BadRequestException(
+        `Course ${createCourseDto.courseCode} already exists for department and level`,
+      );
+    }
+    return course;
   }
 
   async findAll(filters?: { departmentId?: string; level?: number }) {

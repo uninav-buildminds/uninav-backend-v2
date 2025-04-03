@@ -1,5 +1,5 @@
 {
-  "id": "81417747-55b1-4cef-bbc3-c6e7f99aea42",
+  "id": "8e58828d-e9fd-4da3-a32f-2d0537cd252a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -53,7 +53,7 @@
         },
         "role": {
           "name": "role",
-          "type": "userRole",
+          "type": "user_role",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
@@ -179,7 +179,7 @@
         },
         "user_id_type": {
           "name": "user_id_type",
-          "type": "studentIdType",
+          "type": "user_id_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
@@ -288,9 +288,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "materialStatus",
+        "review_status": {
+          "name": "review_status",
+          "type": "approval_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
@@ -472,11 +472,53 @@
           "name": "description",
           "type": "text",
           "primaryKey": false,
+          "notNull": true
+        },
+        "review_status": {
+          "name": "review_status",
+          "type": "approval_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "reviewedBy": {
+          "name": "reviewedBy",
+          "type": "uuid",
+          "primaryKey": false,
           "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "courses_reviewedBy_moderator_userId_fk": {
+          "name": "courses_reviewedBy_moderator_userId_fk",
+          "tableFrom": "courses",
+          "tableTo": "moderator",
+          "columnsFrom": [
+            "reviewedBy"
+          ],
+          "columnsTo": [
+            "userId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "courses_courseCode_unique": {
@@ -512,6 +554,20 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "review_status": {
+          "name": "review_status",
+          "type": "approval_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "reviewedBy": {
+          "name": "reviewedBy",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -540,6 +596,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "department_level_courses_reviewedBy_moderator_userId_fk": {
+          "name": "department_level_courses_reviewedBy_moderator_userId_fk",
+          "tableFrom": "department_level_courses",
+          "tableTo": "moderator",
+          "columnsFrom": [
+            "reviewedBy"
+          ],
+          "columnsTo": [
+            "userId"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -630,7 +699,7 @@
         },
         "type": {
           "name": "type",
-          "type": "materialType",
+          "type": "material_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -689,7 +758,7 @@
         },
         "visibility": {
           "name": "visibility",
-          "type": "visibilityEnum",
+          "type": "visibility_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
@@ -697,7 +766,7 @@
         },
         "restriction": {
           "name": "restriction",
-          "type": "restrictionEnum",
+          "type": "restriction_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
@@ -711,7 +780,7 @@
         },
         "review_status": {
           "name": "review_status",
-          "type": "materialStatus",
+          "type": "approval_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
@@ -897,7 +966,7 @@
         },
         "visibility": {
           "name": "visibility",
-          "type": "visibilityEnum",
+          "type": "visibility_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
@@ -1017,7 +1086,7 @@
         },
         "type": {
           "name": "type",
-          "type": "blogType",
+          "type": "blog_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1171,7 +1240,7 @@
         },
         "type": {
           "name": "type",
-          "type": "advertType",
+          "type": "advert_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1226,9 +1295,9 @@
           "notNull": false,
           "default": 0
         },
-        "status": {
-          "name": "status",
-          "type": "advertStatus",
+        "review_status": {
+          "name": "review_status",
+          "type": "approval_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
@@ -1302,7 +1371,7 @@
         },
         "resourceType": {
           "name": "resourceType",
-          "type": "resourceType",
+          "type": "resource_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1358,17 +1427,8 @@
     }
   },
   "enums": {
-    "public.advertStatus": {
-      "name": "advertStatus",
-      "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
-    },
-    "public.advertType": {
-      "name": "advertType",
+    "public.advert_type": {
+      "name": "advert_type",
       "schema": "public",
       "values": [
         "free",
@@ -1377,8 +1437,17 @@
         "targeted"
       ]
     },
-    "public.blogType": {
-      "name": "blogType",
+    "public.approval_status": {
+      "name": "approval_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "approved",
+        "rejected"
+      ]
+    },
+    "public.blog_type": {
+      "name": "blog_type",
       "schema": "public",
       "values": [
         "article",
@@ -1387,17 +1456,8 @@
         "tutorial"
       ]
     },
-    "public.materialStatus": {
-      "name": "materialStatus",
-      "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
-    },
-    "public.materialType": {
-      "name": "materialType",
+    "public.material_type": {
+      "name": "material_type",
       "schema": "public",
       "values": [
         "pdf",
@@ -1407,8 +1467,8 @@
         "other"
       ]
     },
-    "public.resourceType": {
-      "name": "resourceType",
+    "public.resource_type": {
+      "name": "resource_type",
       "schema": "public",
       "values": [
         "url",
@@ -1416,24 +1476,24 @@
         "upload"
       ]
     },
-    "public.restrictionEnum": {
-      "name": "restrictionEnum",
+    "public.restriction_enum": {
+      "name": "restriction_enum",
       "schema": "public",
       "values": [
         "readonly",
         "downloadable"
       ]
     },
-    "public.studentIdType": {
-      "name": "studentIdType",
+    "public.user_id_type": {
+      "name": "user_id_type",
       "schema": "public",
       "values": [
         "id_card",
         "admission_letter"
       ]
     },
-    "public.userRole": {
-      "name": "userRole",
+    "public.user_role": {
+      "name": "user_role",
       "schema": "public",
       "values": [
         "student",
@@ -1441,8 +1501,8 @@
         "admin"
       ]
     },
-    "public.visibilityEnum": {
-      "name": "visibilityEnum",
+    "public.visibility_enum": {
+      "name": "visibility_enum",
       "schema": "public",
       "values": [
         "public",
