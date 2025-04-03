@@ -6,14 +6,17 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
-
+import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
+import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 @Controller('courses')
 @UseGuards(RolesGuard)
+@UseInterceptors(CacheControlInterceptor)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
@@ -27,6 +30,7 @@ export class CoursesController {
   }
 
   @Get()
+  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findAll(
     @Query('departmentId') departmentId?: string,
     @Query('level') level?: number,
@@ -42,6 +46,7 @@ export class CoursesController {
   }
 
   @Get(':id')
+  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findById(@Param('id') id: string) {
     const course = await this.coursesService.findById(id);
     return ResponseDto.createSuccessResponse(

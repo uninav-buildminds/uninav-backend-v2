@@ -367,4 +367,16 @@ export class MaterialService {
   async findByType(type: string) {
     return this.materialRepository.findByType(type as MaterialTypeEnum);
   }
+
+  async findWithFilters(filters: {
+    creatorId?: string;
+    courseId?: string;
+    type?: string;
+    tag?: string;
+  }) {
+    return this.materialRepository.findWithFilters({
+      ...filters,
+      type: filters.type as MaterialTypeEnum,
+    });
+  }
 }

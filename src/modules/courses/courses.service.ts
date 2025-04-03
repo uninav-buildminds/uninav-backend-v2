@@ -32,7 +32,7 @@ export class CoursesService {
     if (filters?.departmentId) {
       await this.departmentService.findOne(filters.departmentId);
     }
-    return this.coursesRepository.findAll(filters);
+    return this.coursesRepository.findAllByFilter(filters);
   }
 
   async findById(id: string) {

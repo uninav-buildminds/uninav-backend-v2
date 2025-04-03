@@ -31,10 +31,18 @@ export class CoursesRepository {
     });
   }
 
-  async findAll(filters?: { departmentId?: string; level?: number }) {
+  async findAllByFilter(filters?: { departmentId?: string; level?: number }) {
     // Base query to get all courses with department info but without deep nesting
     const query = this.db
-      .select()
+      .select({
+        id: courses.id,
+        courseName: courses.courseName,
+        courseCode: courses.courseCode,
+        description: courses.description,
+        reviewStatus: courses.reviewStatus,
+        departmentId: departmentLevelCourses.departmentId,
+        level: departmentLevelCourses.level,
+      })
       .from(courses)
       .leftJoin(
         departmentLevelCourses,

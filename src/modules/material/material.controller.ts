@@ -11,6 +11,7 @@ import {
   BadRequestException,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { MaterialService } from './material.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -22,7 +23,10 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { Request } from 'express';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
+import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
+import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 @Controller('materials')
+@UseInterceptors(CacheControlInterceptor)
 export class MaterialController {
   constructor(private readonly materialService: MaterialService) {}
 
@@ -54,9 +58,28 @@ export class MaterialController {
     );
   }
 
+  // async findAll() {
+  //   const materials = await this.materialService.findAll();
+  //   return ResponseDto.createSuccessResponse(
+  //     'Materials retrieved successfully',
+  //     materials,
+  //   );
+  // }
+
   @Get()
-  async findAll() {
-    const materials = await this.materialService.findAll();
+  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  async findWithFilters(
+    @Query('creatorId') creatorId?: string,
+    @Query('courseId') courseId?: string,
+    @Query('type') type?: string,
+    @Query('tag') tag?: string,
+  ) {
+    const materials = await this.materialService.findWithFilters({
+      creatorId,
+      courseId,
+      type,
+      tag,
+    });
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,
@@ -71,6 +94,7 @@ export class MaterialController {
       material,
     );
   }
+
   @Get('resource/:materialId')
   async findMaterialResource(@Param('materialId') id: string) {
     const resource = await this.materialService.findMaterialResource(id);
@@ -99,6 +123,7 @@ export class MaterialController {
   }
 
   @Get('by-type/:type')
+  @CacheControl({ public: true, maxAge: 300 })
   async findByType(@Param('type') type: string) {
     const materials = await this.materialService.findByType(type);
     return ResponseDto.createSuccessResponse(

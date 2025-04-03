@@ -5,7 +5,7 @@ import {
   MaterialEntity,
   MaterialTypeEnum,
 } from 'src/utils/types/db.types';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { material } from 'src/modules/drizzle/schema/material.schema';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -66,6 +66,7 @@ export class MaterialRepository {
       },
     });
   }
+
   async findMaterialResource(id: string) {
     return this.db.query.resource.findFirst({
       where: eq(resource.materialId, id),
@@ -81,6 +82,7 @@ export class MaterialRepository {
       .where(eq(material.id, id))
       .returning();
   }
+
   async incrementClickCount(id: string) {
     await this.db
       .update(material)
@@ -132,7 +134,6 @@ export class MaterialRepository {
       fileKey: string;
     },
   ) {
-    // let today = moment().tz('Africa/Lagos').toDate();
     const result = await this.db
       .insert(resource)
       .values(resourceData)
@@ -167,6 +168,42 @@ export class MaterialRepository {
       where: eq(material.type, type),
       with: {
         resource: true,
+      },
+    });
+  }
+
+  async findWithFilters(filters: {
+    creatorId?: string;
+    courseId?: string;
+    type?: MaterialTypeEnum;
+    tag?: string;
+  }): Promise<MaterialEntity[]> {
+    let conditions = [];
+
+    if (filters.creatorId) {
+      conditions.push(eq(material.creatorId, filters.creatorId));
+    }
+    if (filters.courseId) {
+      conditions.push(eq(material.targetCourse, filters.courseId));
+    }
+    if (filters.type) {
+      conditions.push(eq(material.type, filters.type));
+    }
+    if (filters.tag) {
+      conditions.push(sql`${material.tags} @> ARRAY[${filters.tag}]::text[]`);
+    }
+
+    return this.db.query.material.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
       },
     });
   }

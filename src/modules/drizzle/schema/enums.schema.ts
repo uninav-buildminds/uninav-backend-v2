@@ -1,56 +1,57 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 
 // Define all enum types
-export const userRoleEnum = pgEnum('userRole', [
+export const userRoleEnum = pgEnum('user_role', [
   'student',
   'moderator',
   'admin',
 ]);
-export const materialReviewStatusEnum = pgEnum('materialStatus', [
+export const materialReviewStatusEnum = pgEnum('material_status', [
   'pending',
   'approved',
   'rejected',
 ]);
-export const materialTypeEnum = pgEnum('materialType', [
+export const materialTypeEnum = pgEnum('material_type', [
   'pdf',
   'video',
   'article',
   'image',
   'other',
 ]);
-export const resourceTypeEnum = pgEnum('resourceType', [
+export const resourceTypeEnum = pgEnum('resource_type', [
   'url',
   'GDrive',
   'upload',
 ]);
-export const visibilityEnum = pgEnum('visibilityEnum', ['public', 'private']);
-export const restrictionEnum = pgEnum('restrictionEnum', [
+export const visibilityEnum = pgEnum('visibility_enum', ['public', 'private']);
+export const restrictionEnum = pgEnum('restriction_enum', [
   'readonly',
   'downloadable',
 ]);
-export const advertStatusEnum = pgEnum('advertStatus', [
+export const advertStatusEnum = pgEnum('advert_status', [
   'pending',
   'approved',
   'rejected',
 ]);
-export const coursesStatusEnum = pgEnum('advertStatus', [
-  'pending',
-  'approved',
-  'rejected',
-]);
-export const advertTypeEnum = pgEnum('courseStatus', [
+export const advertTypeEnum = pgEnum('advert_type', [
   'free',
   'pro',
   'boost',
   'targeted',
 ]);
-export const blogTypeEnum = pgEnum('blogType', [
+
+export const courseStatusEnum = pgEnum('course_status', [
+  'pending',
+  'approved',
+  'rejected',
+]);
+export const blogTypeEnum = pgEnum('blog_type', [
   'article',
   'guideline',
   'scheme_of_work',
   'tutorial',
 ]);
-export const userIdTypeEnum = pgEnum('studentIdType', [
+export const userIdTypeEnum = pgEnum('user_id_type', [
   'id_card',
   'admission_letter',
 ]);
