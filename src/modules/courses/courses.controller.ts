@@ -54,4 +54,14 @@ export class CoursesController {
       course,
     );
   }
+
+  @Get('code/:courseCode')
+  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
+  async findByCourseCode(@Param('courseCode') courseCode: string) {
+    const course = await this.coursesService.findByCourseCode(courseCode);
+    return ResponseDto.createSuccessResponse(
+      'Course retrieved successfully',
+      course,
+    );
+  }
 }

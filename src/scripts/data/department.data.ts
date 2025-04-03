@@ -76,6 +76,8 @@ export const departmentDescriptions = {
     'Focuses on drug formulation, manufacture, quality control, and pharmaceutical technology in industrial settings.',
 
   // Science
+  'DEPARTMENT OF COMPUTER SCIENCE':
+    'Studies the theory, design, development, and application of computer systems and software.',
   'DEPARTMENT OF MATHEMATICS':
     'Studies numbers, quantity, structure, space, patterns, and change through abstract concepts and their applications.',
   'DEPARTMENT OF PHYSICS':

@@ -18,7 +18,10 @@ export class CoursesRepository {
     // Start a transaction
     return await this.db.transaction(async (tx) => {
       // Create the course
-      const [course] = await tx.insert(courses).values(courseData).returning();
+      const [course] = await tx
+        .insert(courses)
+        .values(courseData as any)
+        .returning();
 
       // Create department-level course relationship
       await tx.insert(departmentLevelCourses).values({
@@ -72,6 +75,23 @@ export class CoursesRepository {
     // Detailed query with all relations for single course
     return this.db.query.courses.findFirst({
       where: eq(courses.id, id),
+      with: {
+        departmentCourses: {
+          with: {
+            department: {
+              with: {
+                faculty: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async findByCourseCode(courseCode: string) {
+    return this.db.query.courses.findFirst({
+      where: eq(courses.courseCode, courseCode),
       with: {
         departmentCourses: {
           with: {

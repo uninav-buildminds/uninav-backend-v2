@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsUUID, Min } from 'class-validator';
+import { IsIn, IsNotEmpty, IsNumber, IsString, IsUUID } from 'class-validator';
 
 export class CreateCourseDto {
   @IsString()
@@ -17,6 +17,6 @@ export class CreateCourseDto {
   departmentId: string;
 
   @IsNumber()
-  @Min(1)
+  @IsIn([100, 200, 300, 400, 500])
   level: number;
 }

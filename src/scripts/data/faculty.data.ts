@@ -81,6 +81,7 @@ export const universityData = [
   {
     name: 'FACULTY OF SCIENCE',
     departments: [
+      'DEPARTMENT OF COMPUTER SCIENCE',
       'DEPARTMENT OF MATHEMATICS',
       'DEPARTMENT OF PHYSICS',
       'DEPARTMENT OF STATISTICS',

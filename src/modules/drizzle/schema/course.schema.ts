@@ -9,7 +9,7 @@ export const courses = pgTable('courses', {
   id: uuid('id').primaryKey().defaultRandom(),
   courseName: text('courseName').notNull(),
   courseCode: text('courseCode').notNull().unique(),
-  description: text('description'),
+  description: text('description').notNull(),
   reviewStatus: courseStatusEnum('reviewStatus').default('pending'),
   reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
     onDelete: 'set null',

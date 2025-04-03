@@ -42,4 +42,12 @@ export class CoursesService {
     }
     return course;
   }
+
+  async findByCourseCode(courseCode: string) {
+    const course = await this.coursesRepository.findByCourseCode(courseCode);
+    if (!course) {
+      throw new NotFoundException(`Course with code ${courseCode} not found`);
+    }
+    return course;
+  }
 }
