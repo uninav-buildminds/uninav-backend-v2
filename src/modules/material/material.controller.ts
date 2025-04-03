@@ -58,14 +58,6 @@ export class MaterialController {
     );
   }
 
-  // async findAll() {
-  //   const materials = await this.materialService.findAll();
-  //   return ResponseDto.createSuccessResponse(
-  //     'Materials retrieved successfully',
-  //     materials,
-  //   );
-  // }
-
   @Get()
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
   async findWithFilters(

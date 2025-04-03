@@ -14,4 +14,9 @@ export default registerAs('config', (): { [key in ENV]: string } => ({
   B2_SECRET_KEY: process.env.B2_SECRET_KEY,
   B2_REGION: process.env.B2_REGION,
   B2_ENDPOINT: process.env.B2_ENDPOINT,
+  GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID,
+  GMAIL_CLIENT_SECRET: process.env.GMAIL_CLIENT_SECRET,
+  GMAIL_REFRESH_TOKEN: process.env.GMAIL_REFRESH_TOKEN,
+  COMPANY_EMAIL: process.env.COMPANY_EMAIL,
+  COMPANY_NAME: process.env.COMPANY_NAME,
 }));
