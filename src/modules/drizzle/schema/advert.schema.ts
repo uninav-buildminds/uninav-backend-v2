@@ -22,8 +22,8 @@ export const advert = pgTable('advert', {
   collectionId: uuid('collection_id').references(() => collection.id, {
     onDelete: 'cascade',
   }),
-  imageUrl: text('imageUrl'),
-  label: text('label'),
+  imageUrl: text('imageUrl').notNull(),
+  label: text('label').notNull(),
   description: text('description'),
   clicks: integer('clicks').default(0),
   impressions: integer('impressions').default(0),
