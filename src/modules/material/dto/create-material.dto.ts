@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
 } from 'class-validator';
 import {
   MaterialTypeEnum,
@@ -52,6 +53,10 @@ export class CreateMaterialDto extends ResourceDto {
   @IsOptional()
   @IsEnum(RestrictionEnum)
   restriction?: RestrictionEnum;
+
+  @IsOptional()
+  @IsUUID()
+  targetCourse?: string;
 
   creatorId: string;
 }

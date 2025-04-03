@@ -26,6 +26,15 @@ export class UserRepository {
       },
     });
   }
+  async getProfile(id: string) {
+    return this.db.query.user.findFirst({
+      where: (user, { eq }) => eq(user.id, id),
+      with: {
+        department: true,
+        auth: true,
+      },
+    });
+  }
 
   async findByEmail(email: string) {
     return this.db.query.user.findFirst({

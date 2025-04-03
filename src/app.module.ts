@@ -10,6 +10,7 @@ import { DepartmentModule } from './modules/department/department.module';
 import { MaterialModule } from './modules/material/material.module';
 import { CollectionModule } from './modules/collection/collection.module';
 import envConfig from 'src/utils/config/env.config';
+import { CoursesModule } from 'src/modules/courses/courses.module';
 @Module({
   imports: [
     DrizzleModule,
@@ -26,6 +27,7 @@ import envConfig from 'src/utils/config/env.config';
     DepartmentModule,
     MaterialModule,
     CollectionModule,
+    CoursesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -35,10 +35,10 @@ export class UserController {
   @UseGuards(RolesGuard)
   async getProfile(@Req() req: Request) {
     const user = req.user as UserEntity;
-    let auth = await this.authService.findOne(user.id, true);
+    let profile = await this.userService.getProfile(user.id);
     return ResponseDto.createSuccessResponse(
       'User profile retrieved successfully',
-      { ...user, auth },
+      profile,
     );
   }
 

@@ -33,7 +33,17 @@ export const advertStatusEnum = pgEnum('advertStatus', [
   'approved',
   'rejected',
 ]);
-export const advertTypeEnum = pgEnum('advertType', ['free', 'paid']);
+export const coursesStatusEnum = pgEnum('advertStatus', [
+  'pending',
+  'approved',
+  'rejected',
+]);
+export const advertTypeEnum = pgEnum('courseStatus', [
+  'free',
+  'pro',
+  'boost',
+  'targeted',
+]);
 export const blogTypeEnum = pgEnum('blogType', [
   'article',
   'guideline',

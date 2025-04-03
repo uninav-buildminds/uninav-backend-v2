@@ -12,6 +12,7 @@ import { collectionMaterial } from './collection.schema';
 import { advert } from './advert.schema';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { courses } from 'src/modules/drizzle/schema/course.schema';
 
 export const material = pgTable('material', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -31,6 +32,9 @@ export const material = pgTable('material', {
   visibility: visibilityEnum('visibility').default('public'),
   restriction: restrictionEnum('restriction').default('readonly'),
 
+  targetCourse: uuid('target_course').references(() => courses.id, {
+    onDelete: 'set null',
+  }),
   reviewStatus: materialReviewStatusEnum('review_status').default('pending'),
   reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
     onDelete: 'set null',
@@ -54,4 +58,8 @@ export const materialRelations = relations(material, ({ one, many }) => ({
   }),
   collections: many(collectionMaterial),
   adverts: many(advert),
+  targetCourse: one(courses, {
+    fields: [material.targetCourse],
+    references: [courses.id],
+  }),
 }));

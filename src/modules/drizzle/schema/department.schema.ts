@@ -1,7 +1,7 @@
 import { pgTable, uuid, text } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { faculty } from './faculty.schema';
-import { departmentCourses } from './course.schema';
+import { departmentLevelCourses } from './course.schema';
 import { user } from './user.schema';
 import { moderator } from './moderator.schema';
 
@@ -20,6 +20,6 @@ export const departmentRelations = relations(department, ({ one, many }) => ({
     references: [faculty.id],
   }),
   users: many(user),
-  departmentCourses: many(departmentCourses),
+  departmentCourses: many(departmentLevelCourses),
   moderators: many(moderator),
 }));

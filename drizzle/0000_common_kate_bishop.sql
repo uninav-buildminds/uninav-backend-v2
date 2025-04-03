@@ -1,5 +1,5 @@
 CREATE TYPE "public"."advertStatus" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
-CREATE TYPE "public"."advertType" AS ENUM('free', 'paid');--> statement-breakpoint
+CREATE TYPE "public"."advertType" AS ENUM('free', 'pro', 'boost', 'targeted');--> statement-breakpoint
 CREATE TYPE "public"."blogType" AS ENUM('article', 'guideline', 'scheme_of_work', 'tutorial');--> statement-breakpoint
 CREATE TYPE "public"."materialStatus" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."materialType" AS ENUM('pdf', 'video', 'article', 'image', 'other');--> statement-breakpoint
@@ -66,10 +66,11 @@ CREATE TABLE "courses" (
 	CONSTRAINT "courses_courseCode_unique" UNIQUE("courseCode")
 );
 --> statement-breakpoint
-CREATE TABLE "department_courses" (
+CREATE TABLE "department_level_courses" (
 	"departmentId" uuid,
 	"courseId" uuid,
-	CONSTRAINT "department_courses_departmentId_courseId_pk" PRIMARY KEY("departmentId","courseId")
+	"level" integer NOT NULL,
+	CONSTRAINT "department_level_courses_departmentId_courseId_pk" PRIMARY KEY("departmentId","courseId")
 );
 --> statement-breakpoint
 CREATE TABLE "student_courses" (
@@ -91,6 +92,7 @@ CREATE TABLE "material" (
 	"description" text,
 	"visibility" "visibilityEnum" DEFAULT 'public',
 	"restriction" "restrictionEnum" DEFAULT 'readonly',
+	"target_course" uuid,
 	"review_status" "materialStatus" DEFAULT 'pending',
 	"reviewedBy" uuid,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
@@ -146,8 +148,8 @@ CREATE TABLE "advert" (
 	"amount" numeric,
 	"material_id" uuid,
 	"collection_id" uuid,
-	"imageUrl" text,
-	"label" text,
+	"imageUrl" text NOT NULL,
+	"label" text NOT NULL,
 	"description" text,
 	"clicks" integer DEFAULT 0,
 	"impressions" integer DEFAULT 0,
@@ -172,11 +174,12 @@ ALTER TABLE "moderator" ADD CONSTRAINT "moderator_userId_users_id_fk" FOREIGN KE
 ALTER TABLE "moderator" ADD CONSTRAINT "moderator_department_department_id_fk" FOREIGN KEY ("department") REFERENCES "public"."department"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "moderator" ADD CONSTRAINT "moderator_faculty_faculty_id_fk" FOREIGN KEY ("faculty") REFERENCES "public"."faculty"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "department" ADD CONSTRAINT "department_facultyId_faculty_id_fk" FOREIGN KEY ("facultyId") REFERENCES "public"."faculty"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "department_courses" ADD CONSTRAINT "department_courses_departmentId_department_id_fk" FOREIGN KEY ("departmentId") REFERENCES "public"."department"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "department_courses" ADD CONSTRAINT "department_courses_courseId_courses_id_fk" FOREIGN KEY ("courseId") REFERENCES "public"."courses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "department_level_courses" ADD CONSTRAINT "department_level_courses_departmentId_department_id_fk" FOREIGN KEY ("departmentId") REFERENCES "public"."department"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "department_level_courses" ADD CONSTRAINT "department_level_courses_courseId_courses_id_fk" FOREIGN KEY ("courseId") REFERENCES "public"."courses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "student_courses" ADD CONSTRAINT "student_courses_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "student_courses" ADD CONSTRAINT "student_courses_courseId_courses_id_fk" FOREIGN KEY ("courseId") REFERENCES "public"."courses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "material" ADD CONSTRAINT "material_creator_users_id_fk" FOREIGN KEY ("creator") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "material" ADD CONSTRAINT "material_target_course_courses_id_fk" FOREIGN KEY ("target_course") REFERENCES "public"."courses"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "material" ADD CONSTRAINT "material_reviewedBy_moderator_userId_fk" FOREIGN KEY ("reviewedBy") REFERENCES "public"."moderator"("userId") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bookmarks" ADD CONSTRAINT "bookmarks_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bookmarks" ADD CONSTRAINT "bookmarks_materialId_material_id_fk" FOREIGN KEY ("materialId") REFERENCES "public"."material"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

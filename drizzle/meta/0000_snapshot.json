@@ -1,5 +1,5 @@
 {
-  "id": "77fb929d-fe86-4bac-8527-466d4a6ddaf6",
+  "id": "81417747-55b1-4cef-bbc3-c6e7f99aea42",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -491,8 +491,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.department_courses": {
-      "name": "department_courses",
+    "public.department_level_courses": {
+      "name": "department_level_courses",
       "schema": "",
       "columns": {
         "departmentId": {
@@ -506,13 +506,19 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
+        },
+        "level": {
+          "name": "level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "department_courses_departmentId_department_id_fk": {
-          "name": "department_courses_departmentId_department_id_fk",
-          "tableFrom": "department_courses",
+        "department_level_courses_departmentId_department_id_fk": {
+          "name": "department_level_courses_departmentId_department_id_fk",
+          "tableFrom": "department_level_courses",
           "tableTo": "department",
           "columnsFrom": [
             "departmentId"
@@ -523,9 +529,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "department_courses_courseId_courses_id_fk": {
-          "name": "department_courses_courseId_courses_id_fk",
-          "tableFrom": "department_courses",
+        "department_level_courses_courseId_courses_id_fk": {
+          "name": "department_level_courses_courseId_courses_id_fk",
+          "tableFrom": "department_level_courses",
           "tableTo": "courses",
           "columnsFrom": [
             "courseId"
@@ -538,8 +544,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "department_courses_departmentId_courseId_pk": {
-          "name": "department_courses_departmentId_courseId_pk",
+        "department_level_courses_departmentId_courseId_pk": {
+          "name": "department_level_courses_departmentId_courseId_pk",
           "columns": [
             "departmentId",
             "courseId"
@@ -697,6 +703,12 @@
           "notNull": false,
           "default": "'readonly'"
         },
+        "target_course": {
+          "name": "target_course",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "review_status": {
           "name": "review_status",
           "type": "materialStatus",
@@ -734,6 +746,19 @@
           "tableTo": "users",
           "columnsFrom": [
             "creator"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "material_target_course_courses_id_fk": {
+          "name": "material_target_course_courses_id_fk",
+          "tableFrom": "material",
+          "tableTo": "courses",
+          "columnsFrom": [
+            "target_course"
           ],
           "columnsTo": [
             "id"
@@ -1173,13 +1198,13 @@
           "name": "imageUrl",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "label": {
           "name": "label",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "description": {
           "name": "description",
@@ -1347,7 +1372,9 @@
       "schema": "public",
       "values": [
         "free",
-        "paid"
+        "pro",
+        "boost",
+        "targeted"
       ]
     },
     "public.blogType": {

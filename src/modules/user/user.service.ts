@@ -86,6 +86,11 @@ export class UserService {
       );
     }
   }
+  async getProfile(id: string) {
+    let user = await this.userRepository.getProfile(id);
+    DataFormatter.formatObject(user.auth, ['password']);
+    return user;
+  }
 
   async findByEmail(email: string) {
     try {

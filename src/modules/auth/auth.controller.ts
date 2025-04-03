@@ -6,9 +6,13 @@ import { LocalAuthGuard } from 'src/guards/local.guard';
 import { Request, Response } from 'express';
 import { UserEntity } from 'src/utils/types/db.types';
 import { globalCookieOptions } from 'src/utils/config/constants.config';
+import { UserService } from 'src/modules/user/user.service';
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {}
 
   @Post('student')
   async signupStudent(@Body() createStudentDto: CreateStudentDto) {
@@ -24,16 +28,16 @@ export class AuthController {
   @Post('login')
   async login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const user = req.user as UserEntity;
-    let auth = await this.authService.findOne(user.id, true);
+    let profile = await this.userService.getProfile(user.id);
     const accessToken = await this.authService.generateToken(user.id);
     // for cookies
     res.cookie('authorization', accessToken, globalCookieOptions);
     // for sessions  (if not using cookies)
     res.header('authorization', `Bearer ${accessToken}`);
-    const responseObj = ResponseDto.createSuccessResponse('Login Successful', {
-      ...user,
-      auth,
-    });
+    const responseObj = ResponseDto.createSuccessResponse(
+      'Login Successful',
+      profile,
+    );
     res.status(200).json(responseObj);
   }
 }
