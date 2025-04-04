@@ -4,8 +4,9 @@ import { advertTypeEnum, approvalStatusEnum } from './enums.schema';
 import { material } from './material.schema';
 import { collection } from './collection.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { TABLES } from '../tables.constants';
 
-export const advert = pgTable('advert', {
+export const advert = pgTable(TABLES.ADVERT, {
   id: uuid('id').primaryKey().defaultRandom(),
   type: advertTypeEnum('type').notNull(),
   amount: numeric('amount'),

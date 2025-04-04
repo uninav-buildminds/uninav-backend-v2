@@ -5,8 +5,9 @@ import { user } from './user.schema';
 import { department } from './department.schema';
 import { faculty } from './faculty.schema';
 import { material } from './material.schema';
+import { TABLES } from '../tables.constants';
 
-export const moderator = pgTable('moderator', {
+export const moderator = pgTable(TABLES.MODERATOR, {
   userId: uuid('userId')
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, index, primaryKey } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { userRoleEnum } from './enums.schema';
 import { department } from './department.schema';
@@ -6,15 +6,16 @@ import { auth } from './auth.schema';
 import { moderator } from './moderator.schema';
 import { material } from './material.schema';
 import { collection } from './collection.schema';
-import { studentCourses } from './course.schema';
+import { courses, studentCourses } from './course.schema';
 import { bookmarks } from './collection.schema';
 import { comments } from './comments.schema';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { TABLES } from '../tables.constants';
 
 // Table Definition with Index on email
 export const user = pgTable(
-  'users',
+  TABLES.USERS,
   {
     id: uuid('id').primaryKey().defaultRandom(),
     email: text('email').notNull().unique(),
@@ -31,6 +32,23 @@ export const user = pgTable(
   (table) => ({
     emailIndex: index('users_email_index').on(table.email),
     usernameIndex: index('user_username_index').on(table.username),
+  }),
+);
+
+export const userCourses = pgTable(
+  TABLES.USERS_COURSES,
+  {
+    userId: uuid('userId').references(() => user.id, {
+      onDelete: 'cascade',
+    }),
+    courseId: uuid('courseId')
+      .references(() => courses.id, {
+        onDelete: 'cascade',
+      })
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey(table.userId, table.courseId),
   }),
 );
 
@@ -55,4 +73,6 @@ export const userRelations = relations(user, ({ one, many }) => ({
     fields: [user.id],
     references: [auth.userId],
   }),
+  courses: many(userCourses),
 }));
+

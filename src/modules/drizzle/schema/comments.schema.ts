@@ -3,8 +3,9 @@ import { relations } from 'drizzle-orm';
 import { blogs } from './blog.schema';
 import { user } from './user.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { TABLES } from '../tables.constants';
 
-export const comments = pgTable('comments', {
+export const comments = pgTable(TABLES.COMMENTS, {
   id: uuid('id').primaryKey().defaultRandom(),
   blogId: uuid('blogId').references(() => blogs.id, { onDelete: 'cascade' }),
   userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),

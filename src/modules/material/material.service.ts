@@ -13,6 +13,7 @@ import {
   MaterialEntity,
   MaterialTypeEnum,
   ResourceType,
+  UserEntity,
 } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
@@ -366,6 +367,19 @@ export class MaterialService {
 
   async findByType(type: string) {
     return this.materialRepository.findByType(type as MaterialTypeEnum);
+  }
+
+  async searchMaterials(
+    query: string,
+    filters: {
+      creatorId?: string;
+      courseId?: string;
+      type?: string;
+      tag?: string;
+    },
+    user: UserEntity,
+  ) {
+    return this.materialRepository.searchMaterials(query, filters, user);
   }
 
   async findWithFilters(filters: {

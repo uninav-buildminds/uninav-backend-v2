@@ -5,7 +5,9 @@ import { user } from './user.schema';
 import { moderator } from 'src/modules/drizzle/schema/moderator.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { approvalStatusEnum } from 'src/modules/drizzle/schema/enums.schema';
-export const courses = pgTable('courses', {
+import { TABLES } from '../tables.constants';
+
+export const courses = pgTable(TABLES.COURSES, {
   id: uuid('id').primaryKey().defaultRandom(),
   courseName: text('courseName').notNull(),
   courseCode: text('courseCode').notNull().unique(),
@@ -18,7 +20,7 @@ export const courses = pgTable('courses', {
 });
 
 export const departmentLevelCourses = pgTable(
-  'department_level_courses',
+  TABLES.DEPARTMENT_LEVEL_COURSES,
   {
     departmentId: uuid('departmentId').references(() => department.id, {
       onDelete: 'cascade',
@@ -41,7 +43,7 @@ export const departmentLevelCourses = pgTable(
 );
 
 export const studentCourses = pgTable(
-  'student_courses',
+  TABLES.STUDENT_COURSES,
   {
     userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),
     courseId: uuid('courseId').references(() => courses.id, {

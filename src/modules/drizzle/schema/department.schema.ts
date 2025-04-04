@@ -4,8 +4,9 @@ import { faculty } from './faculty.schema';
 import { departmentLevelCourses } from './course.schema';
 import { user } from './user.schema';
 import { moderator } from './moderator.schema';
+import { TABLES } from '../tables.constants';
 
-export const department = pgTable('department', {
+export const department = pgTable(TABLES.DEPARTMENT, {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   description: text('description'),

@@ -4,8 +4,9 @@ import { visibilityEnum } from './enums.schema';
 import { user } from './user.schema';
 import { material } from './material.schema';
 import { advert } from './advert.schema';
+import { TABLES } from '../tables.constants';
 
-export const collection = pgTable('collection', {
+export const collection = pgTable(TABLES.COLLECTION, {
   id: uuid('id').primaryKey().defaultRandom(),
   creatorId: uuid('creator').references(() => user.id, { onDelete: 'cascade' }),
   label: text('label').notNull(),
@@ -14,7 +15,7 @@ export const collection = pgTable('collection', {
 });
 
 export const collectionMaterial = pgTable(
-  'collection_material',
+  TABLES.COLLECTION_MATERIAL,
   {
     collectionId: uuid('collectionId').references(() => collection.id, {
       onDelete: 'cascade',
@@ -31,7 +32,7 @@ export const collectionMaterial = pgTable(
 );
 
 export const bookmarks = pgTable(
-  'bookmarks',
+  TABLES.BOOKMARKS,
   {
     userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),
     materialId: uuid('materialId').references(() => material.id, {

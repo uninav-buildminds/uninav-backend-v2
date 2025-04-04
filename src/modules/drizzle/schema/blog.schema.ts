@@ -4,8 +4,9 @@ import { blogTypeEnum } from './enums.schema';
 import { comments } from './comments.schema';
 import { user } from 'src/modules/drizzle/schema/user.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { TABLES } from '../tables.constants';
 
-export const blogs = pgTable('blogs', {
+export const blogs = pgTable(TABLES.BLOGS, {
   id: uuid('id').primaryKey().defaultRandom(),
   creator: uuid('creator')
     .references(() => user.id, {

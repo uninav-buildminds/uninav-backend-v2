@@ -4,6 +4,7 @@ import {
   DrizzleDB,
   MaterialEntity,
   MaterialTypeEnum,
+  UserEntity,
 } from 'src/utils/types/db.types';
 import { eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
@@ -13,6 +14,7 @@ import { UpdateMaterialDto } from './dto/update-material.dto';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { CreateResourceDto } from 'src/modules/material/dto/create-resource.dto';
 import { materialLogger } from 'src/modules/material/material.module';
+import { TABLES } from 'src/modules/drizzle/tables.constants';
 
 @Injectable()
 export class MaterialRepository {
@@ -190,7 +192,7 @@ export class MaterialRepository {
       conditions.push(eq(material.type, filters.type));
     }
     if (filters.tag) {
-      conditions.push(sql`${material.tags} @> ARRAY[${filters.tag}]::text[]`);
+      conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
     }
 
     return this.db.query.material.findMany({
@@ -206,5 +208,72 @@ export class MaterialRepository {
         },
       },
     });
+  }
+
+  async searchMaterials(
+    query: string,
+    filters: {
+      creatorId?: string;
+      courseId?: string;
+      type?: string;
+      tag?: string;
+    },
+    user: UserEntity,
+  ) {
+    const conditions = [];
+
+    // Apply filters conditionally
+    if (filters.creatorId) {
+      conditions.push(sql`${material.creatorId} = ${filters.creatorId}`);
+    }
+    if (filters.courseId) {
+      conditions.push(sql`${material.targetCourse} = ${filters.courseId}`);
+    }
+    if (filters.type) {
+      conditions.push(sql`${material.type} = ${filters.type}`);
+    }
+    if (filters.tag) {
+      conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
+    }
+
+    let result = await this.db
+      .select({
+        id: material.id,
+        label: material.label,
+        description: material.description,
+        type: material.type,
+        tags: material.tags,
+        rank: sql`
+        ts_rank_cd(${material.searchVector}, to_tsquery('english', ${query})) 
+        + CASE 
+            -- Boost if material is for a course in the user's department
+            WHEN ${material.targetCourse} IN (SELECT c.id FROM ${TABLES.COURSES} c WHERE c.departmentId = ${user.departmentId}) THEN 0.2 
+            -- Boost if material is used at the user's level
+            WHEN EXISTS (
+              SELECT 1 FROM ${TABLES.DEPARTMENT_LEVEL_COURSES} dlc
+              WHERE dlc.courseId = ${material.targetCourse}
+              AND dlc.departmentId = ${user.departmentId}
+              AND dlc.level = ${user.level}
+            ) THEN 0.1
+            ELSE 0 
+          END`,
+      })
+      .from(material)
+      .where(
+        sql.join(
+          [
+            ...conditions, // Apply all filters first
+            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+          ],
+          sql` AND `,
+        ),
+      )
+      // .limit(30)
+      .orderBy(
+        sql`rank DESC, ${material.likes} DESC, ${material.downloadCount} DESC, ${material.viewCount} DESC, ${material.createdAt} DESC`,
+      )
+      .execute();
+
+    return result;
   }
 }

@@ -77,6 +77,31 @@ export class MaterialController {
       materials,
     );
   }
+  @Get('search')
+  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  async search(
+    @Req() req: Request,
+    @Query('query') query: string,
+    @Query('creatorId') creatorId?: string,
+    @Query('courseId') courseId?: string,
+    @Query('type') type?: string,
+    @Query('tag') tag?: string,
+  ) {
+    const materials = await this.materialService.searchMaterials(
+      query,
+      {
+        creatorId,
+        courseId,
+        type,
+        tag,
+      },
+      req.user as UserEntity,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Materials retrieved successfully',
+      materials,
+    );
+  }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {

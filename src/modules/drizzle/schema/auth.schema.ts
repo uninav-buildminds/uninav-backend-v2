@@ -9,9 +9,10 @@ import {
 import { relations, sql } from 'drizzle-orm';
 import { user } from './user.schema';
 import { userIdTypeEnum } from './enums.schema';
+import { TABLES } from '../tables.constants';
 
 export const auth = pgTable(
-  'auth',
+  TABLES.AUTH,
   {
     userId: uuid('user_id')
       .primaryKey()
