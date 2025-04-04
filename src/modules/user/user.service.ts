@@ -10,6 +10,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRepository } from 'src/modules/user/user.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { DepartmentService } from 'src/modules/department/department.service';
+import { CoursesRepository } from '../courses/courses.repository';
 
 @Injectable()
 export class UserService {
@@ -17,6 +18,7 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly departmentService: DepartmentService,
+    private readonly coursesRepository: CoursesRepository,
   ) {}
 
   async createStudent(createUserDto: CreateUserDto) {
@@ -39,6 +41,17 @@ export class UserService {
 
     try {
       const user = await this.userRepository.create(createUserDto);
+
+      // Fetch and populate user courses
+      const userCourses =
+        await this.coursesRepository.findCoursesByDepartmentAndLevel(
+          createUserDto.departmentId,
+          createUserDto.level,
+        );
+
+      // Create user course relationships
+      await this.coursesRepository.createUserCourses(user.id, userCourses);
+
       return user;
     } catch (error) {
       this.logger.log(

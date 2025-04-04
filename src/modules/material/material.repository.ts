@@ -245,6 +245,17 @@ export class MaterialRepository {
         tags: material.tags,
         rank: sql`
         ts_rank_cd(${material.searchVector}, to_tsquery('english', ${query})) 
+
+        + CASE 
+            -- Boost if the material is for a course the user is actively taking
+            WHEN EXISTS (
+              SELECT 1 FROM ${TABLES.USERS_COURSES} uc
+              WHERE uc.courseId = ${material.targetCourse}
+              AND uc.userId = ${user.id}
+            ) THEN 0.3 
+            ELSE 0 
+          END
+
         + CASE 
             -- Boost if material is for a course in the user's department
             WHEN ${material.targetCourse} IN (SELECT c.id FROM ${TABLES.COURSES} c WHERE c.departmentId = ${user.departmentId}) THEN 0.2 

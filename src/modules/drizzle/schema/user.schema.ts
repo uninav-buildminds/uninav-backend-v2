@@ -1,4 +1,11 @@
-import { pgTable, uuid, text, integer, index, primaryKey } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  index,
+  primaryKey,
+} from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { userRoleEnum } from './enums.schema';
 import { department } from './department.schema';
@@ -52,6 +59,17 @@ export const userCourses = pgTable(
   }),
 );
 
+export const userCoursesRelations = relations(userCourses, ({ one }) => ({
+  user: one(user, {
+    fields: [userCourses.userId],
+    references: [user.id],
+  }),
+  course: one(courses, {
+    fields: [userCourses.courseId],
+    references: [courses.id],
+  }),
+}));
+
 // Relations  ------
 
 export const userRelations = relations(user, ({ one, many }) => ({
@@ -75,4 +93,3 @@ export const userRelations = relations(user, ({ one, many }) => ({
   }),
   courses: many(userCourses),
 }));
-

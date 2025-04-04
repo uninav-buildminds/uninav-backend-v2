@@ -9,6 +9,6 @@ import { DepartmentModule } from 'src/modules/department/department.module';
   imports: [DrizzleModule, DepartmentModule],
   controllers: [CoursesController],
   providers: [CoursesService, CoursesRepository],
-  exports: [CoursesService],
+  exports: [CoursesService, CoursesRepository],
 })
 export class CoursesModule {}

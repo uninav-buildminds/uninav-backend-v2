@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { CourseEntity, DrizzleDB } from 'src/utils/types/db.types';
+import { userCourses } from 'src/modules/drizzle/schema/user.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { and, eq, or } from 'drizzle-orm';
 import {
@@ -168,5 +169,32 @@ export class CoursesRepository {
         eq(courses.courseName, courseName),
       ),
     });
+  }
+
+  async findCoursesByDepartmentAndLevel(departmentId: string, level: number) {
+    const result = await this.db
+      .select({
+        courseId: departmentLevelCourses.courseId,
+      })
+      .from(departmentLevelCourses)
+      .where(
+        and(
+          eq(departmentLevelCourses.departmentId, departmentId),
+          eq(departmentLevelCourses.level, level),
+        ),
+      );
+
+    return result;
+  }
+
+  async createUserCourses(userId: string, courses: { courseId: string }[]) {
+    if (!courses.length) return;
+
+    await this.db.insert(userCourses).values(
+      courses.map((course) => ({
+        userId,
+        courseId: course.courseId,
+      })),
+    );
   }
 }

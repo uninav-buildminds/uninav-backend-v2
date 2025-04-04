@@ -32,6 +32,11 @@ export class UserRepository {
       with: {
         department: true,
         auth: true,
+        courses: {
+          with: {
+            course: true,
+          },
+        },
       },
     });
   }
