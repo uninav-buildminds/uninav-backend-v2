@@ -8,7 +8,9 @@ import { TABLES } from '../tables.constants';
 
 export const collection = pgTable(TABLES.COLLECTION, {
   id: uuid('id').primaryKey().defaultRandom(),
-  creatorId: uuid('creator').references(() => user.id, { onDelete: 'cascade' }),
+  creatorId: uuid('creator_id').references(() => user.id, {
+    onDelete: 'cascade',
+  }),
   label: text('label').notNull(),
   description: text('description'),
   visibility: visibilityEnum('visibility').default('public'),
@@ -17,10 +19,10 @@ export const collection = pgTable(TABLES.COLLECTION, {
 export const collectionMaterial = pgTable(
   TABLES.COLLECTION_MATERIAL,
   {
-    collectionId: uuid('collectionId').references(() => collection.id, {
+    collectionId: uuid('collection_id').references(() => collection.id, {
       onDelete: 'cascade',
     }),
-    materialId: uuid('materialId').references(() => material.id, {
+    materialId: uuid('material_id').references(() => material.id, {
       onDelete: 'cascade',
     }),
   },
@@ -34,11 +36,11 @@ export const collectionMaterial = pgTable(
 export const bookmarks = pgTable(
   TABLES.BOOKMARKS,
   {
-    userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),
-    materialId: uuid('materialId').references(() => material.id, {
+    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    materialId: uuid('material_id').references(() => material.id, {
       onDelete: 'cascade',
     }),
-    collectionId: uuid('collectionId').references(() => collection.id, {
+    collectionId: uuid('collection_id').references(() => collection.id, {
       onDelete: 'cascade',
     }),
   },

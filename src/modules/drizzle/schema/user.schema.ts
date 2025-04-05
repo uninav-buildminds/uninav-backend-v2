@@ -26,10 +26,10 @@ export const user = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     email: text('email').notNull().unique(),
-    firstName: text('firstName').notNull(),
-    lastName: text('lastName').notNull(),
+    firstName: text('first_name').notNull(),
+    lastName: text('last_name').notNull(),
     username: text('username').notNull().unique(),
-    departmentId: uuid('department').references(() => department.id, {
+    departmentId: uuid('department_id').references(() => department.id, {
       onDelete: 'set null',
     }),
     level: integer('level').notNull(),
@@ -45,10 +45,10 @@ export const user = pgTable(
 export const userCourses = pgTable(
   TABLES.USERS_COURSES,
   {
-    userId: uuid('userId').references(() => user.id, {
+    userId: uuid('user_id').references(() => user.id, {
       onDelete: 'cascade',
     }),
-    courseId: uuid('courseId')
+    courseId: uuid('course_id')
       .references(() => courses.id, {
         onDelete: 'cascade',
       })

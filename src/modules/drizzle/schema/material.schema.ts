@@ -34,7 +34,7 @@ export const material = pgTable(
     downloadCount: integer('download_count').default(0),
     likes: integer('likes').default(0),
 
-    creatorId: uuid('creator').references(() => user.id, {
+    creatorId: uuid('creator_id').references(() => user.id, {
       onDelete: 'set null',
     }),
     label: text('label'),
@@ -46,7 +46,7 @@ export const material = pgTable(
       onDelete: 'set null',
     }),
     reviewStatus: approvalStatusEnum('review_status').default('pending'),
-    reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
+    reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
       onDelete: 'set null',
     }),
 

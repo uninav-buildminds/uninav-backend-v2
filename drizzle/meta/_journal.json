@@ -15,6 +15,13 @@
       "when": 1743779053904,
       "tag": "0001_nervous_gladiator",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743875976003,
+      "tag": "0002_public_logan",
+      "breakpoints": true
     }
   ]
 }

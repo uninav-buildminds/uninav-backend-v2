@@ -9,11 +9,11 @@ import { TABLES } from '../tables.constants';
 
 export const courses = pgTable(TABLES.COURSES, {
   id: uuid('id').primaryKey().defaultRandom(),
-  courseName: text('courseName').notNull(),
-  courseCode: text('courseCode').notNull().unique(),
+  courseName: text('course_name').notNull(),
+  courseCode: text('course_code').notNull().unique(),
   description: text('description').notNull(),
   reviewStatus: approvalStatusEnum('review_status').default('pending'),
-  reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
+  reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
     onDelete: 'set null',
   }),
   ...timestamps,
@@ -22,16 +22,15 @@ export const courses = pgTable(TABLES.COURSES, {
 export const departmentLevelCourses = pgTable(
   TABLES.DEPARTMENT_LEVEL_COURSES,
   {
-    departmentId: uuid('departmentId').references(() => department.id, {
+    departmentId: uuid('department_id').references(() => department.id, {
       onDelete: 'cascade',
     }),
-    courseId: uuid('courseId').references(() => courses.id, {
+    courseId: uuid('course_id').references(() => courses.id, {
       onDelete: 'cascade',
     }),
     level: integer('level').notNull(),
-
     reviewStatus: approvalStatusEnum('review_status').default('pending'),
-    reviewedBy: uuid('reviewedBy').references(() => moderator.userId, {
+    reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
       onDelete: 'set null',
     }),
   },
@@ -45,8 +44,8 @@ export const departmentLevelCourses = pgTable(
 export const studentCourses = pgTable(
   TABLES.STUDENT_COURSES,
   {
-    userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),
-    courseId: uuid('courseId').references(() => courses.id, {
+    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id').references(() => courses.id, {
       onDelete: 'cascade',
     }),
   },

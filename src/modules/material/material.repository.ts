@@ -15,6 +15,11 @@ import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { CreateResourceDto } from 'src/modules/material/dto/create-resource.dto';
 import { materialLogger } from 'src/modules/material/material.module';
 import { TABLES } from 'src/modules/drizzle/tables.constants';
+import { userCourses as uc } from 'src/modules/drizzle/schema/user.schema';
+import {
+  courses,
+  departmentLevelCourses as dlc,
+} from 'src/modules/drizzle/schema/course.schema';
 
 @Injectable()
 export class MaterialRepository {
@@ -222,6 +227,13 @@ export class MaterialRepository {
   ) {
     const conditions = [];
 
+    // ! Not necessary since we are using websearch_to_tsquery
+    // Format query for websearch - trim extra spaces and ensure proper formatting
+    // const formattedQuery = query
+    //   .trim()
+    //   .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+    //   .replace(/['"]/g, ''); // Remove quotes that might interfere with websearch
+
     // Apply filters conditionally
     if (filters.creatorId) {
       conditions.push(sql`${material.creatorId} = ${filters.creatorId}`);
@@ -235,7 +247,6 @@ export class MaterialRepository {
     if (filters.tag) {
       conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
     }
-
     let result = await this.db
       .select({
         id: material.id,
@@ -243,28 +254,30 @@ export class MaterialRepository {
         description: material.description,
         type: material.type,
         tags: material.tags,
-        rank: sql`
-        ts_rank_cd(${material.searchVector}, to_tsquery('english', ${query})) 
+        rank: sql<number>`
+        ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query})) 
 
         + CASE 
             -- Boost if the material is for a course the user is actively taking
             WHEN EXISTS (
-              SELECT 1 FROM ${TABLES.USERS_COURSES} uc
-              WHERE uc.courseId = ${material.targetCourse}
-              AND uc.userId = ${user.id}
+              SELECT 1 FROM ${uc} 
+              WHERE ${uc.courseId} = ${material.targetCourse}
+              AND ${uc.userId} = ${user.id}
             ) THEN 0.3 
             ELSE 0 
           END
 
         + CASE 
             -- Boost if material is for a course in the user's department
-            WHEN ${material.targetCourse} IN (SELECT c.id FROM ${TABLES.COURSES} c WHERE c.departmentId = ${user.departmentId}) THEN 0.2 
+            WHEN ${material.targetCourse} IN (SELECT ${courses.id} FROM ${courses}  
+            JOIN ${dlc}  ON ${courses.id} = ${dlc.courseId}
+            WHERE ${dlc.departmentId} = ${user.departmentId}) THEN 0.2
             -- Boost if material is used at the user's level
             WHEN EXISTS (
-              SELECT 1 FROM ${TABLES.DEPARTMENT_LEVEL_COURSES} dlc
-              WHERE dlc.courseId = ${material.targetCourse}
-              AND dlc.departmentId = ${user.departmentId}
-              AND dlc.level = ${user.level}
+              SELECT 1 FROM ${dlc} 
+              WHERE  ${dlc.courseId} = ${material.targetCourse}
+              AND ${dlc.departmentId} = ${user.departmentId}
+              AND ${dlc.level} = ${user.level}
             ) THEN 0.1
             ELSE 0 
           END`,
@@ -273,15 +286,14 @@ export class MaterialRepository {
       .where(
         sql.join(
           [
-            ...conditions, // Apply all filters first
-            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+            ...conditions,
+            sql<boolean>`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
           ],
           sql` AND `,
         ),
       )
-      // .limit(30)
       .orderBy(
-        sql`rank DESC, ${material.likes} DESC, ${material.downloadCount} DESC, ${material.viewCount} DESC, ${material.createdAt} DESC`,
+        sql`${material.likes} DESC, ${material.downloadCount} DESC, ${material.viewCount} DESC, ${material.createdAt} DESC`,
       )
       .execute();
 

@@ -16,13 +16,12 @@ export const advert = pgTable(TABLES.ADVERT, {
   collectionId: uuid('collection_id').references(() => collection.id, {
     onDelete: 'cascade',
   }),
-
-  imageUrl: text('imageUrl').notNull(),
+  imageUrl: text('image_url').notNull(),
   label: text('label').notNull(),
   description: text('description'),
   clicks: integer('clicks').default(0),
   impressions: integer('impressions').default(0),
-  review_status: approvalStatusEnum('review_status').default('pending'),
+  reviewStatus: approvalStatusEnum('review_status').default('pending'),
   ...timestamps,
 });
 
