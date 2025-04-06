@@ -6,7 +6,7 @@ import {
   MaterialTypeEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
-import { eq, and, desc, getTableColumns } from 'drizzle-orm';
+import { eq, and, desc, getTableColumns, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { material } from 'src/modules/drizzle/schema/material.schema';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -404,7 +404,7 @@ export class MaterialRepository {
     user: UserEntity,
     page: number = 1,
   ): Promise<{
-    data: MaterialEntity[];
+    data: Partial<MaterialEntity>[];
     pagination: {
       page: number;
       limit: number;
@@ -417,36 +417,63 @@ export class MaterialRepository {
     const limit = 10;
     const offset = (page - 1) * limit;
 
-    const whereCondition = sql`${material.targetCourse} IN (
-      SELECT ${courses.id} FROM ${courses}  
-      JOIN ${dlc}  ON ${courses.id} = ${dlc.courseId}
-      WHERE ${dlc.departmentId} = ${user.departmentId}
-      AND ${dlc.level} = ${user.level}
-    )`;
-
     // Get total count for pagination
     const countResult = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(material)
-      .where(whereCondition)
+      .where(
+        sql`
+        ${material.targetCourse} IN (
+          SELECT ${uc.courseId}
+          FROM ${uc}
+          WHERE ${uc.userId} = ${user.id}
+        )
+      `,
+      )
       .execute();
 
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
-    const data = await this.db
-      .select()
-      .from(material)
-      .where(whereCondition)
-      .orderBy(
+    // Use query builder to avoid SQL syntax issues
+    const subQuery = this.db
+      .select({ courseId: uc.courseId })
+      .from(uc)
+      .where(eq(uc.userId, user.id));
+
+    const data = await this.db.query.material.findMany({
+      where: inArray(material.targetCourse, subQuery),
+      orderBy: [
         desc(material.likes),
         desc(material.downloadCount),
-        desc(material.createdAt),
         desc(material.viewCount),
-      )
-      .limit(limit)
-      .offset(offset)
-      .execute();
+        desc(material.createdAt),
+      ],
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
+        targetCourse: {
+          columns: {
+            id: true,
+            courseName: true,
+            courseCode: true,
+          },
+        },
+      },
+      columns: {
+        searchVector: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+      limit,
+      offset,
+    });
 
     return {
       data,
