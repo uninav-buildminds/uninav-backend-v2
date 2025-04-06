@@ -4,8 +4,8 @@ import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { DrizzleDB } from 'src/utils/types/db.types';
-import { eq, or } from 'drizzle-orm';
-
+import { eq, or, and, inArray } from 'drizzle-orm';
+import { userCourses } from 'src/modules/drizzle/schema/user.schema';
 @Injectable()
 export class UserRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
@@ -88,5 +88,43 @@ export class UserRepository {
       .returning({ id: users.id });
 
     return deletedUser[0];
+  }
+
+  async addUserCourses(userId: string, courseIds: string[]) {
+    const values = courseIds.map((courseId) => ({
+      userId,
+      courseId,
+    }));
+
+    const result = await this.db
+      .insert(userCourses)
+      .values(values)
+      .onConflictDoNothing()
+      .returning();
+
+    return result;
+  }
+
+  async removeUserCourses(userId: string, courseIds: string[]) {
+    const result = await this.db
+      .delete(userCourses)
+      .where(
+        and(
+          eq(userCourses.userId, userId),
+          inArray(userCourses.courseId, courseIds),
+        ),
+      )
+      .returning();
+
+    return result;
+  }
+
+  async getUserCourses(userId: string) {
+    return this.db.query.userCourses.findMany({
+      where: eq(userCourses.userId, userId),
+      with: {
+        course: true,
+      },
+    });
   }
 }

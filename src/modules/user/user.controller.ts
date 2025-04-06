@@ -17,6 +17,7 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { UserEntity } from 'src/utils/types/db.types';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { UpdateUserDto } from 'src/modules/user/dto/update-user.dto';
+import { AddCourseDto } from './dto/add-course.dto';
 
 @Controller('user')
 export class UserController {
@@ -50,6 +51,46 @@ export class UserController {
     return ResponseDto.createSuccessResponse(
       'User updated successfully',
       updatedUser,
+    );
+  }
+
+  @Post('courses')
+  @UseGuards(RolesGuard)
+  async addCourses(@Req() req: Request, @Body() addCourseDto: AddCourseDto) {
+    const user = req.user as UserEntity;
+    const result = await this.userService.addCourses(
+      user.id,
+      addCourseDto.courseIds,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Courses added successfully',
+      result,
+    );
+  }
+
+  @Delete('courses')
+  @UseGuards(RolesGuard)
+  async removeCourses(@Req() req: Request, @Body() addCourseDto: AddCourseDto) {
+    const user = req.user as UserEntity;
+    const result = await this.userService.removeCourses(
+      user.id,
+      addCourseDto.courseIds,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Courses removed successfully',
+      result,
+    );
+  }
+
+  @Get('courses')
+  @UseGuards(RolesGuard)
+  async getUserCourses(@Req() req: Request) {
+    const user = req.user as UserEntity;
+    console.log('user', user);
+    const courses = await this.userService.getUserCourses(user.id);
+    return ResponseDto.createSuccessResponse(
+      'User courses retrieved successfully',
+      courses,
     );
   }
 

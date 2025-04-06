@@ -230,4 +230,48 @@ export class UserService {
       );
     }
   }
+
+  async addCourses(userId: string, courseIds: string[]) {
+    try {
+      await this.findOne(userId); // Verify user exists
+      return await this.userRepository.addUserCourses(userId, courseIds);
+    } catch (error) {
+      this.logger.error(
+        `Error adding courses for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error adding courses: ${error.message}`,
+      );
+    }
+  }
+
+  async removeCourses(userId: string, courseIds: string[]) {
+    try {
+      await this.findOne(userId); // Verify user exists
+      return await this.userRepository.removeUserCourses(userId, courseIds);
+    } catch (error) {
+      this.logger.error(
+        `Error removing courses for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error removing courses: ${error.message}`,
+      );
+    }
+  }
+
+  async getUserCourses(userId: string) {
+    try {
+      return await this.userRepository.getUserCourses(userId);
+    } catch (error) {
+      this.logger.error(
+        `Error getting user courses for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error getting user courses: ${error.message}`,
+      );
+    }
+  }
 }
