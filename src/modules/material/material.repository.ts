@@ -6,7 +6,7 @@ import {
   MaterialTypeEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { material } from 'src/modules/drizzle/schema/material.schema';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -202,6 +202,12 @@ export class MaterialRepository {
 
     return this.db.query.material.findMany({
       where: conditions.length > 0 ? and(...conditions) : undefined,
+      orderBy: [
+        desc(material.likes),
+        desc(material.downloadCount),
+        desc(material.viewCount),
+        desc(material.createdAt),
+      ],
       with: {
         creator: {
           columns: {
@@ -286,14 +292,18 @@ export class MaterialRepository {
       .where(
         sql.join(
           [
-            ...conditions,
             sql<boolean>`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+            ...conditions,
           ],
           sql` AND `,
         ),
       )
       .orderBy(
-        sql`${material.likes} DESC, ${material.downloadCount} DESC, ${material.viewCount} DESC, ${material.createdAt} DESC`,
+        desc(sql`rank`),
+        desc(material.likes),
+        desc(material.downloadCount),
+        desc(material.viewCount),
+        desc(material.createdAt),
       )
       .execute();
 
