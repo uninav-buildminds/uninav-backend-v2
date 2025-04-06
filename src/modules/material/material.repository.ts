@@ -6,7 +6,7 @@ import {
   MaterialTypeEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, getTableColumns } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { material } from 'src/modules/drizzle/schema/material.schema';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -279,7 +279,7 @@ export class MaterialRepository {
     filters: {
       creatorId?: string;
       courseId?: string;
-      type?: string;
+      type?: MaterialTypeEnum;
       tag?: string;
     },
     user: UserEntity,
@@ -291,13 +291,13 @@ export class MaterialRepository {
 
     // Apply filters conditionally
     if (filters.creatorId) {
-      conditions.push(sql`${material.creatorId} = ${filters.creatorId}`);
+      conditions.push(eq(material.creatorId, filters.creatorId));
     }
     if (filters.courseId) {
-      conditions.push(sql`${material.targetCourse} = ${filters.courseId}`);
+      conditions.push(eq(material.targetCourse, filters.courseId));
     }
     if (filters.type) {
-      conditions.push(sql`${material.type} = ${filters.type}`);
+      conditions.push(eq(material.type, filters.type));
     }
     if (filters.tag) {
       conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
@@ -320,22 +320,11 @@ export class MaterialRepository {
 
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
+    let { updatedAt, createdAt, searchVector, ...rest } =
+      getTableColumns(material);
     const data = await this.db
       .select({
-        id: material.id,
-        label: material.label,
-        description: material.description,
-        visibility: material.visibility,
-        restriction: material.restriction,
-        type: material.type,
-        tags: material.tags,
-        creatorId: material.creatorId,
-        targetCourse: material.targetCourse,
-        createdAt: material.createdAt,
-        updatedAt: material.updatedAt,
-        likes: material.likes,
-        downloadCount: material.downloadCount,
-        viewCount: material.viewCount,
+        ...rest,
         rank: sql<number>`
         ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query})) 
 
