@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { user } from 'src/modules/drizzle/schema/user.schema';
+import { users } from 'src/modules/drizzle/schema/user.schema';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
@@ -12,14 +12,14 @@ export class UserRepository {
 
   async create(createUserDto: CreateUserDto) {
     const createdUser = await this.db
-      .insert(user)
+      .insert(users)
       .values([createUserDto])
       .returning();
     return createdUser[0];
   }
 
   async findById(id: string) {
-    return this.db.query.user.findFirst({
+    return this.db.query.users.findFirst({
       where: (user, { eq }) => eq(user.id, id),
       with: {
         department: true,
@@ -27,7 +27,7 @@ export class UserRepository {
     });
   }
   async getProfile(id: string) {
-    return this.db.query.user.findFirst({
+    return this.db.query.users.findFirst({
       where: (user, { eq }) => eq(user.id, id),
       with: {
         department: true,
@@ -42,19 +42,19 @@ export class UserRepository {
   }
 
   async findByEmail(email: string) {
-    return this.db.query.user.findFirst({
+    return this.db.query.users.findFirst({
       where: (user, { eq }) => eq(user.email, email),
     });
   }
 
   async findByUsername(username: string) {
-    return this.db.query.user.findFirst({
+    return this.db.query.users.findFirst({
       where: (user, { eq }) => eq(user.username, username),
     });
   }
 
   async findByEmailOrUsername(emailOrUsername: string) {
-    return this.db.query.user.findFirst({
+    return this.db.query.users.findFirst({
       where: (userTable, { or, eq }) =>
         or(
           eq(userTable.email, emailOrUsername),
@@ -64,7 +64,7 @@ export class UserRepository {
   }
 
   async findAll() {
-    return this.db.query.user.findMany({
+    return this.db.query.users.findMany({
       with: {
         department: true,
       },
@@ -73,9 +73,9 @@ export class UserRepository {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     const updatedUser = await this.db
-      .update(user)
+      .update(users)
       .set({ ...updateUserDto, updatedAt: new Date() } as any)
-      .where(eq(user.id, id))
+      .where(eq(users.id, id))
       .returning();
 
     return updatedUser[0];
@@ -83,9 +83,9 @@ export class UserRepository {
 
   async remove(id: string) {
     const deletedUser = await this.db
-      .delete(user)
-      .where(eq(user.id, id))
-      .returning({ id: user.id });
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning({ id: users.id });
 
     return deletedUser[0];
   }

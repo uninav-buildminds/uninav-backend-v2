@@ -7,7 +7,7 @@ import {
   boolean,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
-import { user } from './user.schema';
+import { users } from './user.schema';
 import { userIdTypeEnum } from './enums.schema';
 import { TABLES } from '../tables.constants';
 
@@ -16,7 +16,7 @@ export const auth = pgTable(
   {
     userId: uuid('user_id')
       .primaryKey()
-      .references(() => user.id, {
+      .references(() => users.id, {
         onDelete: 'cascade',
       })
       .notNull(),
@@ -37,8 +37,8 @@ export const auth = pgTable(
 
 // Auth relations
 export const authRelations = relations(auth, ({ one }) => ({
-  user: one(user, {
+  user: one(users, {
     fields: [auth.userId],
-    references: [user.id],
+    references: [users.id],
   }),
 }));

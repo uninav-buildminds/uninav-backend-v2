@@ -2,7 +2,7 @@ import * as schema from 'src/modules/drizzle/schema/schema';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { InferSelectModel } from 'drizzle-orm';
 // Tables
-import { user } from 'src/modules/drizzle/schema/user.schema';
+import { users } from 'src/modules/drizzle/schema/user.schema';
 import { moderator } from 'src/modules/drizzle/schema/moderator.schema';
 import { faculty } from 'src/modules/drizzle/schema/faculty.schema';
 import { department } from 'src/modules/drizzle/schema/department.schema';
@@ -16,7 +16,7 @@ import { auth } from 'src/modules/drizzle/schema/schema';
 export type DrizzleDB = NodePgDatabase<typeof schema>;
 
 export type UserEntity = Omit<
-  InferSelectModel<typeof user>,
+  InferSelectModel<typeof users>,
   'password' | 'email' | 'matricNo' | 'studentIdType' | 'studentIdImage'
 >;
 export type ModeratorEntity = InferSelectModel<typeof moderator>;

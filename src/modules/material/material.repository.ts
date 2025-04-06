@@ -15,7 +15,10 @@ import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { CreateResourceDto } from 'src/modules/material/dto/create-resource.dto';
 import { materialLogger } from 'src/modules/material/material.module';
 import { TABLES } from 'src/modules/drizzle/tables.constants';
-import { userCourses as uc } from 'src/modules/drizzle/schema/user.schema';
+import {
+  users,
+  userCourses as uc,
+} from 'src/modules/drizzle/schema/user.schema';
 import {
   courses,
   departmentLevelCourses as dlc,
@@ -320,11 +323,27 @@ export class MaterialRepository {
 
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
+
+    // Destructure unwanted fields from material table columns
     let { updatedAt, createdAt, searchVector, ...rest } =
       getTableColumns(material);
+
     const data = await this.db
       .select({
         ...rest,
+        // Creator fields
+        creator: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+        },
+        // Target course fields
+        targetCourseInfo: {
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+        },
         rank: sql<number>`
         ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query})) 
 
@@ -354,6 +373,8 @@ export class MaterialRepository {
           END AS rank`,
       })
       .from(material)
+      .leftJoin(users, eq(material.creatorId, users.id))
+      .leftJoin(courses, eq(material.targetCourse, courses.id))
       .where(whereCondition)
       .orderBy(
         desc(sql`rank`),

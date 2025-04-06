@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, primaryKey, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { department } from './department.schema';
-import { user } from './user.schema';
+import { users } from './user.schema';
 import { moderator } from 'src/modules/drizzle/schema/moderator.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { approvalStatusEnum } from 'src/modules/drizzle/schema/enums.schema';
@@ -44,7 +44,7 @@ export const departmentLevelCourses = pgTable(
 export const studentCourses = pgTable(
   TABLES.STUDENT_COURSES,
   {
-    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
     courseId: uuid('course_id').references(() => courses.id, {
       onDelete: 'cascade',
     }),
@@ -76,9 +76,9 @@ export const departmentLevelCoursesRelations = relations(
 );
 
 export const studentCoursesRelations = relations(studentCourses, ({ one }) => ({
-  user: one(user, {
+  user: one(users, {
     fields: [studentCourses.userId],
-    references: [user.id],
+    references: [users.id],
   }),
   course: one(courses, {
     fields: [studentCourses.courseId],

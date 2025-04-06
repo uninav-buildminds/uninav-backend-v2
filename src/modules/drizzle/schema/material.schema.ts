@@ -13,7 +13,7 @@ import {
   materialTypeEnum,
   approvalStatusEnum,
 } from './enums.schema';
-import { user } from './user.schema';
+import { users } from './user.schema';
 import { moderator } from './moderator.schema';
 import { collectionMaterial } from './collection.schema';
 import { advert } from './advert.schema';
@@ -34,7 +34,7 @@ export const material = pgTable(
     downloadCount: integer('download_count').default(0),
     likes: integer('likes').default(0),
 
-    creatorId: uuid('creator_id').references(() => user.id, {
+    creatorId: uuid('creator_id').references(() => users.id, {
       onDelete: 'set null',
     }),
     label: text('label'),
@@ -63,9 +63,9 @@ export const material = pgTable(
 );
 
 export const materialRelations = relations(material, ({ one, many }) => ({
-  creator: one(user, {
+  creator: one(users, {
     fields: [material.creatorId],
-    references: [user.id],
+    references: [users.id],
   }),
   reviewer: one(moderator, {
     fields: [material.reviewedBy],

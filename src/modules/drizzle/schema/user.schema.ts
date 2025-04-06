@@ -21,7 +21,7 @@ import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { TABLES } from '../tables.constants';
 
 // Table Definition with Index on email
-export const user = pgTable(
+export const users = pgTable(
   TABLES.USERS,
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -45,7 +45,7 @@ export const user = pgTable(
 export const userCourses = pgTable(
   TABLES.USERS_COURSES,
   {
-    userId: uuid('user_id').references(() => user.id, {
+    userId: uuid('user_id').references(() => users.id, {
       onDelete: 'cascade',
     }),
     courseId: uuid('course_id')
@@ -60,9 +60,9 @@ export const userCourses = pgTable(
 );
 
 export const userCoursesRelations = relations(userCourses, ({ one }) => ({
-  user: one(user, {
+  user: one(users, {
     fields: [userCourses.userId],
-    references: [user.id],
+    references: [users.id],
   }),
   course: one(courses, {
     fields: [userCourses.courseId],
@@ -72,13 +72,13 @@ export const userCoursesRelations = relations(userCourses, ({ one }) => ({
 
 // Relations  ------
 
-export const userRelations = relations(user, ({ one, many }) => ({
+export const userRelations = relations(users, ({ one, many }) => ({
   department: one(department, {
-    fields: [user.departmentId],
+    fields: [users.departmentId],
     references: [department.id],
   }),
   moderator: one(moderator, {
-    fields: [user.id],
+    fields: [users.id],
     references: [moderator.userId],
   }),
   materials: many(material),
@@ -88,7 +88,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
   comments: many(comments),
   blogs: many(blogs),
   auth: one(auth, {
-    fields: [user.id],
+    fields: [users.id],
     references: [auth.userId],
   }),
   courses: many(userCourses),

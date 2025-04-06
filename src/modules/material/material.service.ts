@@ -374,7 +374,7 @@ export class MaterialService {
     filters: {
       creatorId?: string;
       courseId?: string;
-      type?: string;
+      type?: any;
       tag?: string;
     },
     user: UserEntity,
