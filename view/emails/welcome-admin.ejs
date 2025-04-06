@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to UniNav as an Administrator!</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background-color: #7c3aed;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background-color: #f9fafb;
+      padding: 25px;
+      border-radius: 0 0 8px 8px;
+      border: 1px solid #e5e7eb;
+      border-top: none;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .button {
+      display: inline-block;
+      background-color: #7c3aed;
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      margin: 15px 0;
+      font-weight: bold;
+    }
+    h1, h2 {
+      color: #7c3aed;
+    }
+    .admin-power {
+      margin-bottom: 15px;
+      padding-left: 20px;
+      border-left: 3px solid #7c3aed;
+    }
+    .next-steps {
+      background-color: #f3f4f6;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Welcome to UniNav, Administrator!</h1>
+  </div>
+  <div class="content">
+    <p>Hi <%= firstName %> <%= lastName %>!</p>
+    
+    <p>We're delighted to welcome you as an <strong>Administrator</strong> on UniNav! You now have comprehensive oversight of our academic resource platform.</p>
+    
+    <h2>About UniNav</h2>
+    <p>UniNav connects students with essential academic resources in a structured, searchable format. As an administrator, you'll shape the platform's growth and ensure its integrity across all departments, including <%= departmentName %>.</p>
+    
+    <div class="admin-power">
+      <h3>⚙️ Your Administrative Powers:</h3>
+      <ul>
+        <li>Manage user accounts and roles (students, moderators)</li>
+        <li>Configure platform-wide settings</li>
+        <li>Monitor content quality and approve moderators</li>
+        <li>Access analytics and platform usage statistics</li>
+        <li>Handle reports and resolve disputes</li>
+        <li>Oversee monetization and promotional content</li>
+      </ul>
+    </div>
+    
+    <div class="next-steps">
+      <h3>🚀 Getting Started:</h3>
+      <ol>
+        <li><strong>Verify your email</strong> to activate your administrator account</li>
+        <li><strong>Access the admin dashboard</strong> for a platform overview</li>
+        <li><strong>Review pending moderator applications</strong> if available</li>
+        <li><strong>Familiarize yourself with the admin controls</strong> and settings</li>
+        <li><strong>Set up your security preferences</strong> including 2FA (recommended)</li>
+      </ol>
+    </div>
+    
+    <a href="https://uninav.com/admin/dashboard" class="button">Access Admin Dashboard</a>
+    
+    <p>For security purposes, please review our <a href="https://uninav.com/admin/security-guide">Admin Security Guidelines</a> to help protect the platform and user data.</p>
+    
+    <p>If you have any questions about your administrative role, please contact our technical team at <a href="mailto:tech@uninav.com">tech@uninav.com</a>.</p>
+    
+    <p>Thank you for your leadership in making UniNav an invaluable resource for academic success!</p>
+    <p>The UniNav Team</p>
+  </div>
+  <div class="footer">
+    <p>© <%= new Date().getFullYear() %> UniNav. All rights reserved.</p>
+    <p>This is a secure administrative communication. Please do not forward this email.</p>
+  </div>
+</body>
+</html>
