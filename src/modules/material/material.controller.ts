@@ -65,18 +65,23 @@ export class MaterialController {
     @Query('courseId') courseId?: string,
     @Query('type') type?: string,
     @Query('tag') tag?: string,
+    @Query('page') page: number = 1,
   ) {
-    const materials = await this.materialService.findWithFilters({
-      creatorId,
-      courseId,
-      type,
-      tag,
-    });
+    const materials = await this.materialService.findWithFilters(
+      {
+        creatorId,
+        courseId,
+        type,
+        tag,
+      },
+      page,
+    );
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,
     );
   }
+
   @Get('search')
   @UseGuards(RolesGuard)
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
@@ -87,6 +92,7 @@ export class MaterialController {
     @Query('courseId') courseId?: string,
     @Query('type') type?: string,
     @Query('tag') tag?: string,
+    @Query('page') page: number = 1,
   ) {
     const materials = await this.materialService.searchMaterials(
       query,
@@ -97,10 +103,29 @@ export class MaterialController {
         tag,
       },
       req.user as UserEntity,
+      page,
     );
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,
+    );
+  }
+
+  @Get('recommendations')
+  @UseGuards(RolesGuard)
+  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  async getRecommendations(
+    @Req() req: Request,
+    @Query('page') page: number = 1,
+  ) {
+    const user = req['user'] as UserEntity;
+    const recommendations = await this.materialService.getRecommendations(
+      user,
+      page,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Recommendations retrieved successfully',
+      recommendations,
     );
   }
 

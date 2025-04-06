@@ -378,19 +378,40 @@ export class MaterialService {
       tag?: string;
     },
     user: UserEntity,
+    page: number = 1,
   ) {
-    return this.materialRepository.searchMaterials(query, filters, user);
+    if (!query || query.trim().length === 0) {
+      throw new BadRequestException('Search query cannot be empty');
+    }
+
+    return this.materialRepository.searchMaterials(query, filters, user, page);
   }
 
-  async findWithFilters(filters: {
-    creatorId?: string;
-    courseId?: string;
-    type?: string;
-    tag?: string;
-  }) {
-    return this.materialRepository.findWithFilters({
-      ...filters,
-      type: filters.type as MaterialTypeEnum,
-    });
+  async findWithFilters(
+    filters: {
+      creatorId?: string;
+      courseId?: string;
+      type?: string;
+      tag?: string;
+    },
+    page: number = 1,
+  ) {
+    return this.materialRepository.findWithFilters(
+      {
+        ...filters,
+        type: filters.type as MaterialTypeEnum,
+      },
+      page,
+    );
+  }
+
+  async getRecommendations(user: UserEntity, page: number = 1) {
+    if (!user.departmentId) {
+      throw new BadRequestException(
+        'User must have a department to get recommendations',
+      );
+    }
+
+    return this.materialRepository.getRecommendations(user, page);
   }
 }

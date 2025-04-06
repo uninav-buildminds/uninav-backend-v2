@@ -179,13 +179,28 @@ export class MaterialRepository {
     });
   }
 
-  async findWithFilters(filters: {
-    creatorId?: string;
-    courseId?: string;
-    type?: MaterialTypeEnum;
-    tag?: string;
-  }): Promise<MaterialEntity[]> {
+  async findWithFilters(
+    filters: {
+      creatorId?: string;
+      courseId?: string;
+      type?: MaterialTypeEnum;
+      tag?: string;
+    },
+    page: number = 1,
+  ): Promise<{
+    data: Partial<MaterialEntity>[];
+    pagination: {
+      page: number;
+      limit: number;
+      totalItems: number;
+      totalPages: number;
+      hasMore: boolean;
+      hasPrev: boolean;
+    };
+  }> {
     let conditions = [];
+    const limit = 10;
+    const offset = (page - 1) * limit;
 
     if (filters.creatorId) {
       conditions.push(eq(material.creatorId, filters.creatorId));
@@ -200,8 +215,20 @@ export class MaterialRepository {
       conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
     }
 
-    return this.db.query.material.findMany({
-      where: conditions.length > 0 ? and(...conditions) : undefined,
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count for pagination
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(material)
+      .where(whereClause)
+      .execute();
+
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    const data = await this.db.query.material.findMany({
+      where: whereClause,
       orderBy: [
         desc(material.likes),
         desc(material.downloadCount),
@@ -217,8 +244,34 @@ export class MaterialRepository {
             username: true,
           },
         },
+        targetCourse: {
+          columns: {
+            id: true,
+            courseName: true,
+            courseCode: true,
+          },
+        },
       },
+      columns: {
+        searchVector: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+      limit,
+      offset,
     });
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 
   async searchMaterials(
@@ -230,15 +283,11 @@ export class MaterialRepository {
       tag?: string;
     },
     user: UserEntity,
+    page: number = 1,
   ) {
     const conditions = [];
-
-    // ! Not necessary since we are using websearch_to_tsquery
-    // Format query for websearch - trim extra spaces and ensure proper formatting
-    // const formattedQuery = query
-    //   .trim()
-    //   .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
-    //   .replace(/['"]/g, ''); // Remove quotes that might interfere with websearch
+    const limit = 10;
+    const offset = (page - 1) * limit;
 
     // Apply filters conditionally
     if (filters.creatorId) {
@@ -253,13 +302,40 @@ export class MaterialRepository {
     if (filters.tag) {
       conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
     }
-    let result = await this.db
+
+    const whereCondition = sql.join(
+      [
+        ...conditions,
+        sql<boolean>`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+      ],
+      sql` AND `,
+    );
+
+    // Get total count for pagination
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(material)
+      .where(whereCondition)
+      .execute();
+
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+    const data = await this.db
       .select({
         id: material.id,
         label: material.label,
         description: material.description,
+        visibility: material.visibility,
+        restriction: material.restriction,
         type: material.type,
         tags: material.tags,
+        creatorId: material.creatorId,
+        targetCourse: material.targetCourse,
+        createdAt: material.createdAt,
+        updatedAt: material.updatedAt,
+        likes: material.likes,
+        downloadCount: material.downloadCount,
+        viewCount: material.viewCount,
         rank: sql<number>`
         ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query})) 
 
@@ -286,18 +362,10 @@ export class MaterialRepository {
               AND ${dlc.level} = ${user.level}
             ) THEN 0.1
             ELSE 0 
-          END`,
+          END AS rank`,
       })
       .from(material)
-      .where(
-        sql.join(
-          [
-            sql<boolean>`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-            ...conditions,
-          ],
-          sql` AND `,
-        ),
-      )
+      .where(whereCondition)
       .orderBy(
         desc(sql`rank`),
         desc(material.likes),
@@ -305,8 +373,81 @@ export class MaterialRepository {
         desc(material.viewCount),
         desc(material.createdAt),
       )
+      .limit(limit)
+      .offset(offset)
       .execute();
 
-    return result;
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  async getRecommendations(
+    user: UserEntity,
+    page: number = 1,
+  ): Promise<{
+    data: MaterialEntity[];
+    pagination: {
+      page: number;
+      limit: number;
+      totalItems: number;
+      totalPages: number;
+      hasMore: boolean;
+      hasPrev: boolean;
+    };
+  }> {
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    const whereCondition = sql`${material.targetCourse} IN (
+      SELECT ${courses.id} FROM ${courses}  
+      JOIN ${dlc}  ON ${courses.id} = ${dlc.courseId}
+      WHERE ${dlc.departmentId} = ${user.departmentId}
+      AND ${dlc.level} = ${user.level}
+    )`;
+
+    // Get total count for pagination
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(material)
+      .where(whereCondition)
+      .execute();
+
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    const data = await this.db
+      .select()
+      .from(material)
+      .where(whereCondition)
+      .orderBy(
+        desc(material.likes),
+        desc(material.downloadCount),
+        desc(material.createdAt),
+        desc(material.viewCount),
+      )
+      .limit(limit)
+      .offset(offset)
+      .execute();
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 }
