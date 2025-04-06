@@ -21,6 +21,7 @@ export const auth = pgTable(
       })
       .notNull(),
     email: text('email').notNull().unique(),
+    verificationCode: text('verification_code'),
     emailVerified: boolean('email_verified').default(false),
     password: text('password').notNull(),
     matricNo: text('matric_no').unique(),

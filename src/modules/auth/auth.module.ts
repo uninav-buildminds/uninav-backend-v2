@@ -9,17 +9,12 @@ import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { LocalStrategy } from 'src/modules/auth/strategies/local.strategy';
 import { AuthRepository } from './auth.repository';
 import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DepartmentModule } from 'src/modules/department/department.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Global()
 @Module({
-  imports: [
-    DrizzleModule,
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => getJwtConfig(configService),
-      inject: [ConfigService],
-    }),
-  ],
+  imports: [DrizzleModule, DepartmentModule, UserModule],
   controllers: [AuthController],
   providers: [
     AuthService,
@@ -31,12 +26,12 @@ import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
     },
   ],
   exports: [
+    AuthService,
+    AuthRepository,
     {
       provide: JWT_SYMBOL,
       useExisting: JwtService,
     },
-    AuthService,
-    AuthRepository,
   ],
 })
 export class AuthModule {}

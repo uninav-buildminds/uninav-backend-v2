@@ -19,4 +19,11 @@ export default registerAs('config', (): { [key in ENV]: string } => ({
   GMAIL_REFRESH_TOKEN: process.env.GMAIL_REFRESH_TOKEN,
   COMPANY_EMAIL: process.env.COMPANY_EMAIL,
   COMPANY_NAME: process.env.COMPANY_NAME,
+
+  CRYPTO_KEY: process.env.CRYPTO_KEY,
+  CRYPTO_IV: process.env.CRYPTO_IV,
+  CRYPTO_ENCRYPTION_ALGORITHM:
+    process.env.CRYPTO_ENCRYPTION_ALGORITHM || 'aes-256-cbc',
+
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
 }));
