@@ -17,11 +17,11 @@ import { Roles } from 'src/utils/decorators/roles.decorator';
 import { UserRoleEnum } from 'src/utils/types/db.types';
 
 @Controller('department')
-@UseGuards(RolesGuard)
 export class DepartmentController {
   constructor(private readonly departmentService: DepartmentService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
   @Roles(UserRoleEnum.ADMIN)
   async create(@Body() createDepartmentDto: CreateDepartmentDto) {
     const department = await this.departmentService.create(createDepartmentDto);
@@ -59,6 +59,7 @@ export class DepartmentController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
   @Roles(UserRoleEnum.ADMIN)
   async update(
     @Param('id') id: string,

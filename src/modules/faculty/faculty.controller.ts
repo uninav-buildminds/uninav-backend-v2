@@ -17,11 +17,11 @@ import { Roles } from 'src/utils/decorators/roles.decorator';
 import { UserRoleEnum } from 'src/utils/types/db.types';
 
 @Controller('faculty')
-@UseGuards(RolesGuard)
 export class FacultyController {
   constructor(private readonly facultyService: FacultyService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
   @Roles(UserRoleEnum.ADMIN)
   async create(@Body() createFacultyDto: CreateFacultyDto) {
     const faculty = await this.facultyService.create(createFacultyDto);
@@ -63,6 +63,7 @@ export class FacultyController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
   @Roles(UserRoleEnum.ADMIN)
   async remove(@Param('id') id: string) {
     const faculty = await this.facultyService.remove(id);
