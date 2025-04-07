@@ -7,7 +7,11 @@ import { S3 } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  DeleteObjectCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import { ENV } from 'src/utils/config/env.enum';
 import { MulterFile } from 'src/utils/types';
 import { B2_BUCKETS } from 'src/utils/config/constants.config';
@@ -17,6 +21,7 @@ export class StorageService {
   private s3: S3;
   private bucketMedia: string;
   private bucketDocs: string;
+  private bucketBlogs: string;
   private endpoint: string;
   private logger = new Logger(StorageService.name);
   constructor(private readonly configService: ConfigService) {
@@ -34,6 +39,7 @@ export class StorageService {
     });
     this.bucketMedia = B2_BUCKETS.media;
     this.bucketDocs = B2_BUCKETS.docs;
+    this.bucketBlogs = B2_BUCKETS.blogs;
   }
 
   /**
@@ -69,6 +75,115 @@ export class StorageService {
 
     // Return the public URL and file key
     return { publicUrl: `${this.endpoint}/${bucket}/${fileKey}`, fileKey };
+  }
+
+  /**
+   * Upload a blog image to the media bucket
+   * @param file The image file to upload
+   * @returns Object containing the public URL and file key
+   */
+  async uploadBlogImage(
+    file: MulterFile,
+  ): Promise<{ publicUrl: string; fileKey: string }> {
+    return this.uploadFile(file, true);
+  }
+
+  /**
+   * Upload blog content (markdown) to the blogs bucket
+   * @param content The markdown content as string
+   * @param blogId Optional blog ID to use in the file key
+   * @returns Object containing the public URL and file key
+   */
+  async uploadBlogContent(
+    content: string,
+    blogId?: string,
+  ): Promise<{ publicUrl: string; fileKey: string }> {
+    const fileKey = `${blogId || randomUUID()}-content.md`;
+    this.logger.log(
+      `Uploading blog content to ${this.bucketBlogs}: ${fileKey}`,
+    );
+
+    try {
+      await this.s3.putObject({
+        Bucket: this.bucketBlogs,
+        Key: fileKey,
+        Body: Buffer.from(content, 'utf-8'),
+        ContentType: 'text/markdown',
+        ACL: 'public-read',
+      });
+
+      return {
+        publicUrl: `${this.endpoint}/${this.bucketBlogs}/${fileKey}`,
+        fileKey,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to upload blog content: ${error.message}`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        'Failed to upload blog content. Please try again.',
+      );
+    }
+  }
+
+  /**
+   * Update existing blog content in the blogs bucket
+   * @param content The new markdown content
+   * @param fileKey The existing file key
+   * @returns Object containing the public URL and file key
+   */
+  async updateBlogContent(
+    content: string,
+    fileKey: string,
+  ): Promise<{ publicUrl: string; fileKey: string }> {
+    this.logger.log(`Updating blog content: ${fileKey}`);
+
+    try {
+      await this.s3.putObject({
+        Bucket: this.bucketBlogs,
+        Key: fileKey,
+        Body: Buffer.from(content, 'utf-8'),
+        ContentType: 'text/markdown',
+        ACL: 'public-read',
+      });
+
+      return {
+        publicUrl: `${this.endpoint}/${this.bucketBlogs}/${fileKey}`,
+        fileKey,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to update blog content: ${error.message}`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update blog content. Please try again.',
+      );
+    }
+  }
+
+  /**
+   * Fetch blog content from the blogs bucket
+   * @param fileKey The key of the content file
+   * @returns The markdown content as string
+   */
+  async getBlogContent(fileKey: string): Promise<string> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketBlogs,
+        Key: fileKey,
+      });
+
+      const response = await this.s3.send(command);
+      const bodyContents = await response.Body.transformToString('utf-8');
+      return bodyContents;
+    } catch (error) {
+      this.logger.error(`Failed to get blog content: ${error.message}`, error);
+      throw new InternalServerErrorException(
+        'Failed to retrieve blog content. Please try again.',
+      );
+    }
   }
 
   /**
@@ -108,22 +223,39 @@ export class StorageService {
   }
 
   /**
-   * Delete a file from Backblaze B2
+   * Delete a file from any Backblaze B2 bucket
    * @param fileKey The key of the file in the bucket
-   * @param isMedia Whether the file is in the media folder
+   * @param bucketType The type of bucket: 'media', 'docs', or 'blogs'
    * @returns True if deletion was successful
    */
-  async deleteFile(fileKey: string, isMedia = false): Promise<boolean> {
+  async deleteFile(
+    fileKey: string,
+    bucketType: 'media' | 'docs' | 'blogs' = 'docs',
+  ): Promise<boolean> {
+    if (!fileKey) return true; // Skip if no file key
+
+    let bucket: string;
+    switch (bucketType) {
+      case 'media':
+        bucket = this.bucketMedia;
+        break;
+      case 'blogs':
+        bucket = this.bucketBlogs;
+        break;
+      default:
+        bucket = this.bucketDocs;
+    }
+
     try {
       const command = new DeleteObjectCommand({
-        Bucket: isMedia ? this.bucketMedia : this.bucketDocs,
+        Bucket: bucket,
         Key: fileKey,
       });
 
       await this.s3.send(command);
       return true;
     } catch (error) {
-      console.error('Error deleting file:', error);
+      this.logger.error('Error deleting file:', error);
       return false;
     }
   }

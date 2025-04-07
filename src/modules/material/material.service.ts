@@ -285,10 +285,7 @@ export class MaterialService {
             currentResource?.fileKey
           ) {
             try {
-              await this.storageService.deleteFile(
-                currentResource.fileKey,
-                false,
-              );
+              await this.storageService.deleteFile(currentResource.fileKey);
             } catch (error) {
               logger.error(
                 `Failed to delete old file when updating material: ${error.message}`,
@@ -341,7 +338,7 @@ export class MaterialService {
     ) {
       // Delete the file from storage
       try {
-        await this.storageService.deleteFile(material.resource.fileKey, false);
+        await this.storageService.deleteFile(material.resource.fileKey);
         logger.log(
           `Successfully deleted file ${material.resource.fileKey} when removing material ${id}`,
         );

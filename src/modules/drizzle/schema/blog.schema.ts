@@ -16,10 +16,17 @@ export const blogs = pgTable(TABLES.BLOGS, {
   title: text('title').notNull(),
   description: text('description').notNull(),
   type: blogTypeEnum('type').notNull(),
+  // Store image URL from 'uninav-media' bucket
   headingImageAddress: text('headingAddress').notNull(),
+  // Store content URL from 'uninav-blogs' bucket
   bodyAddress: text('bodyAddress').notNull(),
+  // Keep track of the file keys for deletion operations
+  headingImageKey: text('headingImageKey'),
+  bodyKey: text('bodyKey'),
   likes: integer('likes').default(0),
+  views: integer('views').default(0),
   clicks: integer('clicks').default(0),
+  tags: text('tags').array(),
   ...timestamps,
 });
 
