@@ -21,7 +21,7 @@ export class BlogRepository {
     limit: number = 10,
     type?: BlogTypeEnum,
   ): Promise<{
-    data: BlogEntity[];
+    data: Partial<BlogEntity>[];
     pagination: {
       page: number;
       limit: number;
@@ -31,7 +31,7 @@ export class BlogRepository {
       hasPrev: boolean;
     };
   }> {
-    const offset = (page - 1) * limit;
+    const offset = page ? (page - 1) * limit : 0;
 
     // Apply type filter if provided
     const whereClause = type ? eq(blogs.type, type) : undefined;
@@ -59,6 +59,9 @@ export class BlogRepository {
           },
         },
       },
+      columns: {
+        bodyAddress: false,
+      },
       offset,
       limit,
     });
@@ -76,7 +79,7 @@ export class BlogRepository {
     };
   }
 
-  async findOne(id: string): Promise<BlogEntity> {
+  async findOne(id: string): Promise<Partial<BlogEntity>> {
     return this.db.query.blogs.findFirst({
       where: eq(blogs.id, id),
       with: {
@@ -101,6 +104,9 @@ export class BlogRepository {
             },
           },
         },
+      },
+      columns: {
+        bodyAddress: false,
       },
     });
   }

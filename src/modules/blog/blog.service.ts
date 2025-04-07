@@ -14,6 +14,7 @@ import { BlogEntity, BlogTypeEnum, UserEntity } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import * as moment from 'moment-timezone';
 import { BLOG_HEADING_IMG_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
+import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 
 @Injectable()
 export class BlogService {
@@ -62,7 +63,9 @@ export class BlogService {
         tags: createBlogDto.tags,
       } as BlogEntity;
 
-      return this.blogRepository.create(blogData);
+      let blog = await this.blogRepository.create(blogData);
+
+      return DataFormatter.formatObject(blog, ['bodyAddress'], []);
     } catch (error) {
       this.logger.error(`Failed to create blog: ${error.message}`, error.stack);
       throw new BadRequestException('Failed to create blog: ' + error.message);
