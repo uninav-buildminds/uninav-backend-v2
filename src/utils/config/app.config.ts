@@ -8,7 +8,7 @@ const HELMET_OPTIONS: HelmetOptions = {
 };
 
 const CORS_OPTIONS: CorsOptions = {
-  origin: '*',
+  origin: ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
