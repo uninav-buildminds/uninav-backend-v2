@@ -15,11 +15,11 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 @Controller('courses')
-@UseGuards(RolesGuard)
 @UseInterceptors(CacheControlInterceptor)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
+  @UseGuards(RolesGuard)
   @Post()
   async create(@Body() createCourseDto: CreateCourseDto) {
     const course = await this.coursesService.create(createCourseDto);

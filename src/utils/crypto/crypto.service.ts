@@ -9,7 +9,6 @@ import {
 import { configService } from 'src/utils/config/config.service';
 import { CryptoInterface } from './crypto.interface';
 import { ENV } from 'src/utils/config/env.enum';
-import { Injectable } from '@nestjs/common';
 
 class CryptoService implements CryptoInterface {
   protected static readonly key: Buffer = createHash('sha256')

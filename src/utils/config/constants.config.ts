@@ -32,6 +32,7 @@ export const globalCookieOptions: CookieOptions = {
 export enum B2_BUCKETS {
   media = 'uninav-media',
   docs = 'uninav-docs',
+  blogs = 'uninav-blogs',
 }
 
 // Material Resource config

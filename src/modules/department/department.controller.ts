@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -15,8 +16,11 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/utils/decorators/roles.decorator';
 import { UserRoleEnum } from 'src/utils/types/db.types';
+import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
+import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 
 @Controller('department')
+@UseInterceptors(CacheControlInterceptor)
 export class DepartmentController {
   constructor(private readonly departmentService: DepartmentService) {}
 
@@ -32,6 +36,7 @@ export class DepartmentController {
   }
 
   @Get()
+  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findAll() {
     const departments = await this.departmentService.findAll();
     return ResponseDto.createSuccessResponse(
@@ -41,6 +46,7 @@ export class DepartmentController {
   }
 
   @Get(':id')
+  @CacheControl({ public: true, maxAge: 3600 * 24 })
   async findOne(@Param('id') id: string) {
     const department = await this.departmentService.findOne(id);
     return ResponseDto.createSuccessResponse(
