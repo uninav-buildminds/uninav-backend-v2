@@ -1,0 +1,1 @@
+ALTER TABLE "auth" ADD COLUMN "verification_code" text;

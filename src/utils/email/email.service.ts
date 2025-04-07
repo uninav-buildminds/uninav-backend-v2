@@ -23,6 +23,7 @@ export class EmailService implements IEmailService {
     subject: EmailSubjects;
     options: { template: EmailPaths; data: { [key: string]: any } };
   }): Promise<boolean> {
+    console.log('data', options.data);
     for (const provider of this.providers) {
       try {
         await provider.sendMail({ to, subject, options });
@@ -30,7 +31,7 @@ export class EmailService implements IEmailService {
       } catch (error) {
         this.logger.error(
           `Error sending email to ${to} with ${provider.constructor.name}`,
-          error,
+          error.message,
         );
       }
     }

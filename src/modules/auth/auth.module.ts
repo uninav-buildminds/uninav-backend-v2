@@ -11,6 +11,7 @@ import { AuthRepository } from './auth.repository';
 import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
 import { DepartmentModule } from 'src/modules/department/department.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { EmailService } from 'src/utils/email/email.service';
 
 @Global()
 @Module({
@@ -20,6 +21,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     AuthService,
     AuthRepository,
     LocalStrategy,
+    EmailService,
     {
       provide: JWT_SYMBOL,
       useExisting: JwtService,

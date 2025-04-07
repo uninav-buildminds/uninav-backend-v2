@@ -339,7 +339,7 @@ export class MaterialRepository {
           username: users.username,
         },
         // Target course fields
-        targetCourseInfo: {
+        targetCourse: {
           id: courses.id,
           courseName: courses.courseName,
           courseCode: courses.courseCode,
@@ -362,11 +362,10 @@ export class MaterialRepository {
             WHEN ${material.targetCourse} IN (SELECT ${courses.id} FROM ${courses}  
             JOIN ${dlc}  ON ${courses.id} = ${dlc.courseId}
             WHERE ${dlc.departmentId} = ${user.departmentId}) THEN 0.2
-            -- Boost if material is used at the user's level
+            -- Boost if material is used at the user's level not specifically department
             WHEN EXISTS (
               SELECT 1 FROM ${dlc} 
               WHERE  ${dlc.courseId} = ${material.targetCourse}
-              AND ${dlc.departmentId} = ${user.departmentId}
               AND ${dlc.level} = ${user.level}
             ) THEN 0.1
             ELSE 0 

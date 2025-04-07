@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,11 +22,16 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EVENTS } from 'src/utils/events/events.enum';
 import { ConfigService } from '@nestjs/config';
 import { DepartmentService } from 'src/modules/department/department.service';
+import { EmailService } from 'src/utils/email/email.service';
+import {
+  EmailPaths,
+  EmailSubjects,
+} from 'src/utils/config/constants/email.enum';
 
 @Injectable()
 export class AuthService {
   private readonly BCRYPT_SALT: string;
-
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly userService: UserService,
     private readonly authRepository: AuthRepository,
@@ -35,6 +41,8 @@ export class AuthService {
     @Inject(JWT_SYMBOL) private jwtService: JwtService,
   ) {
     this.BCRYPT_SALT = bcrypt.genSaltSync(+this.config.BCRYPT_SALT_ROUNDS);
+
+    this.logger.log('testing email...');
   }
   async findOne(id: string, exclude: boolean = false) {
     const auth = await this.authRepository.findByUserId(id);

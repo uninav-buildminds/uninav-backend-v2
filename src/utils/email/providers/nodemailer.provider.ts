@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { createTransport, Transporter } from 'nodemailer';
 import { ENV } from 'src/utils/config/env.enum';
 import * as ejs from 'ejs';
-import path from 'path';
+import * as path from 'path';
 import { IEmailService } from '../email.service.interface';
 import { configService } from 'src/utils/config/config.service';
 import SMTPPool from 'nodemailer/lib/smtp-pool';
@@ -55,6 +55,8 @@ export default class NodemailerProvider implements IEmailService {
 
     return new Promise<boolean>((resolve, reject) => {
       const template = path.resolve('view/emails', options.template);
+      console.log('template-data', template, options.data);
+
       ejs.renderFile(template, options.data, (error, html) => {
         if (error) {
           this.logger.error('Error rendering email template', error);

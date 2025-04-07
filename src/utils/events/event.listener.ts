@@ -52,8 +52,9 @@ export class EventsListeners {
         subject: EmailSubjects.WELCOME,
         options: { template, data: payload },
       });
+      this.logger.log(`Welcome email sent to ${payload.email}`);
     } catch (error) {
-      this.logger.error('Failed to send welcome message:', error);
+      this.logger.error('Failed to send welcome message:', error.message);
     }
   }
 
