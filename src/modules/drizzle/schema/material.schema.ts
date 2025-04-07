@@ -21,6 +21,7 @@ import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { courses } from 'src/modules/drizzle/schema/course.schema';
 import { TABLES } from '../tables.constants';
+import { materialLikes } from './material-likes.schema';
 
 export const material = pgTable(
   TABLES.MATERIALS,
@@ -82,4 +83,5 @@ export const materialRelations = relations(material, ({ one, many }) => ({
     fields: [material.targetCourse],
     references: [courses.id],
   }),
+  likes: many(materialLikes),
 }));

@@ -1,10 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { BlogEntity, DrizzleDB } from 'src/utils/types/db.types';
+import { BlogEntity, BlogTypeEnum, DrizzleDB } from 'src/utils/types/db.types';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { comments } from 'src/modules/drizzle/schema/comments.schema';
+import { blogLikes } from 'src/modules/drizzle/schema/blog-likes.schema';
 import { eq, desc, and, sql, like, or, ilike } from 'drizzle-orm';
 import { CreateCommentDto } from './dto/create-comment.dto';
+
 @Injectable()
 export class BlogRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
@@ -17,7 +19,7 @@ export class BlogRepository {
   async findAll(
     page: number = 1,
     limit: number = 10,
-    type?: string,
+    type?: BlogTypeEnum,
   ): Promise<{
     data: BlogEntity[];
     pagination: {
@@ -164,6 +166,7 @@ export class BlogRepository {
     query: string,
     page: number = 1,
     limit: number = 10,
+    type?: BlogTypeEnum,
   ): Promise<{
     data: BlogEntity[];
     pagination: {
@@ -178,28 +181,30 @@ export class BlogRepository {
     const offset = (page - 1) * limit;
     const searchTerm = `%${query}%`;
 
+    // Build search conditions
+    const searchConditions = or(
+      ilike(blogs.title, searchTerm),
+      ilike(blogs.description, searchTerm),
+      sql`${query} = ANY(${blogs.tags})`,
+    );
+
+    // Add type filter if provided
+    const whereCondition = type
+      ? and(eq(blogs.type, type), searchConditions)
+      : searchConditions;
+
     // Get total count for pagination
     const countResult = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(blogs)
-      .where(
-        or(
-          ilike(blogs.title, searchTerm),
-          ilike(blogs.description, searchTerm),
-          sql`${query} = ANY(${blogs.tags})`,
-        ),
-      )
+      .where(whereCondition)
       .execute();
 
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
     const data = await this.db.query.blogs.findMany({
-      where: or(
-        ilike(blogs.title, searchTerm),
-        ilike(blogs.description, searchTerm),
-        sql`${query} = ANY(${blogs.tags})`,
-      ),
+      where: whereCondition,
       orderBy: [desc(blogs.createdAt)],
       with: {
         creator: {
@@ -248,11 +253,43 @@ export class BlogRepository {
     return result[0];
   }
 
+  async hasUserLikedBlog(blogId: string, userId: string): Promise<boolean> {
+    const result = await this.db.query.blogLikes.findFirst({
+      where: and(eq(blogLikes.blogId, blogId), eq(blogLikes.userId, userId)),
+    });
+
+    return !!result;
+  }
+
+  async addUserLike(blogId: string, userId: string): Promise<void> {
+    await this.db.insert(blogLikes).values({
+      blogId,
+      userId,
+    });
+  }
+
+  async removeUserLike(blogId: string, userId: string): Promise<void> {
+    await this.db
+      .delete(blogLikes)
+      .where(and(eq(blogLikes.blogId, blogId), eq(blogLikes.userId, userId)));
+  }
+
   async incrementLikes(id: string): Promise<BlogEntity> {
     const result = await this.db
       .update(blogs)
       .set({
         likes: sql`${blogs.likes} + 1`,
+      } as any)
+      .where(eq(blogs.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async decrementLikes(id: string): Promise<BlogEntity> {
+    const result = await this.db
+      .update(blogs)
+      .set({
+        likes: sql`${blogs.likes} - 1`,
       } as any)
       .where(eq(blogs.id, id))
       .returning();

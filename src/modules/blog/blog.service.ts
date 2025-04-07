@@ -63,10 +63,21 @@ export class BlogService {
   }
 
   /**
-   * Get paginated list of blogs with optional type filter
+   * Get paginated list of blogs with optional search and type filters
    */
-  async findAll(page = 1, limit = 10, type?: string) {
-    return this.blogRepository.findAll(page, limit, type);
+  async findAll(query?: string, page = 1, limit = 10, type?: string) {
+    // If there's a search query, use the search repository method
+    if (query && query.trim().length > 0) {
+      return this.blogRepository.search(
+        query,
+        page,
+        limit,
+        type as BlogTypeEnum,
+      );
+    }
+
+    // Otherwise, use the regular findAll method with optional type filter
+    return this.blogRepository.findAll(page, limit, type as BlogTypeEnum);
   }
 
   /**
@@ -101,13 +112,6 @@ export class BlogService {
   }
 
   /**
-   * Search blogs by title, description or tags
-   */
-  async search(query: string, page = 1, limit = 10) {
-    return this.blogRepository.search(query, page, limit);
-  }
-
-  /**
    * Increment click count when a blog is clicked
    */
   async trackClick(id: string) {
@@ -122,16 +126,37 @@ export class BlogService {
   }
 
   /**
-   * Increment like count for a blog
+   * Toggle like status for a blog
    */
-  async likeBlog(id: string) {
+  async likeBlog(id: string, userId: string) {
     const blog = await this.blogRepository.findOne(id);
 
     if (!blog) {
       throw new NotFoundException(`Blog with ID ${id} not found`);
     }
 
-    return this.blogRepository.incrementLikes(id);
+    // Check if the user has already liked this blog
+    const hasLiked = await this.blogRepository.hasUserLikedBlog(id, userId);
+
+    if (hasLiked) {
+      // User already liked the blog, so unlike it
+      await this.blogRepository.removeUserLike(id, userId);
+      await this.blogRepository.decrementLikes(id);
+      return {
+        liked: false,
+        message: 'Blog unliked successfully',
+        likesCount: blog.likes - 1,
+      };
+    } else {
+      // User hasn't liked the blog yet, so like it
+      await this.blogRepository.addUserLike(id, userId);
+      const updatedBlog = await this.blogRepository.incrementLikes(id);
+      return {
+        liked: true,
+        message: 'Blog liked successfully',
+        likesCount: updatedBlog.likes,
+      };
+    }
   }
 
   /**

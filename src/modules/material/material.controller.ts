@@ -12,6 +12,8 @@ import {
   UseGuards,
   Req,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { MaterialService } from './material.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -25,6 +27,7 @@ import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+
 @Controller('materials')
 @UseInterceptors(CacheControlInterceptor)
 export class MaterialController {
@@ -206,5 +209,14 @@ export class MaterialController {
       'Material deleted successfully',
       material,
     );
+  }
+
+  @Post('like/:id')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async likeMaterial(@Req() req: Request, @Param('id') id: string) {
+    const user = req['user'] as UserEntity;
+    const result = await this.materialService.likeMaterial(id, user.id);
+    return ResponseDto.createSuccessResponse(result.message, result);
   }
 }

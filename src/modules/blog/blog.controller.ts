@@ -45,21 +45,12 @@ export class BlogController {
   @Get()
   @CacheControl({ maxAge: 300, public: true }) // Cache for 5 minutes
   findAll(
+    @Query('query') query?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('type') type?: string,
   ) {
-    return this.blogService.findAll(page, limit, type);
-  }
-
-  @Get('search')
-  @CacheControl({ maxAge: 300, public: true }) // Cache for 5 minutes
-  search(
-    @Query('query') query: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return this.blogService.search(query, page, limit);
+    return this.blogService.findAll(query, page, limit, type);
   }
 
   @Get('user/:creatorId')

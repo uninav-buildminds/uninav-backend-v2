@@ -353,9 +353,50 @@ export class MaterialService {
     return this.materialRepository.remove(id);
   }
 
-  async likeMaterial(id: string) {
-    await this.findOne(id); // Check if exists
-    return this.materialRepository.incrementLikes(id);
+  /**
+   * Toggle like status for a material
+   */
+  async likeMaterial(id: string, userId: string) {
+    const material = await this.findOne(id);
+
+    if (!material) {
+      throw new NotFoundException(`Material with ID ${id} not found`);
+    }
+
+    try {
+      // Check if the user has already liked this material
+      const hasLiked = await this.materialRepository.hasUserLikedMaterial(
+        id,
+        userId,
+      );
+
+      if (hasLiked) {
+        // User already liked the material, so unlike it
+        await this.materialRepository.removeUserLike(id, userId);
+        await this.materialRepository.decrementLikes(id);
+        return {
+          liked: false,
+          message: 'Material unliked successfully',
+          likesCount: material.likes - 1,
+        };
+      } else {
+        // User hasn't liked the material yet, so like it
+        await this.materialRepository.addUserLike(id, userId);
+        const updatedMaterial =
+          await this.materialRepository.incrementLikes(id);
+        return {
+          liked: true,
+          message: 'Material liked successfully',
+          likesCount: updatedMaterial.likes,
+        };
+      }
+    } catch (error) {
+      logger.error(
+        `Failed to toggle material like: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException('Failed to process material like');
+    }
   }
 
   async findByCreator(creatorId: string) {

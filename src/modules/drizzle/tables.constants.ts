@@ -16,4 +16,6 @@ export const TABLES = {
   BLOGS: 'blogs',
   COMMENTS: 'comments',
   ADVERT: 'advert',
+  BLOG_LIKES: 'blog_likes',
+  MATERIAL_LIKES: 'material_likes',
 } as const;
