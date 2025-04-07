@@ -1,5 +1,6 @@
 import { ConfigService as ConfigServiceBase } from '@nestjs/config';
 import { ENV } from 'src/utils/config/env.enum';
+import 'dotenv/config';
 class ConfigService extends ConfigServiceBase {
   constructor() {
     super();
@@ -13,5 +14,5 @@ class ConfigService extends ConfigServiceBase {
     super.set(key, value);
   }
 }
-const configService = new ConfigService();
+const configService = new ConfigServiceBase();
 export { configService, ConfigService };

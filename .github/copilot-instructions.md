@@ -1,4 +1,4 @@
-## **rep🌟 General Coding Standards**
+## **🌟 General Coding Standards**
 
 - **Maintain Clean, Modular Code**: Keep functions and components small, reusable, and well-documented.
 - **Error Handling**: Always handle errors gracefully, especially in API calls and blockchain transactions.

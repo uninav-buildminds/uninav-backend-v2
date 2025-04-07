@@ -5,9 +5,12 @@ import {
   randomBytes,
   randomInt,
 } from 'crypto';
-import { configService } from '../config/config.service';
+// import { ConfigService } from '@nestjs/config';
+import { configService } from 'src/utils/config/config.service';
 import { CryptoInterface } from './crypto.interface';
 import { ENV } from 'src/utils/config/env.enum';
+import { Injectable } from '@nestjs/common';
+
 class CryptoService implements CryptoInterface {
   protected static readonly key: Buffer = createHash('sha256')
     .update(String(configService.get(ENV.CRYPTO_KEY)))
@@ -17,10 +20,18 @@ class CryptoService implements CryptoInterface {
     .update(String(configService.get(ENV.CRYPTO_IV)))
     .digest()
     .slice(0, 16);
-  private readonly encryptionAlgorithm: string = configService.get(
-    ENV.CRYPTO_ENCRYPTION_ALGORITHM,
-  );
+  private readonly encryptionAlgorithm: string;
   private static instance: CryptoService;
+
+  constructor() {
+    // Set default algorithm if not provided in env
+    this.encryptionAlgorithm = configService.get(
+      ENV.CRYPTO_ENCRYPTION_ALGORITHM,
+    );
+    if (!this.encryptionAlgorithm) {
+      throw new Error('Encryption algorithm not configured');
+    }
+  }
 
   encrypt(text: string) {
     const cipher = createCipheriv(
