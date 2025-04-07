@@ -39,6 +39,7 @@ export class BlogController {
     @UploadedFile() headingImage: any,
   ) {
     const user = req.user as UserEntity;
+    createBlogDto.creatorId = user.id;
     return this.blogService.create(createBlogDto, user, headingImage);
   }
 

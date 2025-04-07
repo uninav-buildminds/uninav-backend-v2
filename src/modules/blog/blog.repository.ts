@@ -126,14 +126,14 @@ export class BlogRepository {
     const countResult = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(blogs)
-      .where(eq(blogs.creator, creatorId))
+      .where(eq(blogs.creatorId, creatorId))
       .execute();
 
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
     const data = await this.db.query.blogs.findMany({
-      where: eq(blogs.creator, creatorId),
+      where: eq(blogs.creatorId, creatorId),
       orderBy: [desc(blogs.createdAt)],
       with: {
         creator: {

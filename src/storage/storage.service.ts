@@ -187,38 +187,59 @@ export class StorageService {
   }
 
   /**
-   * Generate a signed URL for downloading a file
-   * @param fileKey The key of the file in the bucket
-   * @param expiresIn Time in seconds until the URL expires
-   * @param forceDownload Whether to force download or open in browser
-   * @returns The signed URL for downloading the file
+   * Get a signed URL for a file in the storage
+   * @param fileKey The file key/path in the bucket
+   * @param expiry Expiry time in seconds
+   * @param forDownload Whether the URL is for download (with attachment disposition)
+   * @param bucketType The bucket type ('media', 'blogs', etc.) - defaults to docs bucket
+   * @returns A signed URL for accessing the file
    */
   async getSignedUrl(
     fileKey: string,
-    expiresIn = 3600 * 24 * 7,
-    forceDownload = false,
+    expiry: number,
+    forDownload: boolean = false,
+    bucketType: string = 'docs',
   ): Promise<string> {
-    const command = new GetObjectCommand({
-      Bucket: this.bucketDocs,
-      Key: fileKey,
-      // Set response headers for force download if requested
-      ...(forceDownload && {
-        ResponseContentDisposition: `attachment; filename="${fileKey.split('/').pop()}"`,
-      }),
-    });
-
     try {
-      // generate the signed url
-      const url = getSignedUrl(this.s3, command, { expiresIn });
+      // Determine which bucket to use
+      const bucketName = this.getStorageBucket(bucketType);
+
+      // Create the command with appropriate parameters
+      const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: fileKey,
+      });
+
+      // Add response content disposition for downloads if needed
+      if (forDownload) {
+        command.input.ResponseContentDisposition = 'attachment';
+      }
+
+      // Generate the signed URL using the AWS SDK
+      const url = await getSignedUrl(this.s3, command, { expiresIn: expiry });
       return url;
     } catch (error) {
       this.logger.error(
-        `Failed to generate signed URL: ${error.message}`,
-        error,
+        `Error generating signed URL: ${error.message}`,
+        error.stack,
       );
-      throw new InternalServerErrorException(
-        'Failed to generate signed URL. Please try again.',
-      );
+      throw new Error(`Failed to generate signed URL: ${error.message}`);
+    }
+  }
+
+  /**
+   * Helper method to get the correct bucket name based on type
+   */
+  private getStorageBucket(bucketType: string): string {
+    switch (bucketType) {
+      case 'media':
+        return this.bucketMedia;
+      case 'blogs':
+        return this.bucketBlogs;
+      case 'docs':
+        return this.bucketDocs;
+      default:
+        return this.bucketDocs;
     }
   }
 

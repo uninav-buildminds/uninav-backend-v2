@@ -9,7 +9,7 @@ import { blogLikes } from './blog-likes.schema';
 
 export const blogs = pgTable(TABLES.BLOGS, {
   id: uuid('id').primaryKey().defaultRandom(),
-  creator: uuid('creator')
+  creatorId: uuid('creator')
     .references(() => users.id, {
       onDelete: 'cascade',
     })
@@ -34,7 +34,7 @@ export const blogs = pgTable(TABLES.BLOGS, {
 export const blogRelations = relations(blogs, ({ one, many }) => ({
   comments: many(comments),
   creator: one(users, {
-    fields: [blogs.creator],
+    fields: [blogs.creatorId],
     references: [users.id],
   }),
   likes: many(blogLikes),

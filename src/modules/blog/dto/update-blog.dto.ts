@@ -9,6 +9,7 @@ import {
 import { blogTypeEnum } from 'src/modules/drizzle/schema/enums.schema';
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateBlogDto } from './create-blog.dto';
+import { BlogTypeEnum } from 'src/utils/types/db.types';
 
 export class UpdateBlogDto extends PartialType(CreateBlogDto) {
   @IsString()
@@ -21,7 +22,7 @@ export class UpdateBlogDto extends PartialType(CreateBlogDto) {
 
   @IsEnum(blogTypeEnum)
   @IsOptional()
-  type?: string;
+  type?: BlogTypeEnum;
 
   @IsString()
   @IsOptional()

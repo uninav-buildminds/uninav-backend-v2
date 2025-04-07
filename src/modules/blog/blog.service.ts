@@ -12,6 +12,8 @@ import { StorageService } from 'src/storage/storage.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { BlogEntity, BlogTypeEnum, UserEntity } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
+import * as moment from 'moment-timezone';
+import { BLOG_HEADING_IMG_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
 
 @Injectable()
 export class BlogService {
@@ -31,12 +33,17 @@ export class BlogService {
     headingImage: MulterFile,
   ) {
     try {
-      // Set creator to current user
-      createBlogDto.creator = user.id;
-
       // 1. Upload the heading image to B2 media bucket
-      const { publicUrl: headingImageUrl, fileKey: headingImageKey } =
+      const { fileKey: headingImageKey } =
         await this.storageService.uploadBlogImage(headingImage);
+
+      // Generate a signed URL for the heading image
+      const headingImageUrl = await this.storageService.getSignedUrl(
+        headingImageKey,
+        3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
+        false,
+        'media',
+      );
 
       // 2. Store the blog body content in B2 blogs bucket
       const { publicUrl: bodyUrl, fileKey: bodyKey } =
@@ -44,10 +51,10 @@ export class BlogService {
 
       // 3. Create blog entry in database (without storing actual body content)
       const blogData = {
-        creator: user.id,
+        creatorId: user.id,
         title: createBlogDto.title,
         description: createBlogDto.description,
-        type: createBlogDto.type as BlogTypeEnum,
+        type: createBlogDto.type,
         headingImageAddress: headingImageUrl,
         bodyAddress: bodyUrl,
         headingImageKey,
@@ -88,6 +95,31 @@ export class BlogService {
 
     if (!blog) {
       throw new NotFoundException(`Blog with ID ${id} not found`);
+    }
+
+    // Check if heading image URL has expired
+    if (blog.headingImageKey) {
+      const isExpired = moment(blog.updatedAt).isBefore(
+        moment().subtract(BLOG_HEADING_IMG_URL_EXPIRY_DAYS, 'days'),
+      );
+
+      if (isExpired) {
+        // Generate a new signed URL
+        const headingImageUrl = await this.storageService.getSignedUrl(
+          blog.headingImageKey,
+          3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
+          false,
+          'media',
+        );
+
+        // Update the blog with the new URL
+        await this.blogRepository.update(id, {
+          headingImageAddress: headingImageUrl,
+        });
+
+        // Update the URL in the current blog object
+        blog.headingImageAddress = headingImageUrl;
+      }
     }
 
     // Increment view count if requested
@@ -175,7 +207,7 @@ export class BlogService {
     }
 
     // Verify ownership
-    if (blog.creator !== userId) {
+    if (blog.creatorId !== userId) {
       throw new ForbiddenException('You can only update your own blogs');
     }
 
@@ -190,9 +222,18 @@ export class BlogService {
       }
 
       // Upload new image
-      const { publicUrl, fileKey } =
+      const { fileKey } =
         await this.storageService.uploadBlogImage(headingImage);
-      updateData.headingImageAddress = publicUrl;
+
+      // Generate a signed URL for the heading image
+      const headingImageUrl = await this.storageService.getSignedUrl(
+        fileKey,
+        3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
+        false,
+        'media',
+      );
+
+      updateData.headingImageAddress = headingImageUrl;
       updateData.headingImageKey = fileKey;
     }
 
@@ -224,7 +265,7 @@ export class BlogService {
     }
 
     // Verify ownership
-    if (blog.creator !== userId) {
+    if (blog.creatorId !== userId) {
       throw new ForbiddenException('You can only delete your own blogs');
     }
 

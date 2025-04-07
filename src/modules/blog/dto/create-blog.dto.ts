@@ -6,13 +6,9 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { blogTypeEnum } from 'src/modules/drizzle/schema/enums.schema';
+import { BlogTypeEnum } from 'src/utils/types/db.types';
 
 export class CreateBlogDto {
-  @IsUUID()
-  @IsOptional()
-  creator?: string;
-
   @IsString()
   @IsNotEmpty()
   title: string;
@@ -21,9 +17,9 @@ export class CreateBlogDto {
   @IsNotEmpty()
   description: string;
 
-  @IsEnum(blogTypeEnum)
+  @IsEnum(BlogTypeEnum)
   @IsNotEmpty()
-  type: string;
+  type: BlogTypeEnum;
 
   @IsString()
   @IsNotEmpty()
@@ -32,4 +28,6 @@ export class CreateBlogDto {
   @IsArray()
   @IsOptional()
   tags?: string[];
+
+  creatorId: string;
 }
