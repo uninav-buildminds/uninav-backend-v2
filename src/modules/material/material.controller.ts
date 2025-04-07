@@ -132,15 +132,6 @@ export class MaterialController {
     );
   }
 
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const material = await this.materialService.getMaterial(id);
-    return ResponseDto.createSuccessResponse(
-      'Material retrieved successfully',
-      material,
-    );
-  }
-
   @Get('resource/:materialId')
   async findMaterialResource(@Param('materialId') id: string) {
     const resource = await this.materialService.findMaterialResource(id);
@@ -159,9 +150,20 @@ export class MaterialController {
     );
   }
 
-  @Get('by-creator/:creatorId')
+  @Get('user/:creatorId')
   async findByCreator(@Param('creatorId') creatorId: string) {
     const materials = await this.materialService.findByCreator(creatorId);
+    return ResponseDto.createSuccessResponse(
+      'Materials retrieved successfully',
+      materials,
+    );
+  }
+
+  @Get('me')
+  @UseGuards(RolesGuard)
+  async findMyMaterials(@Req() req: Request) {
+    const user = req['user'] as UserEntity;
+    const materials = await this.materialService.findByCreator(user.id);
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,
@@ -218,5 +220,14 @@ export class MaterialController {
     const user = req['user'] as UserEntity;
     const result = await this.materialService.likeMaterial(id, user.id);
     return ResponseDto.createSuccessResponse(result.message, result);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const material = await this.materialService.getMaterial(id);
+    return ResponseDto.createSuccessResponse(
+      'Material retrieved successfully',
+      material,
+    );
   }
 }
