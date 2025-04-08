@@ -47,12 +47,6 @@ export class MaterialController {
     createMaterialDto.creatorId = user.id;
 
     logger.log({ createMaterialDto });
-    // Validate file upload for UPLOADED type
-    if (createMaterialDto.resourceType === ResourceType.UPLOAD && !file) {
-      throw new BadRequestException(
-        'File upload is required for uploaded resources',
-      );
-    }
 
     const material = await this.materialService.create(createMaterialDto, file);
     return ResponseDto.createSuccessResponse(

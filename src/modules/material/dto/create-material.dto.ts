@@ -14,10 +14,6 @@ import {
 } from 'src/utils/types/db.types';
 
 export class ResourceDto {
-  @IsNotEmpty()
-  @IsEnum(ResourceType)
-  resourceType: ResourceType;
-
   @IsOptional()
   @IsString()
   resourceAddress?: string;

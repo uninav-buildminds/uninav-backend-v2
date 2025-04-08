@@ -169,6 +169,7 @@ export class MaterialRepository {
       resourceAddress?: string;
       resourceType?: string;
       metaData?: string[];
+      fileKey?: string;
     },
   ) {
     const result = await this.db
