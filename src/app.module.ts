@@ -20,6 +20,7 @@ import { getJwtConfig } from 'src/utils/config/jwt.config';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CacheControlInterceptor } from './interceptors/cache-control.interceptor';
+import { AdvertModule } from 'src/modules/advert/advert.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { CacheControlInterceptor } from './interceptors/cache-control.intercepto
       inject: [ConfigService],
       global: true,
     }),
+    AdvertModule,
   ],
   controllers: [AppController],
   providers: [

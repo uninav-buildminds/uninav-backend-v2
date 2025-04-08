@@ -8,30 +8,44 @@ import {
   UploadedFile,
   BadRequestException,
   UseGuards,
+  Req,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import { AdvertService } from './advert.service';
-import { CreateFreeAdvertDto } from './dto/create-advert.dto';
+import { CreateFreeAdvertDto, UpdateAdvertDto } from './dto/create-advert.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { MulterFile } from 'src/utils/types';
+import { Request } from 'express';
+import { AdvertTypeEnum, UserEntity } from 'src/utils/types/db.types';
 
 @Controller('adverts')
 export class AdvertController {
   constructor(private readonly advertService: AdvertService) {}
 
-  @Post()
+  @Post('free-advert')
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('image'))
   async create(
     @Body() createAdvertDto: CreateFreeAdvertDto,
     @UploadedFile() image: MulterFile,
+    @Req() req: Request,
   ) {
     if (!image) {
       throw new BadRequestException('Advertisement image is required');
     }
 
-    const advert = await this.advertService.create(createAdvertDto, image);
+    const user = req.user as UserEntity;
+    createAdvertDto.creatorId = user.id;
+    createAdvertDto.type = AdvertTypeEnum.FREE;
+    createAdvertDto.amount = 0;
+
+    const advert = await this.advertService.createFreeAd(
+      createAdvertDto,
+      image,
+    );
     return ResponseDto.createSuccessResponse(
       'Advertisement created successfully',
       advert,
@@ -75,9 +89,42 @@ export class AdvertController {
     );
   }
 
-  @Post(':id/click')
+  @Post('click/:id')
   async trackClick(@Param('id') id: string) {
     await this.advertService.trackClick(id);
     return ResponseDto.createSuccessResponse('Click tracked successfully');
+  }
+
+  @Patch(':id')
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  async update(
+    @Param('id') id: string,
+    @Body() updateAdvertDto: UpdateAdvertDto,
+    @UploadedFile() image: MulterFile,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const updatedAdvert = await this.advertService.update(
+      id,
+      updateAdvertDto,
+      user.id,
+      image,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Advertisement updated successfully',
+      updatedAdvert,
+    );
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  async remove(@Param('id') id: string, @Req() req: Request) {
+    const user = req.user as UserEntity;
+    const deletedAdvert = await this.advertService.remove(id, user.id);
+    return ResponseDto.createSuccessResponse(
+      'Advertisement deleted successfully',
+      deletedAdvert,
+    );
   }
 }

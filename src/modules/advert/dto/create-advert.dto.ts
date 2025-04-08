@@ -7,13 +7,12 @@ import {
   IsUUID,
 } from 'class-validator';
 import { AdvertTypeEnum } from 'src/utils/types/db.types';
-export class CreateFreeAdvertDto {
-  type: AdvertTypeEnum.FREE;
-  amount: number = 0;
+import { PartialType } from '@nestjs/mapped-types';
 
+export class CreateFreeAdvertDto {
   @IsUUID()
   @IsOptional()
-  materialId: string;
+  materialId?: string;
 
   @IsUUID()
   @IsOptional()
@@ -26,4 +25,10 @@ export class CreateFreeAdvertDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  creatorId: string;
+  type: AdvertTypeEnum.FREE;
+  amount: number;
 }
+
+export class UpdateAdvertDto extends PartialType(CreateFreeAdvertDto) {}

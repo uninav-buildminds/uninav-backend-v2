@@ -270,8 +270,6 @@ export class MaterialRepository {
       },
       columns: {
         searchVector: false,
-        createdAt: false,
-        updatedAt: false,
       },
       limit,
       offset,
@@ -338,8 +336,7 @@ export class MaterialRepository {
     const totalPages = Math.ceil(totalItems / limit);
 
     // Destructure unwanted fields from material table columns
-    let { updatedAt, createdAt, searchVector, ...rest } =
-      getTableColumns(material);
+    let { searchVector, ...rest } = getTableColumns(material);
 
     const data = await this.db
       .select({
@@ -480,8 +477,6 @@ export class MaterialRepository {
       },
       columns: {
         searchVector: false,
-        createdAt: false,
-        updatedAt: false,
       },
       limit,
       offset,

@@ -5,11 +5,17 @@ import { material } from './material.schema';
 import { collection } from './collection.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { TABLES } from '../tables.constants';
+import { users } from './user.schema';
 
 export const advert = pgTable(TABLES.ADVERT, {
   id: uuid('id').primaryKey().defaultRandom(),
   type: advertTypeEnum('type').notNull(),
   amount: numeric('amount').default('0'),
+  creatorId: uuid('creator_id')
+    .references(() => users.id, {
+      onDelete: 'cascade',
+    })
+    .notNull(),
   materialId: uuid('material_id').references(() => material.id, {
     onDelete: 'cascade',
   }),
@@ -34,5 +40,9 @@ export const advertRelations = relations(advert, ({ one }) => ({
   collection: one(collection, {
     fields: [advert.collectionId],
     references: [collection.id],
+  }),
+  creator: one(users, {
+    fields: [advert.creatorId],
+    references: [users.id],
   }),
 }));

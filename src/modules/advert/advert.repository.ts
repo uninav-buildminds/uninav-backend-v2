@@ -27,6 +27,14 @@ export class AdvertRepository {
       with: {
         material: true,
         collection: true,
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
       },
     });
   }
@@ -37,6 +45,14 @@ export class AdvertRepository {
       with: {
         material: true,
         collection: true,
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
       },
     });
   }
@@ -46,6 +62,14 @@ export class AdvertRepository {
       where: eq(advert.materialId, materialId),
       with: {
         material: true,
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
       },
     });
   }
@@ -55,6 +79,14 @@ export class AdvertRepository {
       where: eq(advert.collectionId, collectionId),
       with: {
         collection: true,
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
       },
     });
   }
@@ -84,5 +116,13 @@ export class AdvertRepository {
         updatedAt: new Date(),
       } as any)
       .where(eq(advert.id, id));
+  }
+
+  async remove(id: string): Promise<AdvertEntity> {
+    const result = await this.db
+      .delete(advert)
+      .where(eq(advert.id, id))
+      .returning();
+    return result[0];
   }
 }
