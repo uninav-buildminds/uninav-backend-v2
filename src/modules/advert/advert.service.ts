@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { AdvertRepository } from './advert.repository';
-import { CreateFreeAdvertDto } from './dto/create-advert.dto';
+import { CreateFreeAdvertDto } from './dto/create-free-advert.dto';
 import { StorageService } from 'src/storage/storage.service';
 import { MulterFile } from 'src/utils/types';
 import { AdvertEntity, MaterialEntity } from 'src/utils/types/db.types';
@@ -127,6 +127,17 @@ export class AdvertService {
   async findByCollection(collectionId: string): Promise<AdvertEntity[]> {
     const adverts = await this.advertRepository.findByCollection(collectionId);
     return await this.refreshExpiredUrls(adverts);
+  }
+
+  async findByCreator(creatorId: string): Promise<AdvertEntity[]> {
+    try {
+      return await this.advertRepository.findByCreator(creatorId);
+    } catch (error) {
+      this.logger.error(`Failed to fetch adverts by creator: ${error.message}`);
+      throw new InternalServerErrorException(
+        'Failed to fetch adverts by creator',
+      );
+    }
   }
 
   async trackView(id: string): Promise<void> {

@@ -3,7 +3,7 @@ import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { DrizzleDB, AdvertEntity } from 'src/utils/types/db.types';
 import { eq, sql } from 'drizzle-orm';
 import { advert } from 'src/modules/drizzle/schema/advert.schema';
-import { CreateFreeAdvertDto } from './dto/create-advert.dto';
+import { CreateFreeAdvertDto } from './dto/create-free-advert.dto';
 
 @Injectable()
 export class AdvertRepository {
@@ -78,6 +78,24 @@ export class AdvertRepository {
     return this.db.query.advert.findMany({
       where: eq(advert.collectionId, collectionId),
       with: {
+        collection: true,
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findByCreator(creatorId: string): Promise<AdvertEntity[]> {
+    return this.db.query.advert.findMany({
+      where: eq(advert.creatorId, creatorId),
+      with: {
+        material: true,
         collection: true,
         creator: {
           columns: {

@@ -13,7 +13,10 @@ import {
   Delete,
 } from '@nestjs/common';
 import { AdvertService } from './advert.service';
-import { CreateFreeAdvertDto, UpdateAdvertDto } from './dto/create-advert.dto';
+import {
+  CreateFreeAdvertDto,
+  UpdateAdvertDto,
+} from './dto/create-free-advert.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
@@ -61,16 +64,6 @@ export class AdvertController {
     );
   }
 
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const advert = await this.advertService.findOne(id);
-    await this.advertService.trackView(id);
-    return ResponseDto.createSuccessResponse(
-      'Advertisement retrieved successfully',
-      advert,
-    );
-  }
-
   @Get('material/:materialId')
   async findByMaterial(@Param('materialId') materialId: string) {
     const adverts = await this.advertService.findByMaterial(materialId);
@@ -85,6 +78,26 @@ export class AdvertController {
     const adverts = await this.advertService.findByCollection(collectionId);
     return ResponseDto.createSuccessResponse(
       'Advertisements retrieved successfully',
+      adverts,
+    );
+  }
+
+  @Get('user/:creatorId')
+  async findByCreator(@Param('creatorId') creatorId: string) {
+    const adverts = await this.advertService.findByCreator(creatorId);
+    return ResponseDto.createSuccessResponse(
+      'Adverts retrieved successfully',
+      adverts,
+    );
+  }
+
+  @Get('me')
+  @UseGuards(RolesGuard)
+  async findMyAdverts(@Req() req: Request) {
+    const user = req.user as UserEntity;
+    const adverts = await this.advertService.findByCreator(user.id);
+    return ResponseDto.createSuccessResponse(
+      'Your adverts retrieved successfully',
       adverts,
     );
   }
@@ -114,6 +127,16 @@ export class AdvertController {
     return ResponseDto.createSuccessResponse(
       'Advertisement updated successfully',
       updatedAdvert,
+    );
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const advert = await this.advertService.findOne(id);
+    await this.advertService.trackView(id);
+    return ResponseDto.createSuccessResponse(
+      'Advertisement retrieved successfully',
+      advert,
     );
   }
 
