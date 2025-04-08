@@ -6,6 +6,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
+import { TransformStringToArray } from 'src/transformers/TransformStringToArray';
 import {
   MaterialTypeEnum,
   ResourceType,
@@ -40,6 +41,7 @@ export class CreateMaterialDto extends ResourceDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @TransformStringToArray()
   tags?: string[];
 
   @IsOptional()
