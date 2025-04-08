@@ -118,6 +118,7 @@ export class AuthController {
     res.cookie('authorization', accessToken, globalCookieOptions);
     // for sessions  (if not using cookies)
     res.header('authorization', `Bearer ${accessToken}`);
+    res.header('Access-Control-Expose-Headers', 'authorization');
     const responseObj = ResponseDto.createSuccessResponse(
       'Login Successful',
       profile,
