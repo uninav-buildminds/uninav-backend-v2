@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -11,6 +12,7 @@ import { UserRepository } from 'src/modules/user/user.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { DepartmentService } from 'src/modules/department/department.service';
 import { CoursesRepository } from '../courses/courses.repository';
+import { AddBookmarkDto } from './dto/bookmark.dto';
 
 @Injectable()
 export class UserService {
@@ -271,6 +273,149 @@ export class UserService {
       );
       throw new InternalServerErrorException(
         `Error getting user courses: ${error.message}`,
+      );
+    }
+  }
+
+  async addBookmark(userId: string, addBookmarkDto: AddBookmarkDto) {
+    // Validate bookmark data
+    if (!addBookmarkDto.materialId && !addBookmarkDto.collectionId) {
+      throw new BadRequestException(
+        'Either materialId or collectionId must be provided',
+      );
+    }
+
+    try {
+      // Check if bookmark already exists for material
+      if (addBookmarkDto.materialId) {
+        const existingBookmark =
+          await this.userRepository.findBookmarkByMaterial(
+            userId,
+            addBookmarkDto.materialId,
+          );
+        if (existingBookmark) {
+          throw new ConflictException(
+            'Bookmark already exists for this material',
+          );
+        }
+      }
+
+      // Check if bookmark already exists for collection
+      if (addBookmarkDto.collectionId) {
+        const existingBookmark =
+          await this.userRepository.findBookmarkByCollection(
+            userId,
+            addBookmarkDto.collectionId,
+          );
+        if (existingBookmark) {
+          throw new ConflictException(
+            'Bookmark already exists for this collection',
+          );
+        }
+      }
+
+      return this.userRepository.addBookmark(userId, addBookmarkDto);
+    } catch (error) {
+      this.logger.error(
+        `Error adding bookmark for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        `Error adding bookmark: ${error.message}`,
+      );
+    }
+  }
+
+  async removeBookmark(userId: string, bookmarkId: string) {
+    try {
+      // Check if bookmark exists and belongs to the user
+      const bookmark = await this.userRepository.findBookmarkById(bookmarkId);
+
+      if (!bookmark) {
+        throw new NotFoundException('Bookmark not found');
+      }
+
+      if (bookmark.userId !== userId) {
+        throw new BadRequestException(
+          'You do not have permission to delete this bookmark',
+        );
+      }
+
+      return this.userRepository.removeBookmark(bookmarkId);
+    } catch (error) {
+      this.logger.error(
+        `Error removing bookmark for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        `Error removing bookmark: ${error.message}`,
+      );
+    }
+  }
+
+  async getUserBookmarks(userId: string) {
+    try {
+      return this.userRepository.getUserBookmarks(userId);
+    } catch (error) {
+      this.logger.error(
+        `Error getting bookmarks for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      throw new InternalServerErrorException(
+        `Error getting bookmarks: ${error.message}`,
+      );
+    }
+  }
+
+  async getBookmarkById(userId: string, bookmarkId: string) {
+    try {
+      // Find the bookmark
+      const bookmark = await this.userRepository.findBookmarkById(bookmarkId);
+
+      if (!bookmark) {
+        throw new NotFoundException(`Bookmark with ID ${bookmarkId} not found`);
+      }
+
+      // Check if the bookmark belongs to the user
+      if (bookmark.userId !== userId) {
+        throw new BadRequestException(
+          'You do not have access to this bookmark',
+        );
+      }
+
+      return bookmark;
+    } catch (error) {
+      this.logger.error(
+        `Error retrieving bookmark ${bookmarkId} for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        `Error retrieving bookmark: ${error.message}`,
       );
     }
   }

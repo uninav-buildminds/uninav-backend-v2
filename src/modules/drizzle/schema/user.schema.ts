@@ -5,6 +5,7 @@ import {
   integer,
   index,
   primaryKey,
+  timestamp,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { userRoleEnum } from './enums.schema';
@@ -14,7 +15,6 @@ import { moderator } from './moderator.schema';
 import { material } from './material.schema';
 import { collection } from './collection.schema';
 import { courses, studentCourses } from './course.schema';
-import { bookmarks } from './collection.schema';
 import { comments } from './comments.schema';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
@@ -58,6 +58,35 @@ export const userCourses = pgTable(
     pk: primaryKey(table.userId, table.courseId),
   }),
 );
+
+export const bookmarks = pgTable(TABLES.BOOKMARKS, {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  materialId: uuid('material_id').references(() => material.id, {
+    onDelete: 'cascade',
+  }),
+  collectionId: uuid('collection_id').references(() => collection.id, {
+    onDelete: 'cascade',
+  }),
+  ...timestamps,
+});
+
+export const bookmarkRelations = relations(bookmarks, ({ one }) => ({
+  user: one(users, {
+    fields: [bookmarks.userId],
+    references: [users.id],
+  }),
+  material: one(material, {
+    fields: [bookmarks.materialId],
+    references: [material.id],
+  }),
+  collection: one(collection, {
+    fields: [bookmarks.collectionId],
+    references: [collection.id],
+  }),
+}));
 
 export const userCoursesRelations = relations(userCourses, ({ one }) => ({
   user: one(users, {

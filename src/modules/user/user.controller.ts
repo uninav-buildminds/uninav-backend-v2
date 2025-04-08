@@ -8,6 +8,9 @@ import {
   UseGuards,
   Req,
   Patch,
+  HttpCode,
+  HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -15,9 +18,10 @@ import { Request } from 'express';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { UserEntity } from 'src/utils/types/db.types';
-import { AuthService } from 'src/modules/auth/auth.service';
 import { UpdateUserDto } from 'src/modules/user/dto/update-user.dto';
 import { AddCourseDto } from './dto/add-course.dto';
+import { AddBookmarkDto } from './dto/bookmark.dto';
+import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 
 @Controller('user')
 export class UserController {
@@ -88,6 +92,69 @@ export class UserController {
     return ResponseDto.createSuccessResponse(
       'User courses retrieved successfully',
       courses,
+    );
+  }
+
+  @Post('bookmarks')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async addBookmark(
+    @Body() addBookmarkDto: AddBookmarkDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const bookmark = await this.userService.addBookmark(
+      user.id,
+      addBookmarkDto,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Bookmark added successfully',
+      bookmark,
+    );
+  }
+
+  @Delete('bookmarks/:bookmarkId')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async removeBookmark(
+    @Param('bookmarkId', ParseUUIDPipe) bookmarkId: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const bookmark = await this.userService.removeBookmark(user.id, bookmarkId);
+    return ResponseDto.createSuccessResponse(
+      'Bookmark removed successfully',
+      bookmark,
+    );
+  }
+
+  @Get('bookmarks/:bookmarkId')
+  @UseGuards(RolesGuard)
+  @CacheControl({ maxAge: 300, private: true }) // Cache for 5 minutes
+  async getBookmark(
+    @Param('bookmarkId', ParseUUIDPipe) bookmarkId: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const bookmark = await this.userService.getBookmarkById(
+      user.id,
+      bookmarkId,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Bookmark retrieved successfully',
+      bookmark,
+    );
+  }
+
+  @Get('bookmarks')
+  @UseGuards(RolesGuard)
+  @CacheControl({ maxAge: 300, private: true }) // Cache for 5 minutes
+  async getUserBookmarks(@Req() req: Request) {
+    const user = req.user as UserEntity;
+    const bookmarks = await this.userService.getUserBookmarks(user.id);
+    return ResponseDto.createSuccessResponse(
+      'Bookmarks retrieved successfully',
+      bookmarks,
     );
   }
 

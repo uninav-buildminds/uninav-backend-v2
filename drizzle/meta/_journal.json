@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1743685377267,
-      "tag": "0000_dear_thunderbolts",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1743779053904,
-      "tag": "0001_nervous_gladiator",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1743875976003,
-      "tag": "0002_public_logan",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1743975127311,
-      "tag": "0003_melted_zzzax",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1744031190437,
-      "tag": "0004_foamy_ulik",
+      "when": 1744077176680,
+      "tag": "0000_funny_masked_marvel",
       "breakpoints": true
     }
   ]

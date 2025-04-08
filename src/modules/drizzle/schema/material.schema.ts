@@ -13,7 +13,7 @@ import {
   materialTypeEnum,
   approvalStatusEnum,
 } from './enums.schema';
-import { users } from './user.schema';
+import { bookmarks, users } from './user.schema';
 import { moderator } from './moderator.schema';
 import { collectionMaterial } from './collection.schema';
 import { advert } from './advert.schema';
@@ -77,6 +77,7 @@ export const materialRelations = relations(material, ({ one, many }) => ({
     fields: [material.id],
     references: [resource.materialId],
   }),
+  bookmarks: many(bookmarks),
   collections: many(collectionMaterial),
   adverts: many(advert),
   targetCourse: one(courses, {

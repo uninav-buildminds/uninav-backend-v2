@@ -4,8 +4,10 @@ import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { DrizzleDB } from 'src/utils/types/db.types';
-import { eq, or, and, inArray } from 'drizzle-orm';
-import { userCourses } from 'src/modules/drizzle/schema/user.schema';
+import { eq, or, and, inArray, isNull } from 'drizzle-orm';
+import { userCourses, bookmarks } from 'src/modules/drizzle/schema/user.schema';
+import { AddBookmarkDto } from './dto/bookmark.dto';
+
 @Injectable()
 export class UserRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
@@ -125,6 +127,74 @@ export class UserRepository {
       with: {
         course: true,
       },
+    });
+  }
+
+  async addBookmark(userId: string, bookmarkDto: AddBookmarkDto) {
+    const bookmark = await this.db
+      .insert(bookmarks)
+      .values({
+        userId,
+        ...bookmarkDto,
+      } as any)
+      .returning();
+
+    return bookmark[0];
+  }
+
+  async findBookmarkById(bookmarkId: string) {
+    return this.db.query.bookmarks.findFirst({
+      where: (bookmark) => eq(bookmark.id, bookmarkId),
+      with: {
+        material: true,
+        collection: true,
+      },
+    });
+  }
+
+  async removeBookmark(bookmarkId: string) {
+    const removed = await this.db
+      .delete(bookmarks)
+      .where(eq(bookmarks.id, bookmarkId))
+      .returning();
+
+    return removed[0];
+  }
+
+  async getUserBookmarks(userId: string) {
+    return this.db.query.bookmarks.findMany({
+      where: eq(bookmarks.userId, userId),
+      with: {
+        material: true,
+        collection: true,
+      },
+    });
+  }
+
+  async findBookmarkByMaterial(userId: string, materialId: string) {
+    return this.db.query.bookmarks.findFirst({
+      where: and(
+        eq(bookmarks.userId, userId),
+        eq(bookmarks.materialId, materialId),
+      ),
+    });
+  }
+
+  async findBookmarkByCollection(userId: string, collectionId: string) {
+    return this.db.query.bookmarks.findFirst({
+      where: and(
+        eq(bookmarks.userId, userId),
+        eq(bookmarks.collectionId, collectionId),
+      ),
+    });
+  }
+
+  async findBookmark(userId: string, materialId: string) {
+    return this.db.query.bookmarks.findFirst({
+      where: and(
+        eq(bookmarks.userId, userId),
+        eq(bookmarks.materialId, materialId),
+      ),
     });
   }
 }
