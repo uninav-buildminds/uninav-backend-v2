@@ -84,21 +84,21 @@ export class MaterialRepository {
     });
   }
 
-  async incrementDownloadCount(id: string) {
+  async incrementDownloads(id: string) {
     const result = await this.db
       .update(material)
       .set({
-        downloadCount: sql`${material.downloadCount} + 1`,
+        downloads: sql`${material.downloads} + 1`,
       } as any)
       .where(eq(material.id, id))
       .returning();
   }
 
-  async incrementClickCount(id: string) {
+  async incrementClicks(id: string) {
     await this.db
       .update(material)
       .set({
-        clickCount: sql`${material.clickCount} + 1`,
+        clicks: sql`${material.clicks} + 1`,
       } as any)
       .where(eq(material.id, id));
   }
@@ -246,8 +246,8 @@ export class MaterialRepository {
       where: whereClause,
       orderBy: [
         desc(material.likes),
-        desc(material.downloadCount),
-        desc(material.viewCount),
+        desc(material.downloads),
+        desc(material.views),
         desc(material.createdAt),
       ],
       with: {
@@ -390,8 +390,8 @@ export class MaterialRepository {
       .orderBy(
         desc(sql`rank`),
         desc(material.likes),
-        desc(material.downloadCount),
-        desc(material.viewCount),
+        desc(material.downloads),
+        desc(material.views),
         desc(material.createdAt),
       )
       .limit(limit)
@@ -456,8 +456,8 @@ export class MaterialRepository {
       where: inArray(material.targetCourse, subQuery),
       orderBy: [
         desc(material.likes),
-        desc(material.downloadCount),
-        desc(material.viewCount),
+        desc(material.downloads),
+        desc(material.views),
         desc(material.createdAt),
       ],
       with: {

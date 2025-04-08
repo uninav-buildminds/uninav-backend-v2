@@ -30,9 +30,9 @@ export const material = pgTable(
     type: materialTypeEnum('type').notNull(),
     tags: text('tags').array(),
     // statistics
-    clickCount: integer('click_count').default(0),
-    viewCount: integer('view_count').default(0),
-    downloadCount: integer('download_count').default(0),
+    clicks: integer('clicks').default(0),
+    views: integer('views').default(0),
+    downloads: integer('downloads').default(0),
     likes: integer('likes').default(0),
 
     creatorId: uuid('creator_id').references(() => users.id, {

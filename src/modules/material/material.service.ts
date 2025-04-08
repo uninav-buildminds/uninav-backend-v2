@@ -173,7 +173,7 @@ export class MaterialService {
         this.materialRepository.updateResource(id, {
           resourceAddress: signedUrl,
         });
-        this.materialRepository.incrementClickCount(id);
+        this.materialRepository.incrementClicks(id);
 
         material.resource.resourceAddress = signedUrl; // Update the resource address in the material
       }

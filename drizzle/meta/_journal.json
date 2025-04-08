@@ -8,6 +8,20 @@
       "when": 1744077176680,
       "tag": "0000_funny_masked_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1744082606813,
+      "tag": "0001_bitter_mole_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1744086859418,
+      "tag": "0002_soft_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

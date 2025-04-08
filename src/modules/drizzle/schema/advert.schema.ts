@@ -9,7 +9,7 @@ import { TABLES } from '../tables.constants';
 export const advert = pgTable(TABLES.ADVERT, {
   id: uuid('id').primaryKey().defaultRandom(),
   type: advertTypeEnum('type').notNull(),
-  amount: numeric('amount'),
+  amount: numeric('amount').default('0'),
   materialId: uuid('material_id').references(() => material.id, {
     onDelete: 'cascade',
   }),
@@ -17,10 +17,11 @@ export const advert = pgTable(TABLES.ADVERT, {
     onDelete: 'cascade',
   }),
   imageUrl: text('image_url').notNull(),
+  fileKey: text('file_key').notNull(),
   label: text('label').notNull(),
   description: text('description'),
   clicks: integer('clicks').default(0),
-  impressions: integer('impressions').default(0),
+  views: integer('views').default(0),
   reviewStatus: approvalStatusEnum('review_status').default('pending'),
   ...timestamps,
 });

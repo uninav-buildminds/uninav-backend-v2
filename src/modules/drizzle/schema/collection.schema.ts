@@ -5,6 +5,7 @@ import { bookmarks, users } from './user.schema';
 import { material } from './material.schema';
 import { advert } from './advert.schema';
 import { TABLES } from '../tables.constants';
+import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 
 export const collection = pgTable(TABLES.COLLECTION, {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -14,6 +15,7 @@ export const collection = pgTable(TABLES.COLLECTION, {
   label: text('label').notNull(),
   description: text('description'),
   visibility: visibilityEnum('visibility').default('public'),
+  ...timestamps,
 });
 
 export const collectionMaterial = pgTable(
