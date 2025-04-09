@@ -43,7 +43,7 @@ export const material = pgTable(
     visibility: visibilityEnum('visibility').default('public'),
     restriction: restrictionEnum('restriction').default('readonly'),
 
-    targetCourse: uuid('target_course').references(() => courses.id, {
+    targetCourseId: uuid('target_course').references(() => courses.id, {
       onDelete: 'set null',
     }),
     reviewStatus: approvalStatusEnum('review_status').default('pending'),
@@ -81,7 +81,7 @@ export const materialRelations = relations(material, ({ one, many }) => ({
   collections: many(collectionMaterial),
   adverts: many(advert),
   targetCourse: one(courses, {
-    fields: [material.targetCourse],
+    fields: [material.targetCourseId],
     references: [courses.id],
   }),
   likes: many(materialLikes),

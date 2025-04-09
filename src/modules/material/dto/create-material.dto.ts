@@ -54,7 +54,7 @@ export class CreateMaterialDto extends ResourceDto {
 
   @IsOptional()
   @IsUUID()
-  targetCourse?: string;
+  targetCourseId?: string;
 
   creatorId: string;
 }

@@ -73,7 +73,9 @@ export class MaterialRepository {
             level: true,
           },
         },
+        targetCourse: true,
         resource: true,
+        adverts: true,
       },
     });
   }
@@ -222,7 +224,7 @@ export class MaterialRepository {
       conditions.push(eq(material.creatorId, filters.creatorId));
     }
     if (filters.courseId) {
-      conditions.push(eq(material.targetCourse, filters.courseId));
+      conditions.push(eq(material.targetCourseId, filters.courseId));
     }
     if (filters.type) {
       conditions.push(eq(material.type, filters.type));
@@ -308,7 +310,7 @@ export class MaterialRepository {
       conditions.push(eq(material.creatorId, filters.creatorId));
     }
     if (filters.courseId) {
-      conditions.push(eq(material.targetCourse, filters.courseId));
+      conditions.push(eq(material.targetCourseId, filters.courseId));
     }
     if (filters.type) {
       conditions.push(eq(material.type, filters.type));
@@ -361,7 +363,7 @@ export class MaterialRepository {
             -- Boost if the material is for a course the user is actively taking
             WHEN EXISTS (
               SELECT 1 FROM ${uc} 
-              WHERE ${uc.courseId} = ${material.targetCourse}
+              WHERE ${uc.courseId} = ${material.targetCourseId}
               AND ${uc.userId} = ${user.id}
             ) THEN 0.3 
             ELSE 0 
@@ -369,13 +371,13 @@ export class MaterialRepository {
 
         + CASE 
             -- Boost if material is for a course in the user's department
-            WHEN ${material.targetCourse} IN (SELECT ${courses.id} FROM ${courses}  
+            WHEN ${material.targetCourseId} IN (SELECT ${courses.id} FROM ${courses}  
             JOIN ${dlc}  ON ${courses.id} = ${dlc.courseId}
             WHERE ${dlc.departmentId} = ${user.departmentId}) THEN 0.2
             -- Boost if material is used at the user's level not specifically department
             WHEN EXISTS (
               SELECT 1 FROM ${dlc} 
-              WHERE  ${dlc.courseId} = ${material.targetCourse}
+              WHERE  ${dlc.courseId} = ${material.targetCourseId}
               AND ${dlc.level} = ${user.level}
             ) THEN 0.1
             ELSE 0 
@@ -383,7 +385,7 @@ export class MaterialRepository {
       })
       .from(material)
       .leftJoin(users, eq(material.creatorId, users.id))
-      .leftJoin(courses, eq(material.targetCourse, courses.id))
+      .leftJoin(courses, eq(material.targetCourseId, courses.id))
       .where(whereCondition)
       .orderBy(
         desc(sql`rank`),
@@ -432,7 +434,7 @@ export class MaterialRepository {
       .from(material)
       .where(
         sql`
-        ${material.targetCourse} IN (
+        ${material.targetCourseId} IN (
           SELECT ${uc.courseId}
           FROM ${uc}
           WHERE ${uc.userId} = ${user.id}
@@ -451,7 +453,7 @@ export class MaterialRepository {
       .where(eq(uc.userId, user.id));
 
     const data = await this.db.query.material.findMany({
-      where: inArray(material.targetCourse, subQuery),
+      where: inArray(material.targetCourseId, subQuery),
       orderBy: [
         desc(material.likes),
         desc(material.downloads),
