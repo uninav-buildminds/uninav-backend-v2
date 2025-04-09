@@ -188,15 +188,6 @@ export class MaterialRepository {
     });
   }
 
-  async findByType(type: MaterialTypeEnum): Promise<MaterialEntity[]> {
-    return this.db.query.material.findMany({
-      where: eq(material.type, type),
-      with: {
-        resource: true,
-      },
-    });
-  }
-
   async findWithFilters(
     filters: {
       creatorId?: string;

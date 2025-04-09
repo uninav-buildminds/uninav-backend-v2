@@ -135,6 +135,13 @@ export class MaterialController {
     );
   }
 
+  @Post('downloaded/:id')
+  @HttpCode(HttpStatus.OK)
+  async trackDownload(@Param('id') id: string) {
+    await this.materialService.incrementDownloads(id);
+    return ResponseDto.createSuccessResponse('Download tracked successfully');
+  }
+
   @Get('download/:id')
   async download(@Param('id') id: string) {
     const url = await this.materialService.getDownloadUrl(id);
@@ -158,16 +165,6 @@ export class MaterialController {
   async findMyMaterials(@Req() req: Request) {
     const user = req['user'] as UserEntity;
     const materials = await this.materialService.findByCreator(user.id);
-    return ResponseDto.createSuccessResponse(
-      'Materials retrieved successfully',
-      materials,
-    );
-  }
-
-  @Get('by-type/:type')
-  @CacheControl({ public: true, maxAge: 300 })
-  async findByType(@Param('type') type: string) {
-    const materials = await this.materialService.findByType(type);
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,

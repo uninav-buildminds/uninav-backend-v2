@@ -203,6 +203,14 @@ export class MaterialService {
       );
       return signedUrl;
     }
+
+    // For other resource types (URL, GDRIVE), just return the resource address
+    return materialResource.resourceAddress;
+  }
+
+  async incrementDownloads(id: string) {
+    await this.findOne(id); // Verify material exists
+    return this.materialRepository.incrementDownloads(id);
   }
 
   /**
@@ -395,10 +403,6 @@ export class MaterialService {
 
   async findByCreator(creatorId: string) {
     return this.materialRepository.findByCreator(creatorId);
-  }
-
-  async findByType(type: string) {
-    return this.materialRepository.findByType(type as MaterialTypeEnum);
   }
 
   async searchMaterials(

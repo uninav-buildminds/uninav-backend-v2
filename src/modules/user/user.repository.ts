@@ -165,7 +165,20 @@ export class UserRepository {
     return this.db.query.bookmarks.findMany({
       where: eq(bookmarks.userId, userId),
       with: {
-        material: true,
+        material: {
+          with: {
+            creator: {
+              columns: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                username: true,
+                level: true,
+                departmentId: true,
+              },
+            },
+          },
+        },
         collection: true,
       },
     });
