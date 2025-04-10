@@ -38,9 +38,13 @@ export class DLCReviewController {
   ) {}
 
   @Get()
-  async findAll(@Query('status') status?: ApprovalStatus) {
-    return this.coursesService.findAllDepartmentLevelCourses({
+  async findAll(
+    @Query('status') status?: ApprovalStatus,
+    @Query('page') page?: number,
+  ) {
+    return this.coursesService.findAllPaginated({
       reviewStatus: status,
+      page,
     });
   }
 
@@ -75,7 +79,6 @@ export class DLCReviewController {
       {
         reviewStatus: reviewActionDto.action,
         reviewedById: reviewer.id,
-        reviewComment: reviewActionDto.comment,
       },
     );
 
@@ -136,16 +139,11 @@ export class DLCReviewController {
     // Get course creator details for notification
     const creator = await this.userService.findOne(course.creatorId);
 
-    // Mark as rejected instead of physically deleting
-    await this.coursesService.reviewDepartmentLevelCourse(
+    // Delete this dlc
+    await this.coursesService.deleteDepartmentLevelCourse(
       departmentId,
       courseId,
       level,
-      {
-        reviewStatus: ApprovalStatus.REJECTED,
-        reviewedById: reviewer.id,
-        reviewComment: 'Department Level Course has been deleted by admin',
-      },
     );
 
     this.eventEmitter.emit(EVENTS.DLC_DELETED, {

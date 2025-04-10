@@ -80,7 +80,7 @@ export class BlogService {
   /**
    * Get paginated list of blogs with optional search and type filters
    */
-  async findWithFilters(options: {
+  async findAllPaginated(options: {
     query?: string;
     page?: number;
     limit?: number;
@@ -92,7 +92,7 @@ export class BlogService {
     const limit = options.limit || 10;
 
     // Always sort by creation date, newest first
-    return this.blogRepository.findAll({
+    return this.blogRepository.findAllPaginated({
       ...options,
       page,
       limit,

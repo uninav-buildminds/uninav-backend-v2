@@ -37,8 +37,14 @@ export class CourseReviewController {
   ) {}
 
   @Get()
-  async findAll(@Query('status') status?: ApprovalStatus) {
-    return this.coursesService.findAll({ reviewStatus: status });
+  async findAll(
+    @Query('status') status?: ApprovalStatus,
+    @Query('page') page?: number,
+  ) {
+    return this.coursesService.findAllPaginated({
+      reviewStatus: status,
+      page,
+    });
   }
 
   @Post(':id/review')

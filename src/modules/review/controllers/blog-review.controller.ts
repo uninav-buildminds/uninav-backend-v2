@@ -36,11 +36,17 @@ export class BlogReviewController {
   ) {}
 
   @Get()
-  async findAll(@Query('status') status?: ApprovalStatus) {
-    return this.blogService.findWithFilters({ reviewStatus: status });
+  async findAll(
+    @Query('status') status?: ApprovalStatus,
+    @Query('page') page?: number,
+  ) {
+    return this.blogService.findAllPaginated({
+      reviewStatus: status,
+      page,
+    });
   }
 
-  @Post(':id/review')
+  @Post('review/:id')
   async review(
     @Param('id') id: string,
     @Body() reviewActionDto: ReviewActionDto,
@@ -95,7 +101,7 @@ export class BlogReviewController {
     );
   }
 
-  @Post(':id/delete')
+  @Post('delete/:id')
   async remove(@Param('id') id: string, @Req() req: Request) {
     const reviewer = req.user as UserEntity;
     if (

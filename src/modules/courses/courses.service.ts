@@ -37,17 +37,25 @@ export class CoursesService {
     return course;
   }
 
+  async findAllPaginated(filters?: {
+    departmentId?: string;
+    level?: number;
+    reviewStatus?: ApprovalStatus;
+    page?: number;
+  }) {
+    if (filters?.departmentId) {
+      await this.departmentService.findOne(filters.departmentId);
+    }
+    return this.coursesRepository.findAllPaginated(filters);
+  }
+
   async findAll(filters?: {
     departmentId?: string;
     level?: number;
     reviewStatus?: ApprovalStatus;
   }) {
-    if (filters?.departmentId) {
-      await this.departmentService.findOne(filters.departmentId);
-    }
-    return this.coursesRepository.findAllByFilter(filters);
+    return this.coursesRepository.findAllPaginated(filters);
   }
-
   async findById(id: string) {
     const course = await this.coursesRepository.findById(id);
     if (!course) {
@@ -76,5 +84,88 @@ export class CoursesService {
       reviewedById: reviewData.reviewedById,
       updatedAt: new Date(),
     });
+  }
+
+  async reviewDepartmentLevelCourse(
+    departmentId: string,
+    courseId: string,
+    level: number,
+    reviewData: {
+      reviewStatus: ApprovalStatus;
+      reviewedById: string;
+    },
+  ) {
+    // Verify course exists
+    const course = await this.findById(courseId);
+    if (!course) {
+      throw new NotFoundException(`Course with ID ${courseId} not found`);
+    }
+
+    // Verify department exists
+    const department = await this.departmentService.findOne(departmentId);
+    if (!department) {
+      throw new NotFoundException(
+        `Department with ID ${departmentId} not found`,
+      );
+    }
+
+    // Check if department level course exists
+    const existing =
+      await this.coursesRepository.findExistingDepartmentLevelCourse(
+        courseId,
+        departmentId,
+        level,
+      );
+    if (!existing) {
+      throw new NotFoundException(
+        `Department level course not found for department ${departmentId}, course ${courseId}, and level ${level}`,
+      );
+    }
+
+    return this.coursesRepository.reviewDepartmentLevelCourse(
+      departmentId,
+      courseId,
+      level,
+      reviewData,
+    );
+  }
+
+  async deleteDepartmentLevelCourse(
+    departmentId: string,
+    courseId: string,
+    level: number,
+  ) {
+    // Verify course exists
+    const course = await this.findById(courseId);
+    if (!course) {
+      throw new NotFoundException(`Course with ID ${courseId} not found`);
+    }
+
+    // Verify department exists
+    const department = await this.departmentService.findOne(departmentId);
+    if (!department) {
+      throw new NotFoundException(
+        `Department with ID ${departmentId} not found`,
+      );
+    }
+
+    // Check if department level course exists
+    const existing =
+      await this.coursesRepository.findExistingDepartmentLevelCourse(
+        courseId,
+        departmentId,
+        level,
+      );
+    if (!existing) {
+      throw new NotFoundException(
+        `Department level course not found for department ${departmentId}, course ${courseId}, and level ${level}`,
+      );
+    }
+
+    return this.coursesRepository.deleteDepartmentLevelCourse(
+      departmentId,
+      courseId,
+      level,
+    );
   }
 }

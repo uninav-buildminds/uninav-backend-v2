@@ -64,7 +64,7 @@ export class MaterialController {
     @Query('tag') tag?: string,
     @Query('page') page: number = 1,
   ) {
-    const materials = await this.materialService.findWithFilters(
+    const materials = await this.materialService.findAllPaginated(
       {
         creatorId,
         courseId,

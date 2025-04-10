@@ -189,16 +189,14 @@ export class MaterialRepository {
     });
   }
 
-  async findWithRanking(
-    filters: {
-      creatorId?: string;
-      courseId?: string;
-      type?: MaterialTypeEnum;
-      tag?: string;
-      reviewStatus?: ApprovalStatus;
-    },
-    page: number = 1,
-  ): Promise<{
+  async findAllPaginated(options: {
+    creatorId?: string;
+    courseId?: string;
+    type?: MaterialTypeEnum;
+    tag?: string;
+    reviewStatus?: ApprovalStatus;
+    page?: number;
+  }): Promise<{
     data: Partial<MaterialEntity>[];
     pagination: {
       page: number;
@@ -209,6 +207,7 @@ export class MaterialRepository {
       hasPrev: boolean;
     };
   }> {
+    let { page = 1, ...filters } = options;
     let conditions = [];
     const limit = 10;
     const offset = (page - 1) * limit;

@@ -8,6 +8,13 @@
       "when": 1744249219811,
       "tag": "0000_loud_puff_adder",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1744297505674,
+      "tag": "0001_curved_sprite",
+      "breakpoints": true
     }
   ]
 }

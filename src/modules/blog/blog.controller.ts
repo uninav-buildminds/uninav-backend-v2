@@ -56,7 +56,7 @@ export class BlogController {
     @Query('type') type?: BlogTypeEnum,
     @Query('reviewStatus') reviewStatus?: ApprovalStatus,
   ) {
-    return this.blogService.findWithFilters({
+    return this.blogService.findAllPaginated({
       query,
       page,
       limit,

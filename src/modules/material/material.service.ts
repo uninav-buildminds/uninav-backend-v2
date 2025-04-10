@@ -427,23 +427,18 @@ export class MaterialService {
     return this.materialRepository.searchMaterials(query, filters, user, page);
   }
 
-  async findWithFilters(
-    filters: {
-      creatorId?: string;
-      courseId?: string;
-      type?: string;
-      tag?: string;
-      reviewStatus?: ApprovalStatus;
-    },
-    page: number = 1,
-  ) {
-    return this.materialRepository.findWithRanking(
-      {
-        ...filters,
-        type: filters.type as MaterialTypeEnum,
-      },
-      page,
-    );
+  async findAllPaginated(filters: {
+    creatorId?: string;
+    courseId?: string;
+    type?: string;
+    tag?: string;
+    reviewStatus?: ApprovalStatus;
+    page?: number;
+  }) {
+    return this.materialRepository.findAllPaginated({
+      ...filters,
+      type: filters.type as MaterialTypeEnum,
+    });
   }
 
   async getRecommendations(user: UserEntity, page: number = 1) {

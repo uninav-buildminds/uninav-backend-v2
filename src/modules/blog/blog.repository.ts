@@ -21,7 +21,7 @@ export class BlogRepository {
     return result[0];
   }
 
-  async findAll(options: {
+  async findAllPaginated(options: {
     query?: string;
     page?: number;
     limit?: number;
