@@ -6,6 +6,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
+import { TransformStringToArray } from 'src/transformers/TransformStringToArray';
 import { BlogTypeEnum } from 'src/utils/types/db.types';
 
 export class CreateBlogDto {
@@ -25,8 +26,10 @@ export class CreateBlogDto {
   @IsNotEmpty()
   body: string; // This will be stored in B2 storage, not directly in DB
 
-  @IsArray()
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @TransformStringToArray()
   tags?: string[];
 
   creatorId: string;

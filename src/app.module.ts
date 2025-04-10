@@ -21,6 +21,7 @@ import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CacheControlInterceptor } from './interceptors/cache-control.interceptor';
 import { AdvertModule } from 'src/modules/advert/advert.module';
+import { ReviewModule } from './modules/review/review.module';
 
 @Module({
   imports: [
@@ -41,8 +42,12 @@ import { AdvertModule } from 'src/modules/advert/advert.module';
     BlogModule,
     CoursesModule,
     EventEmitterModule.forRoot({
-      global: true,
       wildcard: true,
+      global: true,
+      delimiter: '.',
+      maxListeners: 20,
+      verboseMemoryLeak: true,
+      ignoreErrors: false,
     }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -51,6 +56,7 @@ import { AdvertModule } from 'src/modules/advert/advert.module';
       global: true,
     }),
     AdvertModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [

@@ -10,7 +10,12 @@ import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
 import { StorageService } from 'src/storage/storage.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { BlogEntity, BlogTypeEnum, UserEntity } from 'src/utils/types/db.types';
+import {
+  ApprovalStatus,
+  BlogEntity,
+  BlogTypeEnum,
+  UserEntity,
+} from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import * as moment from 'moment-timezone';
 import { BLOG_HEADING_IMG_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
@@ -75,19 +80,23 @@ export class BlogService {
   /**
    * Get paginated list of blogs with optional search and type filters
    */
-  async findAll(query?: string, page = 1, limit = 10, type?: string) {
-    // If there's a search query, use the search repository method
-    if (query && query.trim().length > 0) {
-      return this.blogRepository.search(
-        query,
-        page,
-        limit,
-        type as BlogTypeEnum,
-      );
-    }
+  async findAll(options: {
+    query?: string;
+    page?: number;
+    limit?: number;
+    userId?: string;
+    reviewStatus?: ApprovalStatus;
+    type?: BlogTypeEnum;
+  }) {
+    const page = options.page || 1;
+    const limit = options.limit || 10;
 
-    // Otherwise, use the regular findAll method with optional type filter
-    return this.blogRepository.findAll(page, limit, type as BlogTypeEnum);
+    // Always sort by creation date, newest first
+    return this.blogRepository.findAll({
+      ...options,
+      page,
+      limit,
+    });
   }
 
   /**
@@ -329,5 +338,24 @@ export class BlogService {
     }
 
     return { success: true };
+  }
+
+  async review(
+    blogId: string,
+    reviewData: {
+      reviewStatus: ApprovalStatus;
+      reviewedById: string;
+      reviewComment?: string;
+    },
+  ) {
+    const blog = await this.blogRepository.findOne(blogId);
+    if (!blog) {
+      throw new NotFoundException('Blog not found');
+    }
+
+    return this.blogRepository.update(blogId, {
+      reviewStatus: reviewData.reviewStatus,
+      reviewedById: reviewData.reviewedById,
+    });
   }
 }

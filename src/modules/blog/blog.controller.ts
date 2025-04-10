@@ -18,7 +18,11 @@ import {
 import { BlogService } from './blog.service';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
-import { UserEntity } from 'src/utils/types/db.types';
+import {
+  ApprovalStatus,
+  BlogTypeEnum,
+  UserEntity,
+} from 'src/utils/types/db.types';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
@@ -49,9 +53,16 @@ export class BlogController {
     @Query('query') query?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-    @Query('type') type?: string,
+    @Query('type') type?: BlogTypeEnum,
+    @Query('reviewStatus') reviewStatus?: ApprovalStatus,
   ) {
-    return this.blogService.findAll(query, page, limit, type);
+    return this.blogService.findAll({
+      query,
+      page,
+      limit,
+      type,
+      reviewStatus,
+    });
   }
 
   @Get('user/:creatorId')

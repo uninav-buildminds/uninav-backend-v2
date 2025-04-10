@@ -197,4 +197,13 @@ export class CoursesRepository {
       })),
     );
   }
+
+  async update(id: string, updateData: Partial<typeof courses.$inferInsert>) {
+    const result = await this.db
+      .update(courses)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(courses.id, id))
+      .returning();
+    return result[0];
+  }
 }

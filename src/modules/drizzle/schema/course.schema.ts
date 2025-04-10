@@ -1,8 +1,7 @@
 import { pgTable, uuid, text, primaryKey, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { department } from './department.schema';
-import { users } from './user.schema';
-import { moderator } from 'src/modules/drizzle/schema/moderator.schema';
+import { userCourses, users } from './user.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { approvalStatusEnum } from 'src/modules/drizzle/schema/enums.schema';
 import { TABLES } from '../tables.constants';
@@ -12,8 +11,11 @@ export const courses = pgTable(TABLES.COURSES, {
   courseName: text('course_name').notNull(),
   courseCode: text('course_code').notNull().unique(),
   description: text('description').notNull(),
+  creatorId: uuid('creator_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   reviewStatus: approvalStatusEnum('review_status').default('pending'),
-  reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
+  reviewedById: uuid('reviewed_by').references(() => users.id, {
     onDelete: 'set null',
   }),
   ...timestamps,
@@ -30,7 +32,7 @@ export const departmentLevelCourses = pgTable(
     }),
     level: integer('level').notNull(),
     reviewStatus: approvalStatusEnum('review_status').default('pending'),
-    reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
+    reviewedById: uuid('reviewed_by').references(() => users.id, {
       onDelete: 'set null',
     }),
   },
@@ -41,24 +43,9 @@ export const departmentLevelCourses = pgTable(
   },
 );
 
-export const studentCourses = pgTable(
-  TABLES.STUDENT_COURSES,
-  {
-    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
-    courseId: uuid('course_id').references(() => courses.id, {
-      onDelete: 'cascade',
-    }),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.userId, table.courseId] }),
-    };
-  },
-);
-
 export const courseRelations = relations(courses, ({ many }) => ({
   departmentCourses: many(departmentLevelCourses),
-  studentCourses: many(studentCourses),
+  userCourses: many(userCourses),
 }));
 
 export const departmentLevelCoursesRelations = relations(
@@ -74,14 +61,3 @@ export const departmentLevelCoursesRelations = relations(
     }),
   }),
 );
-
-export const studentCoursesRelations = relations(studentCourses, ({ one }) => ({
-  user: one(users, {
-    fields: [studentCourses.userId],
-    references: [users.id],
-  }),
-  course: one(courses, {
-    fields: [studentCourses.courseId],
-    references: [courses.id],
-  }),
-}));

@@ -37,6 +37,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- associate trigger to changes 
 CREATE TRIGGER material_fts_trigger
 BEFORE INSERT OR UPDATE ON material
 FOR EACH ROW EXECUTE FUNCTION update_material_search_vector();

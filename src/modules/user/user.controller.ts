@@ -11,6 +11,8 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -22,10 +24,14 @@ import { UpdateUserDto } from 'src/modules/user/dto/update-user.dto';
 import { AddCourseDto } from './dto/add-course.dto';
 import { AddBookmarkDto } from './dto/bookmark.dto';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
@@ -46,8 +52,20 @@ export class UserController {
 
   @Patch()
   @UseGuards(RolesGuard)
-  async update(@Req() req: Request, @Body() updateUserDto: UpdateUserDto) {
+  async update(
+    @Req() req: Request,
+    @Body() updateUserDto: UpdateUserDto,
+    @Headers('root-api-key') rootApiKey?: string,
+  ) {
     const user = req.user as UserEntity;
+
+    // Check if role update is requested and validate API key
+    if (updateUserDto.role) {
+      if (rootApiKey !== this.configService.get('ROOT_API_KEY')) {
+        throw new UnauthorizedException('Invalid or missing root API key');
+      }
+    }
+
     const updatedUser = await this.userService.update(user.id, updateUserDto);
     return ResponseDto.createSuccessResponse(
       'User updated successfully',

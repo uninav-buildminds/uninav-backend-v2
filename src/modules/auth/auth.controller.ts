@@ -8,13 +8,15 @@ import {
   BadRequestException,
   Get,
   Query,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { LocalAuthGuard } from 'src/guards/local.guard';
 import { Request, Response } from 'express';
-import { UserEntity } from 'src/utils/types/db.types';
+import { UserEntity, UserRoleEnum, AuthEntity } from 'src/utils/types/db.types';
 import { globalCookieOptions } from 'src/utils/config/constants.config';
 import { UserService } from 'src/modules/user/user.service';
 import {
@@ -22,16 +24,35 @@ import {
   VerifyEmailDto,
   VerifyEmailTokenDto,
 } from './dto/verify-email.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('student')
-  async signupStudent(@Body() createStudentDto: CreateStudentDto) {
+  async signupStudent(
+    @Body() createStudentDto: CreateStudentDto,
+    @Headers('root-api-key') rootApiKey?: string,
+  ) {
+    // If role is admin or moderator, validate root API key
+    if (
+      (createStudentDto.role === UserRoleEnum.ADMIN ||
+        createStudentDto.role === UserRoleEnum.MODERATOR) &&
+      rootApiKey !== this.configService.get('ROOT_API_KEY')
+    ) {
+      throw new UnauthorizedException('Invalid or missing root API key');
+    }
+
+    // Default to student role if none specified
+    if (!createStudentDto.role) {
+      createStudentDto.role = UserRoleEnum.STUDENT;
+    }
+
     const student = await this.authService.signupStudent(createStudentDto);
     let auth = await this.authService.findOne(student.id, true);
 
@@ -43,7 +64,7 @@ export class AuthController {
     );
 
     const responseObj = ResponseDto.createSuccessResponse(
-      'Student Account Created Successfully. Please check your email to verify your account.',
+      'Account Created Successfully. Please check your email to verify your account.',
       { ...student, auth },
     );
     return responseObj;
@@ -97,13 +118,14 @@ export class AuthController {
   @Post('login')
   async login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const user = req.user as UserEntity;
-    let profile = await this.userService.getProfile(user.id);
+    const profile = await this.userService.getProfile(user.id);
+    const auth = profile.auth as AuthEntity;
 
     // Check if email is verified
-    if (!profile.auth.emailVerified) {
+    if (!auth.emailVerified) {
       // Send verification email if not verified
       await this.authService.sendVerificationEmail(
-        profile.auth.email,
+        auth.email,
         profile.firstName,
         profile.lastName,
       );

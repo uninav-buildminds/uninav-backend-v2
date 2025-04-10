@@ -132,7 +132,7 @@ export class MaterialRepository {
     updateMaterialDto: Omit<
       UpdateMaterialDto,
       'resourceType' | 'resourceAddress' | 'metaData'
-    > & { reviewStatus?: string },
+    > & { reviewStatus?: string; reviewedById?: string },
   ): Promise<MaterialEntity> {
     materialLogger.log('updateMaterialDto', updateMaterialDto);
     console.log('updateMaterialDto', updateMaterialDto);

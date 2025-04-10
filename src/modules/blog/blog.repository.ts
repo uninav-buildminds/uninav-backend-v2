@@ -1,10 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { BlogEntity, BlogTypeEnum, DrizzleDB } from 'src/utils/types/db.types';
+import {
+  ApprovalStatus,
+  BlogEntity,
+  BlogTypeEnum,
+  DrizzleDB,
+} from 'src/utils/types/db.types';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { comments } from 'src/modules/drizzle/schema/comments.schema';
 import { blogLikes } from 'src/modules/drizzle/schema/blog-likes.schema';
-import { eq, desc, and, sql, like, or, ilike } from 'drizzle-orm';
+import { eq, desc, and, sql, like, or, ilike, asc } from 'drizzle-orm';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
 @Injectable()
@@ -16,11 +21,15 @@ export class BlogRepository {
     return result[0];
   }
 
-  async findAll(
-    page: number = 1,
-    limit: number = 10,
-    type?: BlogTypeEnum,
-  ): Promise<{
+  async findAll(options: {
+    query?: string;
+    page?: number;
+    limit?: number;
+    userId?: string;
+    reviewStatus?: ApprovalStatus;
+    type?: BlogTypeEnum;
+    orderBy?: { [key: string]: 'asc' | 'desc' };
+  }): Promise<{
     data: Partial<BlogEntity>[];
     pagination: {
       page: number;
@@ -31,10 +40,39 @@ export class BlogRepository {
       hasPrev: boolean;
     };
   }> {
-    const offset = page ? (page - 1) * limit : 0;
+    const { query, page = 1, limit = 10, userId, reviewStatus, type } = options;
 
-    // Apply type filter if provided
-    const whereClause = type ? eq(blogs.type, type) : undefined;
+    const offset = (page - 1) * limit;
+
+    // Build where conditions
+    let whereConditions = [];
+
+    if (type) {
+      whereConditions.push(eq(blogs.type, type));
+    }
+
+    if (userId) {
+      whereConditions.push(eq(blogs.creatorId, userId));
+    }
+
+    if (reviewStatus) {
+      whereConditions.push(eq(blogs.reviewStatus, reviewStatus));
+    }
+
+    // Handle search query
+    if (query && query.trim() !== '') {
+      const searchTerm = `%${query}%`;
+      const searchCondition = or(
+        ilike(blogs.title, searchTerm),
+        ilike(blogs.description, searchTerm),
+        sql`${query} = ANY(${blogs.tags})`,
+      );
+      whereConditions.push(searchCondition);
+    }
+
+    // Combine all conditions with AND
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
     // Get total count for pagination
     const countResult = await this.db
@@ -46,15 +84,18 @@ export class BlogRepository {
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
+    // Generate order by clause
+
     const data = await this.db.query.blogs.findMany({
       where: whereClause,
-      orderBy: [desc(blogs.createdAt)],
+      orderBy: [desc(blogs.createdAt), desc(blogs.likes)],
       with: {
         creator: {
           columns: {
             id: true,
             firstName: true,
             lastName: true,
+
             username: true,
           },
         },

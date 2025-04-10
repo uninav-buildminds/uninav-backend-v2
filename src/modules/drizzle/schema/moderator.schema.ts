@@ -14,10 +14,11 @@ export const moderator = pgTable(TABLES.MODERATOR, {
   departmentId: uuid('department').references(() => department.id, {
     onDelete: 'set null',
   }),
-  facultyId: uuid('faculty').references(() => faculty.id, {
+
+  reviewStatus: approvalStatusEnum('review_status').default('pending'),
+  reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
     onDelete: 'set null',
   }),
-  reviewStatus: approvalStatusEnum('review_status').default('pending'),
 });
 
 export const moderatorRelations = relations(moderator, ({ one, many }) => ({
@@ -29,9 +30,6 @@ export const moderatorRelations = relations(moderator, ({ one, many }) => ({
     fields: [moderator.departmentId],
     references: [department.id],
   }),
-  faculty: one(faculty, {
-    fields: [moderator.facultyId],
-    references: [faculty.id],
-  }),
+
   reviewedMaterials: many(material, { relationName: 'reviewer' }),
 }));

@@ -10,6 +10,7 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { StorageService } from 'src/storage/storage.service';
 import {
+  ApprovalStatus,
   MaterialEntity,
   MaterialTypeEnum,
   ResourceType,
@@ -126,8 +127,12 @@ export class MaterialService {
     }
   }
 
-  async findAll() {
-    return this.materialRepository.findAll();
+  async findAll(filter?: { reviewStatus?: ApprovalStatus }) {
+    // Always sort by creation date, newest first
+    return this.materialRepository.findAll({
+      ...filter,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findOne(id: string) {
@@ -326,12 +331,14 @@ export class MaterialService {
     }
   }
 
-  async remove(id: string, userId: string) {
+  async remove(id: string, userId?: string) {
     // Find material first to ensure it exists
     const material = await this.findOne(id);
 
-    // Ensure user is the creator of the material
-    await this.ensureOwnership(material, userId);
+    if (userId) {
+      // Ensure user is the creator of the material
+      await this.ensureOwnership(material, userId);
+    }
 
     // Handle resource deletion if needed
     if (
@@ -449,5 +456,24 @@ export class MaterialService {
     }
 
     return this.materialRepository.getRecommendations(user, page);
+  }
+
+  async review(
+    materialId: string,
+    reviewData: {
+      reviewStatus: ApprovalStatus;
+      reviewedById: string;
+      comment?: string;
+    },
+  ) {
+    const material = await this.materialRepository.findOne(materialId);
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    return this.materialRepository.update(materialId, {
+      reviewStatus: reviewData.reviewStatus,
+      reviewedById: reviewData.reviewedById,
+    });
   }
 }

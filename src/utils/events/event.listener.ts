@@ -157,6 +157,81 @@ export class EventsListeners {
     }
   }
 
+  @OnEvent(EVENTS.MATERIAL_REJECTED)
+  async handleMaterialRejection(payload: {
+    materialId: string;
+    creatorEmail: string;
+    creatorName: string;
+    materialLabel: string;
+    comment: string;
+  }) {
+    await this.emailService.sendMaterialRejectionEmail(
+      payload.creatorEmail,
+      payload.creatorName,
+      payload.materialLabel,
+      payload.comment,
+    );
+  }
+
+  @OnEvent(EVENTS.BLOG_REJECTED)
+  async handleBlogRejection(payload: {
+    blogId: string;
+    creatorEmail: string;
+    creatorName: string;
+    blogTitle: string;
+    comment: string;
+  }) {
+    await this.emailService.sendBlogRejectionEmail(
+      payload.creatorEmail,
+      payload.creatorName,
+      payload.blogTitle,
+      payload.comment,
+    );
+  }
+
+  @OnEvent(EVENTS.MODERATOR_REQUEST_REJECTED)
+  async handleModeratorRejection(payload: { userId: string; comment: string }) {
+    await this.emailService.sendModeratorRejectionEmail(
+      payload.userId,
+      payload.comment,
+    );
+  }
+
+  @OnEvent(EVENTS.COURSE_REJECTED)
+  async handleCourseRejection(payload: {
+    courseId: string;
+    creatorEmail: string;
+    creatorName: string;
+    courseName: string;
+    comment: string;
+  }) {
+    await this.emailService.sendCourseRejectionEmail(
+      payload.creatorEmail,
+      payload.creatorName,
+      payload.courseName,
+      payload.comment,
+    );
+  }
+
+  @OnEvent(EVENTS.DLC_REJECTED)
+  async handleDLCRejection(payload: {
+    departmentId: string;
+    courseId: string;
+    level: number;
+    creatorEmail: string;
+    creatorName: string;
+    courseName: string;
+    comment: string;
+  }) {
+    await this.emailService.sendDLCRejectionEmail(
+      payload.creatorEmail,
+      payload.creatorName,
+      payload.courseName,
+      payload.level,
+      payload.comment,
+    );
+  }
+
   // Helper method to generate verification token
   private async generateVerificationToken(
     email: string,

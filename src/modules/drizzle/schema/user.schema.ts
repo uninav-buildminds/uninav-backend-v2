@@ -14,7 +14,7 @@ import { auth } from './auth.schema';
 import { moderator } from './moderator.schema';
 import { material } from './material.schema';
 import { collection } from './collection.schema';
-import { courses, studentCourses } from './course.schema';
+import { courses } from './course.schema';
 import { comments } from './comments.schema';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
@@ -112,7 +112,6 @@ export const userRelations = relations(users, ({ one, many }) => ({
   }),
   materials: many(material),
   collections: many(collection),
-  studentCourses: many(studentCourses),
   bookmarks: many(bookmarks),
   comments: many(comments),
   blogs: many(blogs),

@@ -14,6 +14,7 @@ const CORS_OPTIONS: CorsOptions = {
     'Content-Type',
     'Authorization',
     'Access-Control-Expose-Headers',
+    'ROOT-API-KEY',
   ],
   credentials: true,
 };

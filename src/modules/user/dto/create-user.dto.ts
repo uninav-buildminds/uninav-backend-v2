@@ -1,4 +1,13 @@
-import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { UserRoleEnum } from 'src/utils/types/db.types';
 
 export class CreateUserDto {
   @IsEmail()
@@ -22,6 +31,10 @@ export class CreateUserDto {
   departmentId: string;
 
   @IsNumber()
-  @IsIn([100, 200, 300, 400, 500])
+  @IsIn([100, 200, 300, 400, 500, 600])
   level: number;
+
+  @IsOptional()
+  @IsEnum(UserRoleEnum)
+  role?: UserRoleEnum;
 }

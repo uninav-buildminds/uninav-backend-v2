@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { auth } from 'src/modules/drizzle/schema/auth.schema';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { DrizzleDB } from 'src/utils/types/db.types';
+import { DrizzleDB, AuthEntity } from 'src/utils/types/db.types';
 import { eq, or } from 'drizzle-orm';
 import { CreateAuthDto } from './dto/create-auth.dto';
 
@@ -17,13 +17,13 @@ export class AuthRepository {
     return createdAuth[0];
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string): Promise<AuthEntity | undefined> {
     return this.db.query.auth.findFirst({
       where: (auth, { eq }) => eq(auth.email, email),
       with: {
         user: true,
       },
-    });
+    }) as Promise<AuthEntity | undefined>;
   }
 
   async findByMatricNo(matricNo: string) {

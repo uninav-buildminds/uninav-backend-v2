@@ -13,7 +13,7 @@ import envConfig from 'src/utils/config/env.config';
 import { ConfigType } from 'src/utils/types/config.types';
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
-import { UserEntity } from 'src/utils/types/db.types';
+import { UserEntity, AuthEntity } from 'src/utils/types/db.types';
 import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { cryptoService } from 'src/utils/crypto/crypto.service';
@@ -44,7 +44,7 @@ export class AuthService {
 
     this.logger.log('testing email...');
   }
-  async findOne(id: string, exclude: boolean = false) {
+  async findOne(id: string, exclude: boolean = false): Promise<AuthEntity> {
     const auth = await this.authRepository.findByUserId(id);
     if (!auth) {
       throw new BadRequestException('auth for User not found');

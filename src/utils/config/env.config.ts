@@ -26,4 +26,5 @@ export default registerAs('config', (): { [key in ENV]: string } => ({
     process.env.CRYPTO_ENCRYPTION_ALGORITHM || 'aes-256-cbc',
 
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  ROOT_API_KEY: process.env.ROOT_API_KEY,
 }));

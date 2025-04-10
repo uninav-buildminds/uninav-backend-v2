@@ -54,28 +54,4 @@ export class FacultyController {
       faculty,
     );
   }
-
-  @Patch(':id')
-  @Roles(UserRoleEnum.ADMIN)
-  async update(
-    @Param('id') id: string,
-    @Body() updateFacultyDto: UpdateFacultyDto,
-  ) {
-    const faculty = await this.facultyService.update(id, updateFacultyDto);
-    return ResponseDto.createSuccessResponse(
-      'Faculty updated successfully',
-      faculty,
-    );
-  }
-
-  @Delete(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
-  async remove(@Param('id') id: string) {
-    const faculty = await this.facultyService.remove(id);
-    return ResponseDto.createSuccessResponse(
-      'Faculty deleted successfully',
-      faculty,
-    );
-  }
 }

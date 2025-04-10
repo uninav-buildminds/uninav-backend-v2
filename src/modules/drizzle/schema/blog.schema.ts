@@ -1,6 +1,6 @@
 import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { blogTypeEnum } from './enums.schema';
+import { approvalStatusEnum, blogTypeEnum } from './enums.schema';
 import { comments } from './comments.schema';
 import { users } from 'src/modules/drizzle/schema/user.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
@@ -28,6 +28,11 @@ export const blogs = pgTable(TABLES.BLOGS, {
   views: integer('views').default(0),
   clicks: integer('clicks').default(0),
   tags: text('tags').array(),
+
+  reviewStatus: approvalStatusEnum('review_status').default('pending'),
+  reviewedById: uuid('reviewed_by').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   ...timestamps,
 });
 
@@ -38,4 +43,9 @@ export const blogRelations = relations(blogs, ({ one, many }) => ({
     references: [users.id],
   }),
   likes: many(blogLikes),
+
+  reviewedBy: one(users, {
+    fields: [blogs.reviewedById],
+    references: [users.id],
+  }),
 }));
