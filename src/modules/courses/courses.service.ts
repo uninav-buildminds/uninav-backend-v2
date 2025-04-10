@@ -7,6 +7,7 @@ import { CoursesRepository } from './courses.repository';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { DepartmentService } from '../department/department.service';
 import { ApprovalStatus } from 'src/utils/types/db.types';
+import { courses } from '../drizzle/schema/course.schema';
 
 @Injectable()
 export class CoursesService {
@@ -36,7 +37,11 @@ export class CoursesService {
     return course;
   }
 
-  async findAll(filters?: { departmentId?: string; level?: number }) {
+  async findAll(filters?: {
+    departmentId?: string;
+    level?: number;
+    reviewStatus?: ApprovalStatus;
+  }) {
     if (filters?.departmentId) {
       await this.departmentService.findOne(filters.departmentId);
     }
@@ -64,45 +69,12 @@ export class CoursesService {
     reviewData: {
       reviewStatus: ApprovalStatus;
       reviewedById: string;
-      reviewComment?: string;
     },
   ) {
     return this.coursesRepository.update(courseId, {
       reviewStatus: reviewData.reviewStatus,
       reviewedById: reviewData.reviewedById,
-      reviewComment: reviewData.reviewComment,
+      updatedAt: new Date(),
     });
-  }
-
-  async reviewDepartmentLevelCourse(
-    departmentId: string,
-    courseId: string,
-    level: number,
-    reviewData: {
-      reviewStatus: ApprovalStatus;
-      reviewedById: string;
-      reviewComment?: string;
-    },
-  ) {
-    return this.coursesRepository.updateDepartmentLevelCourse(
-      departmentId,
-      courseId,
-      level,
-      {
-        reviewStatus: reviewData.reviewStatus,
-        reviewedById: reviewData.reviewedById,
-        reviewComment: reviewData.reviewComment,
-      },
-    );
-  }
-
-  async findAll(filter?: { reviewStatus?: ApprovalStatus }) {
-    return this.coursesRepository.findAll(filter);
-  }
-
-  async findAllDepartmentLevelCourses(filter?: {
-    reviewStatus?: ApprovalStatus;
-  }) {
-    return this.coursesRepository.findAllDepartmentLevelCourses(filter);
   }
 }

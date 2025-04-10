@@ -44,7 +44,10 @@ export class AuthService {
 
     this.logger.log('testing email...');
   }
-  async findOne(id: string, exclude: boolean = false): Promise<AuthEntity> {
+  async findOne(
+    id: string,
+    exclude: boolean = false,
+  ): Promise<Partial<AuthEntity>> {
     const auth = await this.authRepository.findByUserId(id);
     if (!auth) {
       throw new BadRequestException('auth for User not found');

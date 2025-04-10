@@ -80,7 +80,7 @@ export class BlogService {
   /**
    * Get paginated list of blogs with optional search and type filters
    */
-  async findAll(options: {
+  async findWithFilters(options: {
     query?: string;
     page?: number;
     limit?: number;

@@ -66,7 +66,6 @@ export class CourseReviewController {
     const result = await this.coursesService.review(id, {
       reviewStatus: reviewActionDto.action,
       reviewedById: reviewer.id,
-      reviewComment: reviewActionDto.comment,
     });
 
     // Get course creator details for notification
@@ -120,7 +119,6 @@ export class CourseReviewController {
     await this.coursesService.review(id, {
       reviewStatus: ApprovalStatus.REJECTED,
       reviewedById: reviewer.id,
-      reviewComment: 'Course has been deleted by admin',
     });
 
     this.eventEmitter.emit(EVENTS.COURSE_DELETED, {

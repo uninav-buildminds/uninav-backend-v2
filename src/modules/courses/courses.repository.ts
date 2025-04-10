@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { CourseEntity, DrizzleDB } from 'src/utils/types/db.types';
+import {
+  ApprovalStatus,
+  CourseEntity,
+  DrizzleDB,
+} from 'src/utils/types/db.types';
 import { userCourses } from 'src/modules/drizzle/schema/user.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { and, eq, or } from 'drizzle-orm';
@@ -90,7 +94,11 @@ export class CoursesRepository {
     });
   }
 
-  async findAllByFilter(filters?: { departmentId?: string; level?: number }) {
+  async findAllByFilter(filters?: {
+    departmentId?: string;
+    level?: number;
+    reviewStatus?: ApprovalStatus;
+  }) {
     // Base query to get all courses with department info but without deep nesting
     const query = this.db
       .select({
@@ -117,6 +125,9 @@ export class CoursesRepository {
     }
     if (filters?.level) {
       conditions.push(eq(departmentLevelCourses.level, filters.level));
+    }
+    if (filters?.reviewStatus) {
+      conditions.push(eq(courses.reviewStatus, filters.reviewStatus));
     }
 
     if (conditions.length > 0) {
@@ -198,10 +209,10 @@ export class CoursesRepository {
     );
   }
 
-  async update(id: string, updateData: Partial<typeof courses.$inferInsert>) {
+  async update(id: string, updateData: Partial<CourseEntity>) {
     const result = await this.db
       .update(courses)
-      .set({ ...updateData, updatedAt: new Date() })
+      .set({ ...updateData, updatedAt: new Date() } as any)
       .where(eq(courses.id, id))
       .returning();
     return result[0];

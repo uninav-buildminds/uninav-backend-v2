@@ -16,7 +16,7 @@ export const moderator = pgTable(TABLES.MODERATOR, {
   }),
 
   reviewStatus: approvalStatusEnum('review_status').default('pending'),
-  reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
+  reviewedById: uuid('reviewed_by').references(() => users.id, {
     onDelete: 'set null',
   }),
 });
@@ -31,5 +31,9 @@ export const moderatorRelations = relations(moderator, ({ one, many }) => ({
     references: [department.id],
   }),
 
+  reviewedBy: one(users, {
+    fields: [moderator.reviewedById],
+    references: [users.id],
+  }),
   reviewedMaterials: many(material, { relationName: 'reviewer' }),
 }));

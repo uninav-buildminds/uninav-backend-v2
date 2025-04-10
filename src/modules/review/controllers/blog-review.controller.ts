@@ -37,7 +37,7 @@ export class BlogReviewController {
 
   @Get()
   async findAll(@Query('status') status?: ApprovalStatus) {
-    return this.blogService.findAll({ reviewStatus: status });
+    return this.blogService.findWithFilters({ reviewStatus: status });
   }
 
   @Post(':id/review')
