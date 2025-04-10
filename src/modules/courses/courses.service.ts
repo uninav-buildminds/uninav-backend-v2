@@ -54,7 +54,7 @@ export class CoursesService {
     level?: number;
     reviewStatus?: ApprovalStatus;
   }) {
-    return this.coursesRepository.findAllPaginated(filters);
+    return this.coursesRepository.findAll(filters);
   }
   async findById(id: string) {
     const course = await this.coursesRepository.findById(id);

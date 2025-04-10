@@ -21,8 +21,8 @@ import { ApprovalStatus } from 'src/utils/types/db.types';
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
-  @UseGuards(RolesGuard)
   @Post()
+  @UseGuards(RolesGuard)
   async create(@Body() createCourseDto: CreateCourseDto) {
     const course = await this.coursesService.create(createCourseDto);
     return ResponseDto.createSuccessResponse(
