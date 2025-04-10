@@ -12,6 +12,7 @@ import {
   courses,
   departmentLevelCourses,
 } from '../drizzle/schema/course.schema';
+import { department } from 'src/modules/drizzle/schema/department.schema';
 
 @Injectable()
 export class CoursesRepository {
@@ -335,5 +336,89 @@ export class CoursesRepository {
       )
       .returning();
     return result;
+  }
+
+  async findDepartmentLevelCoursesPaginated(filters?: {
+    departmentId?: string;
+    courseId?: string;
+    reviewStatus?: ApprovalStatus;
+    page?: number;
+  }) {
+    const limit = 10;
+    const page = filters?.page || 1;
+    const offset = (page - 1) * limit;
+
+    const baseQuery = this.db
+      .select({
+        departmentId: departmentLevelCourses.departmentId,
+        courseId: departmentLevelCourses.courseId,
+        level: departmentLevelCourses.level,
+        reviewStatus: departmentLevelCourses.reviewStatus,
+        reviewedById: departmentLevelCourses.reviewedById,
+        course: {
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          creatorId: courses.creatorId,
+        },
+        department: {
+          id: department.id,
+          name: department.name,
+          facultyId: department.facultyId,
+        },
+      })
+      .from(departmentLevelCourses)
+      .innerJoin(courses, eq(departmentLevelCourses.courseId, courses.id))
+      .innerJoin(
+        department,
+        eq(departmentLevelCourses.departmentId, department.id),
+      );
+
+    let conditions = [];
+
+    if (filters?.departmentId) {
+      conditions.push(
+        eq(departmentLevelCourses.departmentId, filters.departmentId),
+      );
+    }
+    if (filters?.courseId) {
+      conditions.push(eq(departmentLevelCourses.courseId, filters.courseId));
+    }
+    if (filters?.reviewStatus) {
+      conditions.push(
+        eq(departmentLevelCourses.reviewStatus, filters.reviewStatus),
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count for pagination
+    const countResult = await this.db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(departmentLevelCourses)
+      .where(whereClause);
+
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Get paginated data
+    const data = await baseQuery
+      .where(whereClause)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(courses.createdAt));
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 }

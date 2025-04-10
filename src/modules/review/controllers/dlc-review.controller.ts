@@ -40,12 +40,17 @@ export class DLCReviewController {
   @Get()
   async findAll(
     @Query('status') status?: ApprovalStatus,
-    @Query('page') page?: number,
+    @Query('page', ParseIntPipe) page?: number,
   ) {
-    return this.coursesService.findAllPaginated({
+    const result = await this.coursesService.findDepartmentLevelCourses({
       reviewStatus: status,
       page,
     });
+
+    return ResponseDto.createSuccessResponse(
+      'Department level courses retrieved successfully',
+      result,
+    );
   }
 
   @Post('review/:departmentId/:courseId')

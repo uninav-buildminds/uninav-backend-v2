@@ -35,12 +35,6 @@ export default class NodemailerProvider implements IEmailService {
   private static COMPANY_NAME: string = configService.get(ENV.COMPANY_NAME);
 
   constructor(logger: Logger) {
-    console.log(
-      'nodemailer credentials',
-      NodemailerProvider.GMAIL_CLIENT_ID,
-      NodemailerProvider.GMAIL_CLIENT_SECRET,
-      NodemailerProvider.GMAIL_REFRESH_TOKEN,
-    );
     this.logger = logger;
     this.OAuth2Client = new google.auth.OAuth2(
       NodemailerProvider.GMAIL_CLIENT_ID,

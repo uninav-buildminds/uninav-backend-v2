@@ -29,6 +29,9 @@ export const advert = pgTable(TABLES.ADVERT, {
   clicks: integer('clicks').default(0),
   views: integer('views').default(0),
   reviewStatus: approvalStatusEnum('review_status').default('pending'),
+  reviewedById: uuid('reviewed_by').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   ...timestamps,
 });
 
@@ -43,6 +46,10 @@ export const advertRelations = relations(advert, ({ one }) => ({
   }),
   creator: one(users, {
     fields: [advert.creatorId],
+    references: [users.id],
+  }),
+  reviewedBy: one(users, {
+    fields: [advert.reviewedById],
     references: [users.id],
   }),
 }));

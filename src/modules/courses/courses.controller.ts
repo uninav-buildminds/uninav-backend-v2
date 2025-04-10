@@ -14,6 +14,8 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { ApprovalStatus } from 'src/utils/types/db.types';
+
 @Controller('courses')
 @UseInterceptors(CacheControlInterceptor)
 export class CoursesController {
@@ -45,20 +47,39 @@ export class CoursesController {
     );
   }
 
-  @Get(':id')
+  @Get('code/:courseCode')
   @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
-  async findById(@Param('id') id: string) {
-    const course = await this.coursesService.findById(id);
+  async findByCourseCode(@Param('courseCode') courseCode: string) {
+    const course = await this.coursesService.findByCourseCode(courseCode);
     return ResponseDto.createSuccessResponse(
       'Course retrieved successfully',
       course,
     );
   }
 
-  @Get('code/:courseCode')
+  @Get('department-level')
   @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
-  async findByCourseCode(@Param('courseCode') courseCode: string) {
-    const course = await this.coursesService.findByCourseCode(courseCode);
+  async findDepartmentLevelCourses(
+    @Query('departmentId') departmentId?: string,
+    @Query('courseId') courseId?: string,
+    @Query('page') page?: number,
+  ) {
+    const courses = await this.coursesService.findDepartmentLevelCourses({
+      departmentId,
+      courseId,
+      reviewStatus: ApprovalStatus.PENDING,
+      page,
+    });
+    return ResponseDto.createSuccessResponse(
+      'Department level courses retrieved successfully',
+      courses,
+    );
+  }
+
+  @Get(':id')
+  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
+  async findById(@Param('id') id: string) {
+    const course = await this.coursesService.findById(id);
     return ResponseDto.createSuccessResponse(
       'Course retrieved successfully',
       course,

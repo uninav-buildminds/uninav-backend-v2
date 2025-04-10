@@ -168,4 +168,19 @@ export class CoursesService {
       courseId,
     );
   }
+
+  async findDepartmentLevelCourses(filters?: {
+    departmentId?: string;
+    courseId?: string;
+    reviewStatus?: ApprovalStatus;
+    page?: number;
+  }) {
+    if (filters?.departmentId) {
+      await this.departmentService.findOne(filters.departmentId);
+    }
+    if (filters?.courseId) {
+      await this.findById(filters.courseId);
+    }
+    return this.coursesRepository.findDepartmentLevelCoursesPaginated(filters);
+  }
 }
