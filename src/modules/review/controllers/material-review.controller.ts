@@ -38,7 +38,7 @@ export class MaterialReviewController {
 
   @Get()
   async findAll(@Query('status') status?: ApprovalStatus) {
-    return this.materialService.findAll({ reviewStatus: status });
+    return this.materialService.findWithFilters({ reviewStatus: status });
   }
 
   @Post(':id/review')

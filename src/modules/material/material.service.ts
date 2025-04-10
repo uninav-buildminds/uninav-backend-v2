@@ -127,13 +127,10 @@ export class MaterialService {
     }
   }
 
-  async findAll(filter?: { reviewStatus?: ApprovalStatus }) {
-    // Always sort by creation date, newest first
-    return this.materialRepository.findAll({
-      ...filter,
-      orderBy: { createdAt: 'desc' },
-    });
-  }
+  // async findAll(filter?: { reviewStatus?: ApprovalStatus }) {
+  //   // Always sort by creation date, newest first
+  //   return this.materialRepository.findWithRanking(filter);
+  // }
 
   async findOne(id: string) {
     const material = await this.materialRepository.findOne(id);
@@ -436,10 +433,11 @@ export class MaterialService {
       courseId?: string;
       type?: string;
       tag?: string;
+      reviewStatus?: ApprovalStatus;
     },
     page: number = 1,
   ) {
-    return this.materialRepository.findWithFilters(
+    return this.materialRepository.findWithRanking(
       {
         ...filters,
         type: filters.type as MaterialTypeEnum,

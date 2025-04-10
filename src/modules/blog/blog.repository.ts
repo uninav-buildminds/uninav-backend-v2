@@ -28,7 +28,6 @@ export class BlogRepository {
     userId?: string;
     reviewStatus?: ApprovalStatus;
     type?: BlogTypeEnum;
-    orderBy?: { [key: string]: 'asc' | 'desc' };
   }): Promise<{
     data: Partial<BlogEntity>[];
     pagination: {

@@ -17,13 +17,13 @@ export class AuthRepository {
     return createdAuth[0];
   }
 
-  async findByEmail(email: string): Promise<AuthEntity | undefined> {
+  async findByEmail(email: string) {
     return this.db.query.auth.findFirst({
       where: (auth, { eq }) => eq(auth.email, email),
       with: {
         user: true,
       },
-    }) as Promise<AuthEntity | undefined>;
+    });
   }
 
   async findByMatricNo(matricNo: string) {

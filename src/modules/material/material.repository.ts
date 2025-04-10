@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import {
+  ApprovalStatus,
   DrizzleDB,
   MaterialEntity,
   MaterialTypeEnum,
@@ -188,12 +189,13 @@ export class MaterialRepository {
     });
   }
 
-  async findWithFilters(
+  async findWithRanking(
     filters: {
       creatorId?: string;
       courseId?: string;
       type?: MaterialTypeEnum;
       tag?: string;
+      reviewStatus?: ApprovalStatus;
     },
     page: number = 1,
   ): Promise<{
@@ -223,7 +225,9 @@ export class MaterialRepository {
     if (filters.tag) {
       conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
     }
-
+    if (filters.reviewStatus) {
+      conditions.push(eq(material.reviewStatus, filters.reviewStatus));
+    }
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count for pagination
