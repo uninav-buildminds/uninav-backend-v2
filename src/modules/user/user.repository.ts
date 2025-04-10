@@ -121,6 +121,13 @@ export class UserRepository {
     return result;
   }
 
+  async deleteAllUserCourses(userId: string) {
+    return this.db
+      .delete(userCourses)
+      .where(eq(userCourses.userId, userId))
+      .returning();
+  }
+
   async getUserCourses(userId: string) {
     return this.db.query.userCourses.findMany({
       where: eq(userCourses.userId, userId),

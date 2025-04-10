@@ -151,9 +151,11 @@ export class UserService {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     try {
-      // Check if user exists
-      await this.findOne(id);
+      // Get current user to compare level
+      const currentUser = await this.findOne(id);
+
       // Check department if it's being updated
+      let departmentId = currentUser.departmentId;
       if (updateUserDto.departmentId) {
         const department = await this.departmentService.findOne(
           updateUserDto.departmentId,
@@ -163,6 +165,7 @@ export class UserService {
             `Department with ID ${updateUserDto.departmentId} does not exist`,
           );
         }
+        departmentId = updateUserDto.departmentId;
       }
 
       // Check username uniqueness if updating username
@@ -171,6 +174,24 @@ export class UserService {
           await this.userRepository.findByUsername(updateUserDto.username);
         if (existingUserWithUsername && existingUserWithUsername.id !== id) {
           throw new BadRequestException('Username already in use');
+        }
+      }
+
+      // Handle course reassignment if level is changed
+      if (updateUserDto.level && updateUserDto.level !== currentUser.level) {
+        // Delete all existing user courses
+        await this.userRepository.deleteAllUserCourses(id);
+
+        // Fetch and assign new courses based on department and new level
+        const userCourses =
+          await this.coursesRepository.findCoursesByDepartmentAndLevel(
+            departmentId,
+            updateUserDto.level,
+          );
+
+        // Create new user course relationships
+        if (userCourses.length > 0) {
+          await this.coursesRepository.createUserCourses(id, userCourses);
         }
       }
 
