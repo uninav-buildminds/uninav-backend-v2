@@ -41,10 +41,14 @@ export class MaterialReviewController {
     @Query('status') status?: ApprovalStatus,
     @Query('page') page?: number,
   ) {
-    return this.materialService.findAllPaginated({
+    const result = await this.materialService.findAllPaginated({
       reviewStatus: status,
       page,
     });
+    return ResponseDto.createSuccessResponse(
+      'Materials retrieved successfully',
+      result,
+    );
   }
 
   @Post('review/:id')
@@ -122,6 +126,8 @@ export class MaterialReviewController {
       materialLabel: material.label,
     });
 
-    return { message: 'Material deleted successfully' };
+    return ResponseDto.createSuccessResponse('Material deleted successfully', {
+      id,
+    });
   }
 }

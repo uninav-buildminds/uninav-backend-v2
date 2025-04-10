@@ -41,10 +41,14 @@ export class CourseReviewController {
     @Query('status') status?: ApprovalStatus,
     @Query('page') page?: number,
   ) {
-    return this.coursesService.findAllPaginated({
+    const result = await this.coursesService.findAllPaginated({
       reviewStatus: status,
       page,
     });
+    return ResponseDto.createSuccessResponse(
+      'Courses retrieved successfully',
+      result,
+    );
   }
 
   @Post('review/:id')

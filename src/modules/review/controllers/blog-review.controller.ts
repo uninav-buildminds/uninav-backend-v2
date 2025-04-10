@@ -40,10 +40,14 @@ export class BlogReviewController {
     @Query('status') status?: ApprovalStatus,
     @Query('page') page?: number,
   ) {
-    return this.blogService.findAllPaginated({
+    const result = await this.blogService.findAllPaginated({
       reviewStatus: status,
       page,
     });
+    return ResponseDto.createSuccessResponse(
+      'Blogs retrieved successfully',
+      result,
+    );
   }
 
   @Post('review/:id')
