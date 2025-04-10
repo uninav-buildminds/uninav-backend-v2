@@ -9,10 +9,16 @@ import { users } from '../drizzle/schema/user.schema';
 export class ModeratorRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
 
-  async create(userId: string) {
+  async create({
+    userId,
+    departmentId,
+  }: {
+    userId: string;
+    departmentId: string;
+  }) {
     const [result] = await this.db
       .insert(moderator)
-      .values({ userId })
+      .values({ userId, departmentId } as any)
       .returning();
     return result;
   }

@@ -15,7 +15,6 @@ import {
   approvalStatusEnum,
 } from './enums.schema';
 import { bookmarks, users } from './user.schema';
-import { moderator } from './moderator.schema';
 import { collectionMaterial } from './collection.schema';
 import { advert } from './advert.schema';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
@@ -49,7 +48,7 @@ export const material = pgTable(
       onDelete: 'set null',
     }),
     reviewStatus: approvalStatusEnum('review_status').default('pending'),
-    reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
+    reviewedById: uuid('reviewed_by').references(() => users.id, {
       onDelete: 'set null',
     }),
 
@@ -70,10 +69,9 @@ export const materialRelations = relations(material, ({ one, many }) => ({
     fields: [material.creatorId],
     references: [users.id],
   }),
-  reviewer: one(moderator, {
-    fields: [material.reviewedBy],
-    references: [moderator.userId],
-    relationName: 'reviewer',
+  reviewer: one(users, {
+    fields: [material.reviewedById],
+    references: [users.id],
   }),
   resource: one(resource, {
     fields: [material.id],

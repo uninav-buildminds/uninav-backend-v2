@@ -77,7 +77,6 @@ export class BlogController {
 
   @Get('me')
   @UseGuards(RolesGuard)
-  @CacheControl({ maxAge: 120, private: true }) // Cache for 2 minutes
   findMyBlogs(
     @Req() req: Request,
     @Query('page') page?: number,

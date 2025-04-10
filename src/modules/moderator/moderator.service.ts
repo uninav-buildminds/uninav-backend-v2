@@ -6,8 +6,8 @@ import { ApprovalStatus } from 'src/utils/types/db.types';
 export class ModeratorService {
   constructor(private readonly moderatorRepository: ModeratorRepository) {}
 
-  async create(userId: string) {
-    return this.moderatorRepository.create(userId);
+  async create(userId: string, departmentId: string) {
+    return this.moderatorRepository.create({ userId, departmentId });
   }
 
   async findById(userId: string) {

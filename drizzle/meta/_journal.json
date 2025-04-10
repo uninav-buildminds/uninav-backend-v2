@@ -22,6 +22,20 @@
       "when": 1744308508691,
       "tag": "0002_empty_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1744321811670,
+      "tag": "0003_tough_juggernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1744322191514,
+      "tag": "0004_unknown_menace",
+      "breakpoints": true
     }
   ]
 }

@@ -98,7 +98,10 @@ export class AuthService {
     if (createdUser.role === 'admin') {
       await this.adminService.create(createdUser.id);
     } else if (createdUser.role === 'moderator') {
-      await this.moderatorService.create(createdUser.id);
+      await this.moderatorService.create(
+        createdUser.id,
+        createdUser.departmentId,
+      );
     }
 
     // Get department name for the welcome email

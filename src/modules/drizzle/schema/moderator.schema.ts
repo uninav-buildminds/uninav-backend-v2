@@ -12,6 +12,9 @@ export const moderator = pgTable(TABLES.MODERATOR, {
     .primaryKey()
     .references(() => users.id, { onDelete: 'cascade' }),
 
+  departmentId: uuid('department_id').references(() => department.id, {
+    onDelete: 'set null',
+  }),
   reviewStatus: approvalStatusEnum('review_status').default('pending'),
   reviewedById: uuid('reviewed_by').references(() => users.id, {
     onDelete: 'set null',
