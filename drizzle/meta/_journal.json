@@ -15,6 +15,13 @@
       "when": 1744297505674,
       "tag": "0001_curved_sprite",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1744308508691,
+      "tag": "0002_empty_mongoose",
+      "breakpoints": true
     }
   ]
 }

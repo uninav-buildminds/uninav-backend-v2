@@ -19,24 +19,45 @@ export default class NodemailerProvider implements IEmailService {
   private readonly transporter: Transporter;
   private logger: Logger;
 
+  private static GMAIL_CLIENT_ID: string = configService.get(
+    ENV.GMAIL_CLIENT_ID,
+  );
+  private static GMAIL_CLIENT_SECRET: string = configService.get(
+    ENV.GMAIL_CLIENT_SECRET,
+  );
+  private static GMAIL_REFRESH_TOKEN: string = configService.get(
+    ENV.GMAIL_REFRESH_TOKEN,
+  );
+  private static COMPANY_EMAIL: string = configService.get(ENV.COMPANY_EMAIL);
+  private static GMAIL_REDIRECT_URI: string =
+    'https://developers.google.com/oauthplayground'; //or your redirect URI
+
+  private static COMPANY_NAME: string = configService.get(ENV.COMPANY_NAME);
+
   constructor(logger: Logger) {
+    console.log(
+      'nodemailer credentials',
+      NodemailerProvider.GMAIL_CLIENT_ID,
+      NodemailerProvider.GMAIL_CLIENT_SECRET,
+      NodemailerProvider.GMAIL_REFRESH_TOKEN,
+    );
     this.logger = logger;
     this.OAuth2Client = new google.auth.OAuth2(
-      configService.get(ENV.GMAIL_CLIENT_ID),
-      configService.get(ENV.GMAIL_CLIENT_SECRET),
-      'https://developers.google.com/oauthplayground', //or your redirect URI
+      NodemailerProvider.GMAIL_CLIENT_ID,
+      NodemailerProvider.GMAIL_CLIENT_SECRET,
+      NodemailerProvider.GMAIL_REDIRECT_URI,
     );
     this.OAuth2Client.setCredentials({
-      refresh_token: configService.get(ENV.GMAIL_REFRESH_TOKEN),
+      refresh_token: NodemailerProvider.GMAIL_REFRESH_TOKEN,
     });
     this.transporter = createTransport({
       service: 'gmail',
       auth: {
         type: 'OAuth2',
-        user: configService.get(ENV.COMPANY_EMAIL),
-        clientId: configService.get(ENV.GMAIL_CLIENT_ID),
-        clientSecret: configService.get(ENV.GMAIL_CLIENT_SECRET),
-        refreshToken: configService.get(ENV.GMAIL_REFRESH_TOKEN),
+        user: NodemailerProvider.COMPANY_EMAIL,
+        clientId: NodemailerProvider.GMAIL_CLIENT_ID,
+        clientSecret: NodemailerProvider.GMAIL_CLIENT_SECRET,
+        refreshToken: NodemailerProvider.GMAIL_REFRESH_TOKEN,
       },
     } as unknown as SMTPPool);
   }
@@ -66,8 +87,8 @@ export default class NodemailerProvider implements IEmailService {
         this.transporter.sendMail(
           {
             from: {
-              name: configService.get(ENV.COMPANY_NAME),
-              address: configService.get(ENV.COMPANY_EMAIL),
+              name: NodemailerProvider.COMPANY_NAME,
+              address: NodemailerProvider.COMPANY_EMAIL,
             },
             to,
             subject,

@@ -27,6 +27,8 @@ import {
   EmailPaths,
   EmailSubjects,
 } from 'src/utils/config/constants/email.enum';
+import { ModeratorService } from '../moderator/moderator.service';
+import { AdminService } from '../admin/admin.service';
 
 @Injectable()
 export class AuthService {
@@ -39,6 +41,8 @@ export class AuthService {
     private readonly eventEmitter: EventEmitter2,
     @Inject(envConfig.KEY) private readonly config: ConfigType,
     @Inject(JWT_SYMBOL) private jwtService: JwtService,
+    private readonly adminService: AdminService,
+    private readonly moderatorService: ModeratorService,
   ) {
     this.BCRYPT_SALT = bcrypt.genSaltSync(+this.config.BCRYPT_SALT_ROUNDS);
 
@@ -72,9 +76,10 @@ export class AuthService {
       username: createStudentDto.username,
       departmentId: createStudentDto.departmentId,
       level: createStudentDto.level,
+      role: createStudentDto.role,
     };
 
-    const createdUser = await this.userService.createStudent(userDto);
+    const createdUser = await this.userService.create(userDto);
 
     // Then create auth record with hashed password
     const hashedPassword = await this.hashPassword(createStudentDto.password);
@@ -88,6 +93,13 @@ export class AuthService {
     };
 
     await this.authRepository.create(authDto);
+
+    // Create additional tables if they are verified
+    if (createdUser.role === 'admin') {
+      await this.adminService.create(createdUser.id);
+    } else if (createdUser.role === 'moderator') {
+      await this.moderatorService.create(createdUser.id);
+    }
 
     // Get department name for the welcome email
     const department = await this.departmentService.findOne(

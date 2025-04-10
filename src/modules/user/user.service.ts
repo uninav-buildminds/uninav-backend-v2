@@ -23,7 +23,7 @@ export class UserService {
     private readonly coursesRepository: CoursesRepository,
   ) {}
 
-  async createStudent(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto) {
     // * email should be verified from auth
     let userWithUsername = await this.userRepository.findByUsername(
       createUserDto.username,

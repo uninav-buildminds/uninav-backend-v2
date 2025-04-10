@@ -64,15 +64,13 @@ export class MaterialController {
     @Query('tag') tag?: string,
     @Query('page') page: number = 1,
   ) {
-    const materials = await this.materialService.findAllPaginated(
-      {
-        creatorId,
-        courseId,
-        type,
-        tag,
-      },
+    const materials = await this.materialService.findAllPaginated({
+      creatorId,
+      courseId,
+      type,
+      tag,
       page,
-    );
+    });
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,

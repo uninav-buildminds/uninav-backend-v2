@@ -9,6 +9,7 @@ import {
   Query,
   UnauthorizedException,
   Req,
+  NotFoundException,
 } from '@nestjs/common';
 import { ReviewActionDto } from '../dto/review-action.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
@@ -19,6 +20,7 @@ import {
   UserEntity,
 } from 'src/utils/types/db.types';
 import { UserService } from 'src/modules/user/user.service';
+import { ModeratorService } from 'src/modules/moderator/moderator.service';
 import { Request } from 'express';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EVENTS } from 'src/utils/events/events.enum';
@@ -30,32 +32,32 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 export class ModeratorReviewController {
   constructor(
     private readonly userService: UserService,
+    private readonly moderatorService: ModeratorService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
   @Get()
   async findAll(@Query('status') status?: ApprovalStatus) {
-    // return this.userService.findAllModeratorRequests(status);
+    const moderators = await this.moderatorService.findAll(status);
+    return ResponseDto.createSuccessResponse(
+      'Moderator requests retrieved successfully',
+      moderators,
+    );
   }
 
-  @Post(':id/review')
+  @Post('review/:id')
   async review(
     @Param('id') id: string,
     @Body() reviewActionDto: ReviewActionDto,
     @Req() req: Request,
   ) {
     const admin = req.user as UserEntity;
-    if (!admin || admin.role !== UserRoleEnum.ADMIN) {
-      throw new UnauthorizedException(
-        'Only admins can review moderator requests',
-      );
-    }
+   
 
-    // const result = await this.userService.reviewModeratorRequest(id, {
-    //   reviewStatus: reviewActionDto.action,
-    //   reviewedById: admin.id,
-    //   reviewComment: reviewActionDto.comment,
-    // });
+    const moderator = await this.moderatorService.findById(id);
+    if (!moderator) {
+      throw new NotFoundException('Moderator request not found');
+    }
 
     // If rejected, revert role back to student
     if (reviewActionDto.action === ApprovalStatus.REJECTED) {
@@ -67,15 +69,18 @@ export class ModeratorReviewController {
         comment: reviewActionDto.comment,
       });
     } else if (reviewActionDto.action === ApprovalStatus.APPROVED) {
+      // Update the user's role to moderator if approved
+      await this.userService.update(id, { role: UserRoleEnum.MODERATOR });
+
       // Emit event for approval notification
       this.eventEmitter.emit(EVENTS.MODERATOR_REQUEST_APPROVED, {
         userId: id,
       });
     }
 
-    // return ResponseDto.createSuccessResponse(
-    //   `Moderator request ${reviewActionDto.action} successfully`,
-    //   result,
-    // );
+    return ResponseDto.createSuccessResponse(
+      `Moderator request ${reviewActionDto.action} successfully`,
+      { id },
+    );
   }
 }

@@ -25,6 +25,7 @@ import {
   VerifyEmailTokenDto,
 } from './dto/verify-email.dto';
 import { ConfigService } from '@nestjs/config';
+import { ENV } from 'src/utils/config/env.enum';
 
 @Controller('auth')
 export class AuthController {
@@ -43,7 +44,7 @@ export class AuthController {
     if (
       (createStudentDto.role === UserRoleEnum.ADMIN ||
         createStudentDto.role === UserRoleEnum.MODERATOR) &&
-      rootApiKey !== this.configService.get('ROOT_API_KEY')
+      rootApiKey !== this.configService.get(ENV.ROOT_API_KEY)
     ) {
       throw new UnauthorizedException('Invalid or missing root API key');
     }

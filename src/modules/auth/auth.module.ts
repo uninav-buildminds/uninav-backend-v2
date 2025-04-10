@@ -12,10 +12,18 @@ import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
 import { DepartmentModule } from 'src/modules/department/department.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { EmailService } from 'src/utils/email/email.service';
+import { AdminModule } from 'src/modules/admin/admin.module';
+import { ModeratorModule } from 'src/modules/moderator/moderator.module';
 
 @Global()
 @Module({
-  imports: [DrizzleModule, DepartmentModule, UserModule],
+  imports: [
+    DrizzleModule,
+    DepartmentModule,
+    UserModule,
+    AdminModule,
+    ModeratorModule,
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,
