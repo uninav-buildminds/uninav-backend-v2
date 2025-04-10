@@ -20,13 +20,11 @@ export class CoursesRepository {
   async findExistingDepartmentLevelCourse(
     courseId: string,
     departmentId: string,
-    level: number,
   ) {
     return await this.db.query.departmentLevelCourses.findFirst({
       where: and(
         eq(departmentLevelCourses.courseId, courseId),
         eq(departmentLevelCourses.departmentId, departmentId),
-        eq(departmentLevelCourses.level, level),
       ),
     });
   }
@@ -295,10 +293,16 @@ export class CoursesRepository {
     return result[0];
   }
 
+  async delete(id: string) {
+    const [result] = await this.db
+      .delete(courses)
+      .where(eq(courses.id, id))
+      .returning();
+    return result;
+  }
   async reviewDepartmentLevelCourse(
     departmentId: string,
     courseId: string,
-    level: number,
     reviewData: {
       reviewStatus: ApprovalStatus;
       reviewedById: string;
@@ -314,25 +318,19 @@ export class CoursesRepository {
         and(
           eq(departmentLevelCourses.departmentId, departmentId),
           eq(departmentLevelCourses.courseId, courseId),
-          eq(departmentLevelCourses.level, level),
         ),
       )
       .returning();
     return result;
   }
 
-  async deleteDepartmentLevelCourse(
-    departmentId: string,
-    courseId: string,
-    level: number,
-  ) {
+  async deleteDepartmentLevelCourse(departmentId: string, courseId: string) {
     const [result] = await this.db
       .delete(departmentLevelCourses)
       .where(
         and(
           eq(departmentLevelCourses.departmentId, departmentId),
           eq(departmentLevelCourses.courseId, courseId),
-          eq(departmentLevelCourses.level, level),
         ),
       )
       .returning();

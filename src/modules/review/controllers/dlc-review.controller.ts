@@ -48,24 +48,14 @@ export class DLCReviewController {
     });
   }
 
-  @Post(':departmentId/:courseId/:level/review')
+  @Post('review/:departmentId/:courseId')
   async review(
     @Param('departmentId') departmentId: string,
     @Param('courseId') courseId: string,
-    @Param('level', ParseIntPipe) level: number,
     @Body() reviewActionDto: ReviewActionDto,
     @Req() req: Request,
   ) {
     const reviewer = req.user as UserEntity;
-    if (
-      !reviewer ||
-      (reviewer.role !== UserRoleEnum.ADMIN &&
-        reviewer.role !== UserRoleEnum.MODERATOR)
-    ) {
-      throw new UnauthorizedException(
-        'Only admins and moderators can review department level courses',
-      );
-    }
 
     const course = await this.coursesService.findById(courseId);
     if (!course) {
@@ -75,13 +65,11 @@ export class DLCReviewController {
     const result = await this.coursesService.reviewDepartmentLevelCourse(
       departmentId,
       courseId,
-      level,
       {
         reviewStatus: reviewActionDto.action,
         reviewedById: reviewer.id,
       },
     );
-
     // Get course creator details for notification
     const creator = await this.userService.findOne(course.creatorId);
 
@@ -90,7 +78,7 @@ export class DLCReviewController {
       this.eventEmitter.emit(EVENTS.DLC_REJECTED, {
         courseId,
         departmentId,
-        level,
+        level: result.level,
         creatorEmail: creator.email,
         creatorName: `${creator.firstName} ${creator.lastName}`,
         courseName: course.courseName,
@@ -100,7 +88,7 @@ export class DLCReviewController {
       this.eventEmitter.emit(EVENTS.DLC_APPROVED, {
         courseId,
         departmentId,
-        level,
+        level: result.level,
         creatorEmail: creator.email,
         creatorName: `${creator.firstName} ${creator.lastName}`,
         courseName: course.courseName,
@@ -113,23 +101,13 @@ export class DLCReviewController {
     );
   }
 
-  @Delete(':departmentId/:courseId/:level')
+  @Delete(':departmentId/:courseId')
   async remove(
     @Param('departmentId') departmentId: string,
     @Param('courseId') courseId: string,
-    @Param('level', ParseIntPipe) level: number,
     @Req() req: Request,
   ) {
     const reviewer = req.user as UserEntity;
-    if (
-      !reviewer ||
-      (reviewer.role !== UserRoleEnum.ADMIN &&
-        reviewer.role !== UserRoleEnum.MODERATOR)
-    ) {
-      throw new UnauthorizedException(
-        'Only admins and moderators can delete department level courses',
-      );
-    }
 
     const course = await this.coursesService.findById(courseId);
     if (!course) {
@@ -140,16 +118,15 @@ export class DLCReviewController {
     const creator = await this.userService.findOne(course.creatorId);
 
     // Delete this dlc
-    await this.coursesService.deleteDepartmentLevelCourse(
+    let dlc = await this.coursesService.deleteDepartmentLevelCourse(
       departmentId,
       courseId,
-      level,
     );
 
     this.eventEmitter.emit(EVENTS.DLC_DELETED, {
       courseId,
       departmentId,
-      level,
+      level: dlc.level,
       creatorEmail: creator.email,
       creatorName: `${creator.firstName} ${creator.lastName}`,
       courseName: course.courseName,
@@ -161,7 +138,7 @@ export class DLCReviewController {
       {
         departmentId,
         courseId,
-        level,
+        level: dlc.level,
       },
     );
   }

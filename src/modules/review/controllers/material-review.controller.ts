@@ -47,7 +47,7 @@ export class MaterialReviewController {
     });
   }
 
-  @Post(':id/review')
+  @Post('review/:id')
   async review(
     @Param('id') id: string,
     @Body() reviewActionDto: ReviewActionDto,
@@ -102,7 +102,8 @@ export class MaterialReviewController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Req() req: Request) {
+    const admin = req.user as UserEntity;
     const material = await this.materialService.findOne(id);
     if (!material) {
       throw new NotFoundException('Material not found');
@@ -112,7 +113,7 @@ export class MaterialReviewController {
     const creator = await this.userService.findOne(material.creatorId);
 
     // Delete the material
-    await this.materialService.remove(id);
+    await this.materialService.remove(id, admin.id);
 
     // Notify creator about deletion
     this.eventEmitter.emit(EVENTS.MATERIAL_DELETED, {

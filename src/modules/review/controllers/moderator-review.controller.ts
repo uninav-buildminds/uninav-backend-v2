@@ -52,7 +52,6 @@ export class ModeratorReviewController {
     @Req() req: Request,
   ) {
     const admin = req.user as UserEntity;
-   
 
     const moderator = await this.moderatorService.findById(id);
     if (!moderator) {
@@ -62,7 +61,7 @@ export class ModeratorReviewController {
     // If rejected, revert role back to student
     if (reviewActionDto.action === ApprovalStatus.REJECTED) {
       await this.userService.update(id, { role: UserRoleEnum.STUDENT });
-
+      await this.moderatorService.delete(id);
       // Emit event for rejection notification
       this.eventEmitter.emit(EVENTS.MODERATOR_REQUEST_REJECTED, {
         userId: id,

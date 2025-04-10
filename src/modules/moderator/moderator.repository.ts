@@ -21,16 +21,7 @@ export class ModeratorRepository {
     return this.db.query.moderator.findFirst({
       where: eq(moderator.userId, userId),
       with: {
-        user: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-            email: true,
-            role: true,
-          },
-        },
+        user: true,
         reviewedBy: {
           columns: {
             id: true,
@@ -49,16 +40,7 @@ export class ModeratorRepository {
         ? eq(moderator.reviewStatus, reviewStatus as ApprovalStatus)
         : undefined,
       with: {
-        user: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-            email: true,
-            role: true,
-          },
-        },
+        user: true,
         reviewedBy: {
           columns: {
             id: true,

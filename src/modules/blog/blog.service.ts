@@ -15,11 +15,13 @@ import {
   BlogEntity,
   BlogTypeEnum,
   UserEntity,
+  UserRoleEnum,
 } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import * as moment from 'moment-timezone';
 import { BLOG_HEADING_IMG_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
+import { UserService } from 'src/modules/user/user.service';
 
 @Injectable()
 export class BlogService {
@@ -28,6 +30,7 @@ export class BlogService {
   constructor(
     private readonly blogRepository: BlogRepository,
     private readonly storageService: StorageService,
+    private readonly userService: UserService,
   ) {}
 
   /**
@@ -265,6 +268,16 @@ export class BlogService {
 
     return this.blogRepository.update(id, updateData);
   }
+  async isAuthorized(blog: Partial<BlogEntity>, userId: string) {
+    if (blog.creatorId !== userId) {
+      let user = await this.userService.findOne(userId);
+      if (user.role !== UserRoleEnum.ADMIN) {
+        throw new ForbiddenException(
+          'You are not authorized to perform this action',
+        );
+      }
+    }
+  }
 
   /**
    * Delete a blog and its associated files
@@ -277,9 +290,7 @@ export class BlogService {
     }
 
     // Verify ownership
-    if (blog.creatorId !== userId) {
-      throw new ForbiddenException('You can only delete your own blogs');
-    }
+    await this.isAuthorized(blog, userId);
 
     // Delete associated files from storage
     if (blog.headingImageKey) {
@@ -345,7 +356,6 @@ export class BlogService {
     reviewData: {
       reviewStatus: ApprovalStatus;
       reviewedById: string;
-      reviewComment?: string;
     },
   ) {
     const blog = await this.blogRepository.findOne(blogId);

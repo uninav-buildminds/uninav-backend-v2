@@ -47,7 +47,7 @@ export class CourseReviewController {
     });
   }
 
-  @Post(':id/review')
+  @Post('review/:id')
   async review(
     @Param('id') id: string,
     @Body() reviewActionDto: ReviewActionDto,
@@ -104,15 +104,6 @@ export class CourseReviewController {
   @Delete(':id')
   async remove(@Param('id') id: string, @Req() req: Request) {
     const reviewer = req.user as UserEntity;
-    if (
-      !reviewer ||
-      (reviewer.role !== UserRoleEnum.ADMIN &&
-        reviewer.role !== UserRoleEnum.MODERATOR)
-    ) {
-      throw new UnauthorizedException(
-        'Only admins and moderators can delete courses',
-      );
-    }
 
     const course = await this.coursesService.findById(id);
     if (!course) {

@@ -86,10 +86,18 @@ export class CoursesService {
     });
   }
 
+  async remove(courseId: string) {
+    const course = await this.findById(courseId);
+    if (!course) {
+      throw new NotFoundException(`Course with ID ${courseId} not found`);
+    }
+
+    return this.coursesRepository.delete(courseId);
+  }
+
   async reviewDepartmentLevelCourse(
     departmentId: string,
     courseId: string,
-    level: number,
     reviewData: {
       reviewStatus: ApprovalStatus;
       reviewedById: string;
@@ -114,27 +122,21 @@ export class CoursesService {
       await this.coursesRepository.findExistingDepartmentLevelCourse(
         courseId,
         departmentId,
-        level,
       );
     if (!existing) {
       throw new NotFoundException(
-        `Department level course not found for department ${departmentId}, course ${courseId}, and level ${level}`,
+        `Department level course not found for department ${departmentId}, course ${courseId}`,
       );
     }
 
     return this.coursesRepository.reviewDepartmentLevelCourse(
       departmentId,
       courseId,
-      level,
       reviewData,
     );
   }
 
-  async deleteDepartmentLevelCourse(
-    departmentId: string,
-    courseId: string,
-    level: number,
-  ) {
+  async deleteDepartmentLevelCourse(departmentId: string, courseId: string) {
     // Verify course exists
     const course = await this.findById(courseId);
     if (!course) {
@@ -154,18 +156,16 @@ export class CoursesService {
       await this.coursesRepository.findExistingDepartmentLevelCourse(
         courseId,
         departmentId,
-        level,
       );
     if (!existing) {
       throw new NotFoundException(
-        `Department level course not found for department ${departmentId}, course ${courseId}, and level ${level}`,
+        `Department level course not found for department ${departmentId}, course ${courseId}`,
       );
     }
 
     return this.coursesRepository.deleteDepartmentLevelCourse(
       departmentId,
       courseId,
-      level,
     );
   }
 }

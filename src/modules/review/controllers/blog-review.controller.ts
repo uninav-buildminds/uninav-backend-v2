@@ -53,15 +53,6 @@ export class BlogReviewController {
     @Req() req: Request,
   ) {
     const reviewer = req.user as UserEntity;
-    if (
-      !reviewer ||
-      (reviewer.role !== UserRoleEnum.ADMIN &&
-        reviewer.role !== UserRoleEnum.MODERATOR)
-    ) {
-      throw new UnauthorizedException(
-        'Only admins and moderators can review blogs',
-      );
-    }
 
     const blog = await this.blogService.findOne(id);
     if (!blog) {
@@ -71,7 +62,6 @@ export class BlogReviewController {
     const result = await this.blogService.review(id, {
       reviewStatus: reviewActionDto.action,
       reviewedById: reviewer.id,
-      reviewComment: reviewActionDto.comment,
     });
 
     // Get blog creator details for notification
@@ -104,15 +94,6 @@ export class BlogReviewController {
   @Post('delete/:id')
   async remove(@Param('id') id: string, @Req() req: Request) {
     const reviewer = req.user as UserEntity;
-    if (
-      !reviewer ||
-      (reviewer.role !== UserRoleEnum.ADMIN &&
-        reviewer.role !== UserRoleEnum.MODERATOR)
-    ) {
-      throw new UnauthorizedException(
-        'Only admins and moderators can delete blogs',
-      );
-    }
 
     const blog = await this.blogService.findOne(id);
     if (!blog) {

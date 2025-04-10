@@ -11,10 +11,12 @@ import { UpdateMaterialDto } from './dto/update-material.dto';
 import { StorageService } from 'src/storage/storage.service';
 import {
   ApprovalStatus,
+  BlogEntity,
   MaterialEntity,
   MaterialTypeEnum,
   ResourceType,
   UserEntity,
+  UserRoleEnum,
 } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
@@ -23,6 +25,7 @@ import {
   RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS,
 } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
+import { UserService } from 'src/modules/user/user.service';
 ('updateMaterialDto');
 
 @Injectable()
@@ -30,6 +33,7 @@ export class MaterialService {
   constructor(
     private readonly materialRepository: MaterialRepository,
     private readonly storageService: StorageService,
+    private readonly userService: UserService,
   ) {}
 
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
@@ -221,18 +225,14 @@ export class MaterialService {
    * @param userId User ID to verify against
    * @throws ForbiddenException if user is not the creator
    */
-  async ensureOwnership(
-    material: MaterialEntity,
-    userId: string,
-  ): Promise<void> {
-    const isOwner = material.creatorId === userId;
-    if (!isOwner) {
-      logger.warn(
-        `User ${userId} attempted to modify material ${material.id} without ownership`,
-      );
-      throw new ForbiddenException(
-        'You do not have permission to modify this material',
-      );
+  async isAuthorized(material: Partial<MaterialEntity>, userId: string) {
+    if (material.creatorId !== userId) {
+      let user = await this.userService.findOne(userId);
+      if (user.role !== UserRoleEnum.ADMIN) {
+        throw new ForbiddenException(
+          'You are not authorized to perform this action',
+        );
+      }
     }
   }
 
@@ -244,7 +244,7 @@ export class MaterialService {
   ) {
     try {
       const material = await this.findOne(id);
-      await this.ensureOwnership(material, userId);
+      await this.isAuthorized(material, userId);
 
       const { resourceAddress, metaData, ...materialData } = updateMaterialDto;
 
@@ -328,14 +328,12 @@ export class MaterialService {
     }
   }
 
-  async remove(id: string, userId?: string) {
+  async remove(id: string, userId: string) {
     // Find material first to ensure it exists
     const material = await this.findOne(id);
 
-    if (userId) {
-      // Ensure user is the creator of the material
-      await this.ensureOwnership(material, userId);
-    }
+    // Ensure user is the creator of the material
+    await this.isAuthorized(material, userId);
 
     // Handle resource deletion if needed
     if (
