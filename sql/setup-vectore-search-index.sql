@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm; -- Optional, if you later want fuzzy sea
 CREATE EXTENSION IF NOT EXISTS unaccent; -- Helps in ignoring accents
 
 -- Step 2: Add the FTS column
-ALTER TABLE material ADD COLUMN search_vector tsvector;
+ALTER TABLE material ALTER COLUMN search_vector TYPE tsvector USING search_vector::tsvector;
 
 -- Step 3: Populate the FTS column with indexed content
 UPDATE material

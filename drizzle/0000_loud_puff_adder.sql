@@ -104,9 +104,9 @@ CREATE TABLE "material" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"type" "material_type" NOT NULL,
 	"tags" text[],
-	"click_count" integer DEFAULT 0,
-	"view_count" integer DEFAULT 0,
-	"download_count" integer DEFAULT 0,
+	"clicks" integer DEFAULT 0,
+	"views" integer DEFAULT 0,
+	"downloads" integer DEFAULT 0,
 	"likes" integer DEFAULT 0,
 	"creator_id" uuid,
 	"label" text,
@@ -116,7 +116,7 @@ CREATE TABLE "material" (
 	"target_course" uuid,
 	"review_status" "approval_status" DEFAULT 'pending',
 	"reviewed_by" uuid,
-	"search_vector" text,
+	"search_vector" "tsvector",
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
@@ -126,7 +126,9 @@ CREATE TABLE "collection" (
 	"creator_id" uuid,
 	"label" text NOT NULL,
 	"description" text,
-	"visibility" "visibility_enum" DEFAULT 'public'
+	"visibility" "visibility_enum" DEFAULT 'public',
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "collection_material" (
@@ -165,14 +167,16 @@ CREATE TABLE "comments" (
 CREATE TABLE "advert" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"type" "advert_type" NOT NULL,
-	"amount" numeric,
+	"amount" numeric DEFAULT '0',
+	"creator_id" uuid NOT NULL,
 	"material_id" uuid,
 	"collection_id" uuid,
 	"image_url" text NOT NULL,
+	"file_key" text NOT NULL,
 	"label" text NOT NULL,
 	"description" text,
 	"clicks" integer DEFAULT 0,
-	"impressions" integer DEFAULT 0,
+	"views" integer DEFAULT 0,
 	"review_status" "approval_status" DEFAULT 'pending',
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	"updatedAt" timestamp DEFAULT now() NOT NULL
@@ -230,6 +234,7 @@ ALTER TABLE "collection_material" ADD CONSTRAINT "collection_material_material_i
 ALTER TABLE "blogs" ADD CONSTRAINT "blogs_creator_users_id_fk" FOREIGN KEY ("creator") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comments" ADD CONSTRAINT "comments_blogId_blogs_id_fk" FOREIGN KEY ("blogId") REFERENCES "public"."blogs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comments" ADD CONSTRAINT "comments_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "advert" ADD CONSTRAINT "advert_creator_id_users_id_fk" FOREIGN KEY ("creator_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advert" ADD CONSTRAINT "advert_material_id_material_id_fk" FOREIGN KEY ("material_id") REFERENCES "public"."material"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advert" ADD CONSTRAINT "advert_collection_id_collection_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collection"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "resource" ADD CONSTRAINT "resource_materialId_material_id_fk" FOREIGN KEY ("materialId") REFERENCES "public"."material"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

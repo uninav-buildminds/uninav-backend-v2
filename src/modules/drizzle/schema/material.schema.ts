@@ -5,8 +5,9 @@ import {
   integer,
   timestamp,
   index,
+  customType,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   visibilityEnum,
   restrictionEnum,
@@ -22,6 +23,7 @@ import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { courses } from 'src/modules/drizzle/schema/course.schema';
 import { TABLES } from '../tables.constants';
 import { materialLikes } from './material-likes.schema';
+import { tsvector } from 'src/modules/drizzle/schema/custom-type';
 
 export const material = pgTable(
   TABLES.MATERIALS,
@@ -51,7 +53,7 @@ export const material = pgTable(
       onDelete: 'set null',
     }),
 
-    searchVector: text('search_vector'),
+    searchVector: tsvector('search_vector'),
     ...timestamps,
   },
   (table) => {

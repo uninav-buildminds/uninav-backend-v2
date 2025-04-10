@@ -1,5 +1,5 @@
 {
-  "id": "75814492-38c2-4c00-b676-427ae962d457",
+  "id": "c565344b-7ce5-42d4-aaac-5630977c138c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -868,22 +868,22 @@
           "primaryKey": false,
           "notNull": false
         },
-        "click_count": {
-          "name": "click_count",
+        "clicks": {
+          "name": "clicks",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "default": 0
         },
-        "view_count": {
-          "name": "view_count",
+        "views": {
+          "name": "views",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "default": 0
         },
-        "download_count": {
-          "name": "download_count",
+        "downloads": {
+          "name": "downloads",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -952,7 +952,7 @@
         },
         "search_vector": {
           "name": "search_vector",
-          "type": "text",
+          "type": "tsvector",
           "primaryKey": false,
           "notNull": false
         },
@@ -1071,6 +1071,20 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'public'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -1380,7 +1394,14 @@
           "name": "amount",
           "type": "numeric",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": "'0'"
+        },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         },
         "material_id": {
           "name": "material_id",
@@ -1396,6 +1417,12 @@
         },
         "image_url": {
           "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_key": {
+          "name": "file_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -1419,8 +1446,8 @@
           "notNull": false,
           "default": 0
         },
-        "impressions": {
-          "name": "impressions",
+        "views": {
+          "name": "views",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1451,6 +1478,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "advert_creator_id_users_id_fk": {
+          "name": "advert_creator_id_users_id_fk",
+          "tableFrom": "advert",
+          "tableTo": "users",
+          "columnsFrom": [
+            "creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "advert_material_id_material_id_fk": {
           "name": "advert_material_id_material_id_fk",
           "tableFrom": "advert",
