@@ -33,6 +33,10 @@ export class BlogService {
     private readonly userService: UserService,
   ) {}
 
+  async countBlogsByStatus(departmentId?: string) {
+    return this.blogRepository.countByStatus(departmentId);
+  }
+
   /**
    * Create a new blog with image and markdown content stored in B2 buckets
    */

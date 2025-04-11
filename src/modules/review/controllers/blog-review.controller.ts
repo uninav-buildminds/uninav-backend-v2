@@ -50,6 +50,15 @@ export class BlogReviewController {
     );
   }
 
+  @Get('count')
+  async getCount(@Query('departmentId') departmentId?: string) {
+    const result = await this.blogService.countBlogsByStatus(departmentId);
+    return ResponseDto.createSuccessResponse(
+      'Blogs count retrieved successfully',
+      result,
+    );
+  }
+
   @Post('review/:id')
   async review(
     @Param('id') id: string,

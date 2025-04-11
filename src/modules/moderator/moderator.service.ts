@@ -45,4 +45,8 @@ export class ModeratorService {
 
     return this.moderatorRepository.delete(userId);
   }
+
+  async countModeratorsByStatus(departmentId?: string) {
+    return this.moderatorRepository.countByStatus(departmentId);
+  }
 }

@@ -421,4 +421,124 @@ export class CoursesRepository {
       },
     };
   }
+
+  async countByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(courses)
+        .where(
+          and(
+            eq(courses.reviewStatus, ApprovalStatus.PENDING),
+            departmentId
+              ? sql`${courses.id} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(courses)
+        .where(
+          and(
+            eq(courses.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId
+              ? sql`${courses.id} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(courses)
+        .where(
+          and(
+            eq(courses.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId
+              ? sql`${courses.id} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
+    return result;
+  }
+
+  async countDepartmentLevelCoursesByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(departmentLevelCourses)
+        .where(
+          and(
+            eq(departmentLevelCourses.reviewStatus, ApprovalStatus.PENDING),
+            departmentId
+              ? eq(departmentLevelCourses.departmentId, departmentId)
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(departmentLevelCourses)
+        .where(
+          and(
+            eq(departmentLevelCourses.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId
+              ? eq(departmentLevelCourses.departmentId, departmentId)
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(departmentLevelCourses)
+        .where(
+          and(
+            eq(departmentLevelCourses.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId
+              ? eq(departmentLevelCourses.departmentId, departmentId)
+              : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
+    return result;
+  }
 }

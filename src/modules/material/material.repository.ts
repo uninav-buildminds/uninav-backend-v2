@@ -24,6 +24,7 @@ import {
 import {
   courses,
   departmentLevelCourses as dlc,
+  departmentLevelCourses,
 } from 'src/modules/drizzle/schema/course.schema';
 
 @Injectable()
@@ -521,5 +522,71 @@ export class MaterialRepository {
           eq(materialLikes.userId, userId),
         ),
       );
+  }
+
+  async countByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(
+          and(
+            eq(material.reviewStatus, ApprovalStatus.PENDING),
+            departmentId
+              ? sql`${material.targetCourseId} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(
+          and(
+            eq(material.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId
+              ? sql`${material.targetCourseId} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(
+          and(
+            eq(material.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId
+              ? sql`${material.targetCourseId} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
+    return result;
   }
 }

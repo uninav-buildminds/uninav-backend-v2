@@ -51,6 +51,15 @@ export class CourseReviewController {
     );
   }
 
+  @Get('count')
+  async getCount(@Query('departmentId') departmentId?: string) {
+    const result = await this.coursesService.countCoursesByStatus(departmentId);
+    return ResponseDto.createSuccessResponse(
+      'Courses count retrieved successfully',
+      result,
+    );
+  }
+
   @Post('review/:id')
   async review(
     @Param('id') id: string,

@@ -36,6 +36,10 @@ export class MaterialService {
     private readonly userService: UserService,
   ) {}
 
+  async countMaterialsByStatus(departmentId?: string) {
+    return this.materialRepository.countByStatus(departmentId);
+  }
+
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
     try {
       const { resourceAddress, metaData, ...materialData } = createMaterialDto;

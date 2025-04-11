@@ -45,6 +45,16 @@ export class ModeratorReviewController {
     );
   }
 
+  @Get('count')
+  async getCount(@Query('departmentId') departmentId?: string) {
+    const result =
+      await this.moderatorService.countModeratorsByStatus(departmentId);
+    return ResponseDto.createSuccessResponse(
+      'Moderator requests count retrieved successfully',
+      result,
+    );
+  }
+
   @Post('review/:id')
   async review(
     @Param('id') id: string,

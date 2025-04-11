@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { DrizzleDB, ApprovalStatus } from 'src/utils/types/db.types';
 import { moderator } from '../drizzle/schema/moderator.schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { users } from '../drizzle/schema/user.schema';
 
 @Injectable()
@@ -82,6 +82,54 @@ export class ModeratorRepository {
       .delete(moderator)
       .where(eq(moderator.userId, userId))
       .returning();
+    return result;
+  }
+
+  async countByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(moderator)
+        .where(
+          and(
+            eq(moderator.reviewStatus, ApprovalStatus.PENDING),
+            departmentId ? eq(moderator.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(moderator)
+        .where(
+          and(
+            eq(moderator.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId ? eq(moderator.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(moderator)
+        .where(
+          and(
+            eq(moderator.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId ? eq(moderator.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
     return result;
   }
 }

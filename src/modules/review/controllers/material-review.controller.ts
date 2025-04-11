@@ -51,6 +51,16 @@ export class MaterialReviewController {
     );
   }
 
+  @Get('count')
+  async getCount(@Query('departmentId') departmentId?: string) {
+    const result =
+      await this.materialService.countMaterialsByStatus(departmentId);
+    return ResponseDto.createSuccessResponse(
+      'Materials count retrieved successfully',
+      result,
+    );
+  }
+
   @Post('review/:id')
   async review(
     @Param('id') id: string,

@@ -53,6 +53,18 @@ export class DLCReviewController {
     );
   }
 
+  @Get('count')
+  async getCount(@Query('departmentId') departmentId?: string) {
+    const result =
+      await this.coursesService.countDepartmentLevelCoursesByStatus(
+        departmentId,
+      );
+    return ResponseDto.createSuccessResponse(
+      'Department level courses count retrieved successfully',
+      result,
+    );
+  }
+
   @Post('review/:departmentId/:courseId')
   async review(
     @Param('departmentId') departmentId: string,
@@ -75,7 +87,13 @@ export class DLCReviewController {
         reviewedById: reviewer.id,
       },
     );
-    // Get course creator details for notification
+    if (!course.creatorId) {
+      // some courses created during seeding
+      return ResponseDto.createSuccessResponse(
+        `Department Level Course ${reviewActionDto.action} successfully`,
+        result,
+      );
+    }
     const creator = await this.userService.findOne(course.creatorId);
 
     // Send notification based on review status

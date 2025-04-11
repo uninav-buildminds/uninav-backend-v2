@@ -11,6 +11,7 @@ import { comments } from 'src/modules/drizzle/schema/comments.schema';
 import { blogLikes } from 'src/modules/drizzle/schema/blog-likes.schema';
 import { eq, desc, and, sql, like, or, ilike, asc } from 'drizzle-orm';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { users } from 'src/modules/drizzle/schema/user.schema';
 
 @Injectable()
 export class BlogRepository {
@@ -433,5 +434,56 @@ export class BlogRepository {
       .returning({ id: comments.id });
 
     return result.length > 0;
+  }
+
+  async countByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(blogs)
+        .leftJoin(users, eq(blogs.creatorId, users.id))
+        .where(
+          and(
+            eq(blogs.reviewStatus, ApprovalStatus.PENDING),
+            departmentId ? eq(users.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(blogs)
+        .leftJoin(users, eq(blogs.creatorId, users.id))
+        .where(
+          and(
+            eq(blogs.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId ? eq(users.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(blogs)
+        .leftJoin(users, eq(blogs.creatorId, users.id))
+        .where(
+          and(
+            eq(blogs.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId ? eq(users.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
+    return result;
   }
 }
