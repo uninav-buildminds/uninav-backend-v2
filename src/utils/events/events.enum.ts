@@ -11,6 +11,7 @@ export enum EVENTS {
   MATERIAL_APPROVED = 'review.material.approved',
   BLOG_APPROVED = 'review.blog.approved',
   MODERATOR_REQUEST_APPROVED = 'moderator.request.approved',
+  ADVERT_APPROVED = 'advert.approved',
 
   // Review Events - Rejections
   COURSE_REJECTED = 'review.course.rejected',
@@ -18,6 +19,7 @@ export enum EVENTS {
   MATERIAL_REJECTED = 'review.material.rejected',
   BLOG_REJECTED = 'review.blog.rejected',
   MODERATOR_REQUEST_REJECTED = 'moderator.request.rejected',
+  ADVERT_REJECTED = 'advert.rejected',
 
   // Deletion Events
   COURSE_DELETED = 'content.course.deleted',

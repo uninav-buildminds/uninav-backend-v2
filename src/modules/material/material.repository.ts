@@ -571,7 +571,7 @@ export class MaterialRepository {
             eq(material.reviewStatus, ApprovalStatus.REJECTED),
             departmentId
               ? sql`${material.targetCourseId} IN (
-                SELECT ${departmentLevelCourses.courseId}
+                SELECT ${departmentLevelCourses.courseId}k
                 FROM ${departmentLevelCourses}
                 WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
               )`

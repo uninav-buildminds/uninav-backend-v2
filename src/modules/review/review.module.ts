@@ -7,6 +7,7 @@ import { DrizzleModule } from '../drizzle/drizzle.module';
 import { DLCReviewController } from 'src/modules/review/controllers/dlc-review.controller';
 import { MaterialReviewController } from 'src/modules/review/controllers/material-review.controller';
 import { BlogReviewController } from 'src/modules/review/controllers/blog-review.controller';
+import { AdvertReviewController } from './controllers/advert-review.controller';
 
 @Module({
   imports: [DrizzleModule, CoursesModule, MaterialModule, BlogModule],
@@ -15,6 +16,7 @@ import { BlogReviewController } from 'src/modules/review/controllers/blog-review
     DLCReviewController,
     MaterialReviewController,
     BlogReviewController,
+    AdvertReviewController,
   ],
 })
 export class ReviewModule {}

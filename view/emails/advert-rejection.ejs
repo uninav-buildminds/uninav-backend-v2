@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Advertisement Rejection</title>
+  </head>
+  <body>
+    <h2>Advertisement Rejection Notice</h2>
+    <p>Dear <%= creatorName %>,</p>
+    <p>
+      Your advertisement "<%= advertLabel %>" has been reviewed and unfortunately could not be approved at this time.
+    </p>
+    <% if (comment) { %>
+    <p><strong>Reason for rejection:</strong></p>
+    <p><%= comment %></p>
+    <% } %>
+    <p>
+      You can update and resubmit your advertisement after making the necessary changes.
+    </p>
+    <p>If you have any questions, please contact our support team.</p>
+    <p>Best regards,<br />UniNav Team</p>
+  </body>
+</html>

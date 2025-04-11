@@ -183,7 +183,6 @@ export class CoursesService {
     }
     return this.coursesRepository.findDepartmentLevelCoursesPaginated(filters);
   }
-
   async countCoursesByStatus(departmentId?: string) {
     return this.coursesRepository.countByStatus(departmentId);
   }

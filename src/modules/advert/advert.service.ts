@@ -3,13 +3,18 @@ import {
   Injectable,
   InternalServerErrorException,
   ForbiddenException,
+  NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { AdvertRepository } from './advert.repository';
 import { CreateFreeAdvertDto } from './dto/create-free-advert.dto';
 import { StorageService } from 'src/storage/storage.service';
 import { MulterFile } from 'src/utils/types';
-import { AdvertEntity, MaterialEntity } from 'src/utils/types/db.types';
-import { Logger } from '@nestjs/common';
+import {
+  AdvertEntity,
+  MaterialEntity,
+  ApprovalStatus,
+} from 'src/utils/types/db.types';
 import { ADVERT_IMAGE_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
 import { MaterialService } from 'src/modules/material/material.service';
@@ -264,5 +269,46 @@ export class AdvertService {
     );
 
     return refreshedAdverts;
+  }
+
+  async findAllPaginated(options: {
+    reviewStatus?: ApprovalStatus;
+    page?: number;
+  }) {
+    try {
+      return await this.advertRepository.findAllPaginated(options);
+    } catch (error) {
+      this.logger.error(`Failed to fetch paginated adverts: ${error.message}`);
+      throw new InternalServerErrorException('Failed to fetch adverts');
+    }
+  }
+
+  async countAdvertsByStatus(departmentId?: string) {
+    try {
+      return await this.advertRepository.countByStatus(departmentId);
+    } catch (error) {
+      this.logger.error(`Failed to get adverts count: ${error.message}`);
+      throw new InternalServerErrorException('Failed to get adverts count');
+    }
+  }
+
+  async review(
+    id: string,
+    reviewData: {
+      reviewStatus: ApprovalStatus;
+      reviewedById: string;
+    },
+  ) {
+    const advert = await this.findOne(id);
+    if (!advert) {
+      throw new NotFoundException('Advertisement not found');
+    }
+
+    await this.advertRepository.update(id, {
+      reviewStatus: reviewData.reviewStatus,
+      reviewedById: reviewData.reviewedById,
+    });
+
+    return this.findOne(id);
   }
 }
