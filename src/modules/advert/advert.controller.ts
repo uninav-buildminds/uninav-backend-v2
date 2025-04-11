@@ -48,6 +48,7 @@ export class AdvertController {
     const advert = await this.advertService.createFreeAd(
       createAdvertDto,
       image,
+      user,
     );
     return ResponseDto.createSuccessResponse(
       'Advertisement created successfully',

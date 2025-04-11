@@ -44,6 +44,18 @@ export class MaterialService {
     try {
       const { resourceAddress, metaData, ...materialData } = createMaterialDto;
 
+      // Check if creator is admin/moderator and auto-approve if so
+      const creator = await this.userService.findOne(
+        createMaterialDto.creatorId,
+      );
+      if (
+        creator.role === UserRoleEnum.ADMIN ||
+        creator.role === UserRoleEnum.MODERATOR
+      ) {
+        materialData.reviewStatus = ApprovalStatus.APPROVED;
+        materialData.reviewedById = creator.id;
+      }
+
       // Create material first
       const material = await this.createMaterial(materialData);
 

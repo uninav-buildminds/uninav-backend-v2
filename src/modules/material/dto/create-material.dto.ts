@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { TransformStringToArray } from 'src/transformers/TransformStringToArray';
 import {
+  ApprovalStatus,
   MaterialTypeEnum,
   ResourceType,
   RestrictionEnum,
@@ -57,4 +58,6 @@ export class CreateMaterialDto extends ResourceDto {
   targetCourseId?: string;
 
   creatorId: string;
+  reviewStatus?: ApprovalStatus;
+  reviewedById?: string;
 }

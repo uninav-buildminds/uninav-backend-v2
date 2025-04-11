@@ -14,6 +14,8 @@ import {
   AdvertEntity,
   MaterialEntity,
   ApprovalStatus,
+  UserRoleEnum,
+  UserEntity,
 } from 'src/utils/types/db.types';
 import { ADVERT_IMAGE_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
@@ -32,8 +34,10 @@ export class AdvertService {
   async createFreeAd(
     createAdvertDto: CreateFreeAdvertDto,
     image: MulterFile,
+    user: UserEntity,
   ): Promise<AdvertEntity> {
     try {
+      // Check if material exists and user has permission
       if (createAdvertDto.materialId) {
         let material = await this.materialService.findOne(
           createAdvertDto.materialId,
@@ -70,12 +74,23 @@ export class AdvertService {
         'media',
       );
 
-      // Create advert with image URL and fileKey
-      const advert = await this.advertRepository.create({
+      let isAdminOrModerator =
+        user.role === UserRoleEnum.ADMIN ||
+        user.role === UserRoleEnum.MODERATOR;
+
+      // If creator is admin/moderator, auto-approve the advert
+      const advertData = {
         ...createAdvertDto,
         imageUrl,
         fileKey,
-      });
+        reviewStatus: isAdminOrModerator
+          ? ApprovalStatus.APPROVED
+          : ApprovalStatus.PENDING,
+        reviewedById: isAdminOrModerator ? createAdvertDto.creatorId : null,
+      };
+
+      // Create advert with image URL and fileKey
+      const advert = await this.advertRepository.create(advertData);
 
       return advert;
     } catch (error) {

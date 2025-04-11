@@ -62,6 +62,14 @@ export class BlogService {
       const { publicUrl: bodyUrl, fileKey: bodyKey } =
         await this.storageService.uploadBlogContent(createBlogDto.body);
 
+      // Set review status to approved if creator is admin/moderator
+      const reviewStatus =
+        user.role === UserRoleEnum.ADMIN || user.role === UserRoleEnum.MODERATOR
+          ? ApprovalStatus.APPROVED
+          : ApprovalStatus.PENDING;
+      const reviewedById =
+        reviewStatus === ApprovalStatus.APPROVED ? user.id : null;
+
       // 3. Create blog entry in database (without storing actual body content)
       const blogData = {
         creatorId: user.id,
@@ -73,6 +81,8 @@ export class BlogService {
         headingImageKey,
         bodyKey,
         tags: createBlogDto.tags,
+        reviewStatus,
+        reviewedById,
       } as BlogEntity;
 
       let blog = await this.blogRepository.create(blogData);

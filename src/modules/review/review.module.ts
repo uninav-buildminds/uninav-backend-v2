@@ -8,9 +8,16 @@ import { DLCReviewController } from 'src/modules/review/controllers/dlc-review.c
 import { MaterialReviewController } from 'src/modules/review/controllers/material-review.controller';
 import { BlogReviewController } from 'src/modules/review/controllers/blog-review.controller';
 import { AdvertReviewController } from './controllers/advert-review.controller';
+import { AdvertModule } from 'src/modules/advert/advert.module';
 
 @Module({
-  imports: [DrizzleModule, CoursesModule, MaterialModule, BlogModule],
+  imports: [
+    DrizzleModule,
+    CoursesModule,
+    MaterialModule,
+    BlogModule,
+    AdvertModule,
+  ],
   controllers: [
     CourseReviewController,
     DLCReviewController,
