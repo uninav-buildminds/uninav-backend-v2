@@ -447,6 +447,7 @@ export class MaterialService {
     type?: string;
     tag?: string;
     reviewStatus?: ApprovalStatus;
+    query?: string;
     page?: number;
   }) {
     return this.materialRepository.findAllPaginated({

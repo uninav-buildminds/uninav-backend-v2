@@ -197,6 +197,7 @@ export class MaterialRepository {
     tag?: string;
     reviewStatus?: ApprovalStatus;
     page?: number;
+    query?: string;
   }): Promise<{
     data: Partial<MaterialEntity>[];
     pagination: {
@@ -208,7 +209,7 @@ export class MaterialRepository {
       hasPrev: boolean;
     };
   }> {
-    let { page = 1, ...filters } = options;
+    let { page = 1, query, ...filters } = options;
     let conditions = [];
     const limit = 10;
     const offset = (page - 1) * limit;
@@ -228,6 +229,14 @@ export class MaterialRepository {
     if (filters.reviewStatus) {
       conditions.push(eq(material.reviewStatus, filters.reviewStatus));
     }
+
+    // Add text search if query is provided - using the full-text search index
+    if (query && query.trim() !== '') {
+      conditions.push(
+        sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+      );
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count for pagination
@@ -240,14 +249,31 @@ export class MaterialRepository {
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
-    const data = await this.db.query.material.findMany({
-      where: whereClause,
-      orderBy: [
+    // Define order by
+    let orderByFields = [
+      desc(material.createdAt), // Default ordering
+    ];
+
+    // If query was provided, sort by rank first using the vector index
+    if (query && query.trim() !== '') {
+      orderByFields = [
+        desc(
+          sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query}))`,
+        ),
+        ...orderByFields,
+      ];
+    } else {
+      orderByFields = [
         desc(material.likes),
         desc(material.downloads),
         desc(material.views),
-        desc(material.createdAt),
-      ],
+        ...orderByFields,
+      ];
+    }
+
+    const data = await this.db.query.material.findMany({
+      where: whereClause,
+      orderBy: orderByFields,
       with: {
         creator: {
           columns: {

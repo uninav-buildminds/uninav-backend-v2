@@ -39,10 +39,12 @@ export class AdvertReviewController {
   async findAll(
     @Query('status') status?: ApprovalStatus,
     @Query('page') page?: number,
+    @Query('query') query?: string,
   ) {
     const result = await this.advertService.findAllPaginated({
       reviewStatus: status,
       page,
+      query,
     });
     return ResponseDto.createSuccessResponse(
       'Adverts retrieved successfully',

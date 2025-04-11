@@ -27,7 +27,7 @@ import { EVENTS } from 'src/utils/events/events.enum';
 import { UserService } from 'src/modules/user/user.service';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 
-@Controller('review/dlc')
+@Controller('review/department-level-courses')
 @UseGuards(RolesGuard)
 @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
 export class DLCReviewController {
@@ -41,10 +41,12 @@ export class DLCReviewController {
   async findAll(
     @Query('status') status?: ApprovalStatus,
     @Query('page', ParseIntPipe) page?: number,
+    @Query('query') query?: string,
   ) {
     const result = await this.coursesService.findDepartmentLevelCourses({
       reviewStatus: status,
       page,
+      query,
     });
 
     return ResponseDto.createSuccessResponse(

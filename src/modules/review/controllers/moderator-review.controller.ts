@@ -37,11 +37,19 @@ export class ModeratorReviewController {
   ) {}
 
   @Get()
-  async findAll(@Query('status') status?: ApprovalStatus) {
-    const moderators = await this.moderatorService.findAll(status);
+  async findAll(
+    @Query('status') status?: ApprovalStatus,
+    @Query('page') page?: number,
+    @Query('query') query?: string,
+  ) {
+    const result = await this.moderatorService.findAllPaginated({
+      status,
+      page,
+      query,
+    });
     return ResponseDto.createSuccessResponse(
-      'Moderator requests retrieved successfully',
-      moderators,
+      'Moderator applications retrieved successfully',
+      result,
     );
   }
 

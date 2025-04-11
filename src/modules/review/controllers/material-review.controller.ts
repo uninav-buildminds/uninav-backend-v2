@@ -40,10 +40,12 @@ export class MaterialReviewController {
   async findAll(
     @Query('status') status?: ApprovalStatus,
     @Query('page') page?: number,
+    @Query('query') query?: string,
   ) {
     const result = await this.materialService.findAllPaginated({
       reviewStatus: status,
       page,
+      query,
     });
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',

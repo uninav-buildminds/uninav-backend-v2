@@ -7,7 +7,7 @@ import {
 } from 'src/utils/types/db.types';
 import { userCourses } from 'src/modules/drizzle/schema/user.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
-import { and, eq, or, sql, desc } from 'drizzle-orm';
+import { and, eq, or, sql, desc, ilike } from 'drizzle-orm';
 import {
   courses,
   departmentLevelCourses,
@@ -141,6 +141,7 @@ export class CoursesRepository {
     level?: number;
     reviewStatus?: ApprovalStatus;
     page?: number;
+    query?: string;
   }) {
     const limit = 10;
     const page = filters?.page || 1;
@@ -176,6 +177,17 @@ export class CoursesRepository {
     }
     if (filters?.reviewStatus) {
       conditions.push(eq(courses.reviewStatus, filters.reviewStatus));
+    }
+
+    // Add text search if query parameter is provided
+    if (filters?.query && filters.query.trim() !== '') {
+      const searchTerm = `%${filters.query}%`;
+      const searchCondition = or(
+        ilike(courses.courseName, searchTerm),
+        ilike(courses.courseCode, searchTerm),
+        ilike(courses.description, searchTerm),
+      );
+      conditions.push(searchCondition);
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -343,6 +355,7 @@ export class CoursesRepository {
     courseId?: string;
     reviewStatus?: ApprovalStatus;
     page?: number;
+    query?: string;
   }) {
     const limit = 10;
     const page = filters?.page || 1;
@@ -391,12 +404,29 @@ export class CoursesRepository {
       );
     }
 
+    // Add text search if query parameter is provided
+    if (filters?.query && filters.query.trim() !== '') {
+      const searchTerm = `%${filters.query}%`;
+      const searchCondition = or(
+        ilike(courses.courseName, searchTerm),
+        ilike(courses.courseCode, searchTerm),
+        ilike(courses.description, searchTerm),
+        ilike(department.name, searchTerm),
+      );
+      conditions.push(searchCondition);
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count for pagination
     const countResult = await this.db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(departmentLevelCourses)
+      .innerJoin(courses, eq(departmentLevelCourses.courseId, courses.id))
+      .innerJoin(
+        department,
+        eq(departmentLevelCourses.departmentId, department.id),
+      )
       .where(whereClause);
 
     const totalItems = Number(countResult[0]?.count || 0);

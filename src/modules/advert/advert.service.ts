@@ -289,6 +289,7 @@ export class AdvertService {
   async findAllPaginated(options: {
     reviewStatus?: ApprovalStatus;
     page?: number;
+    query?: string;
   }) {
     try {
       return await this.advertRepository.findAllPaginated(options);

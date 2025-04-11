@@ -42,10 +42,8 @@ export class CoursesService {
     level?: number;
     reviewStatus?: ApprovalStatus;
     page?: number;
+    query?: string;
   }) {
-    if (filters?.departmentId) {
-      await this.departmentService.findOne(filters.departmentId);
-    }
     return this.coursesRepository.findAllPaginated(filters);
   }
 
@@ -53,9 +51,15 @@ export class CoursesService {
     departmentId?: string;
     level?: number;
     reviewStatus?: ApprovalStatus;
+    page?: number;
+    query?: string;
   }) {
+    if (filters?.page !== undefined) {
+      return this.findAllPaginated(filters);
+    }
     return this.coursesRepository.findAll(filters);
   }
+
   async findById(id: string) {
     const course = await this.coursesRepository.findById(id);
     if (!course) {
@@ -174,6 +178,7 @@ export class CoursesService {
     courseId?: string;
     reviewStatus?: ApprovalStatus;
     page?: number;
+    query?: string;
   }) {
     if (filters?.departmentId) {
       await this.departmentService.findOne(filters.departmentId);

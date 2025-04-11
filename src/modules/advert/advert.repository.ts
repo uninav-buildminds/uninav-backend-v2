@@ -5,7 +5,7 @@ import {
   AdvertEntity,
   ApprovalStatus,
 } from 'src/utils/types/db.types';
-import { eq, sql, and, desc } from 'drizzle-orm';
+import { eq, sql, and, desc, or, ilike } from 'drizzle-orm';
 import { advert } from 'src/modules/drizzle/schema/advert.schema';
 import { CreateFreeAdvertDto } from './dto/create-free-advert.dto';
 import { material } from 'src/modules/drizzle/schema/material.schema';
@@ -153,6 +153,7 @@ export class AdvertRepository {
   async findAllPaginated(options: {
     reviewStatus?: ApprovalStatus;
     page?: number;
+    query?: string;
   }): Promise<{
     data: AdvertEntity[];
     pagination: {
@@ -164,22 +165,42 @@ export class AdvertRepository {
       hasPrev: boolean;
     };
   }> {
-    const { reviewStatus, page = 1 } = options;
+    const { reviewStatus, page = 1, query } = options;
     const limit = 10;
     const offset = (page - 1) * limit;
+
+    // Build where conditions
+    let whereConditions = [];
+
+    if (reviewStatus) {
+      whereConditions.push(eq(advert.reviewStatus, reviewStatus));
+    }
+
+    // Add text search if query is provided
+    if (query && query.trim() !== '') {
+      const searchTerm = `%${query}%`;
+      const searchCondition = or(
+        ilike(advert.label, searchTerm),
+        ilike(advert.description, searchTerm),
+      );
+      whereConditions.push(searchCondition);
+    }
+
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
     // Get total count for pagination
     const countResult = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(advert)
-      .where(reviewStatus ? eq(advert.reviewStatus, reviewStatus) : undefined)
+      .where(whereClause)
       .execute();
 
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
     const data = await this.db.query.advert.findMany({
-      where: reviewStatus ? eq(advert.reviewStatus, reviewStatus) : undefined,
+      where: whereClause,
       with: {
         material: true,
         collection: true,

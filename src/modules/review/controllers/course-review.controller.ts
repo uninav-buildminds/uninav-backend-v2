@@ -40,10 +40,12 @@ export class CourseReviewController {
   async findAll(
     @Query('status') status?: ApprovalStatus,
     @Query('page') page?: number,
+    @Query('query') query?: string,
   ) {
-    const result = await this.coursesService.findAllPaginated({
+    const result = await this.coursesService.findAll({
       reviewStatus: status,
       page,
+      query,
     });
     return ResponseDto.createSuccessResponse(
       'Courses retrieved successfully',

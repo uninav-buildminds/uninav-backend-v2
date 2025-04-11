@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ModeratorRepository } from './moderator.repository';
 import { ApprovalStatus } from 'src/utils/types/db.types';
 
@@ -20,6 +24,20 @@ export class ModeratorService {
 
   async findAll(reviewStatus?: ApprovalStatus) {
     return this.moderatorRepository.findAll(reviewStatus);
+  }
+
+  async findAllPaginated(options: {
+    status?: ApprovalStatus;
+    page?: number;
+    query?: string;
+  }) {
+    try {
+      return await this.moderatorRepository.findAllPaginated(options);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to fetch moderators: ' + error.message,
+      );
+    }
   }
 
   async review(
