@@ -148,4 +148,19 @@ export class AuthController {
     );
     res.status(200).json(responseObj);
   }
+
+  @Post('logout')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    // Clear the authorization cookie
+    res.clearCookie('authorization', {
+      ...globalCookieOptions,
+      maxAge: 0,
+    });
+
+    const responseObj = ResponseDto.createSuccessResponse(
+      'Logged out successfully',
+      null,
+    );
+    return responseObj;
+  }
 }
