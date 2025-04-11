@@ -142,11 +142,17 @@ export class CoursesRepository {
     reviewStatus?: ApprovalStatus;
     page?: number;
     query?: string;
+    allowDuplicates?: boolean;
   }) {
     const limit = 10;
     const page = filters?.page || 1;
     const offset = (page - 1) * limit;
 
+    if (filters?.departmentId || filters?.level) {
+      filters.allowDuplicates = true;
+    } else if (!filters?.allowDuplicates) {
+      filters.allowDuplicates = false;
+    }
     // Base query to get all courses with department info but without deep nesting
     const baseQuery = this.db
       .select({
@@ -155,14 +161,21 @@ export class CoursesRepository {
         courseCode: courses.courseCode,
         description: courses.description,
         reviewStatus: courses.reviewStatus,
-        departmentId: departmentLevelCourses.departmentId,
-        level: departmentLevelCourses.level,
+        ...(filters?.allowDuplicates
+          ? {
+              departmentId: departmentLevelCourses.departmentId,
+              level: departmentLevelCourses.level,
+            }
+          : {}),
       })
-      .from(courses)
-      .leftJoin(
+      .from(courses);
+
+    if (filters?.allowDuplicates) {
+      baseQuery.leftJoin(
         departmentLevelCourses,
         eq(courses.id, departmentLevelCourses.courseId),
       );
+    }
 
     let conditions = [];
 
@@ -193,15 +206,18 @@ export class CoursesRepository {
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count for pagination
-    const countResult = await this.db
+    let countQuery: any = this.db
       .select({ count: sql<number>`count(*)` })
-      .from(courses)
-      .leftJoin(
+      .from(courses);
+
+    if (filters?.allowDuplicates) {
+      countQuery = countQuery.leftJoin(
         departmentLevelCourses,
         eq(courses.id, departmentLevelCourses.courseId),
-      )
-      .where(whereClause)
-      .execute();
+      );
+    }
+
+    const countResult = await countQuery.where(whereClause).execute();
 
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
