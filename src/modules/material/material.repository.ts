@@ -98,11 +98,11 @@ export class MaterialRepository {
       .returning();
   }
 
-  async incrementClicks(id: string) {
+  async incrementViews(id: string) {
     await this.db
       .update(material)
       .set({
-        clicks: sql`${material.clicks} + 1`,
+        views: sql`${material.views} + 1`,
       } as any)
       .where(eq(material.id, id));
   }

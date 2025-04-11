@@ -147,11 +147,6 @@ export class MaterialService {
     }
   }
 
-  // async findAll(filter?: { reviewStatus?: ApprovalStatus }) {
-  //   // Always sort by creation date, newest first
-  //   return this.materialRepository.findWithRanking(filter);
-  // }
-
   async findOne(id: string) {
     const material = await this.materialRepository.findOne(id);
     if (!material) {
@@ -195,7 +190,7 @@ export class MaterialService {
         this.materialRepository.updateResource(id, {
           resourceAddress: signedUrl,
         });
-        this.materialRepository.incrementClicks(id);
+        this.materialRepository.incrementViews(id);
 
         material.resource.resourceAddress = signedUrl; // Update the resource address in the material
       }

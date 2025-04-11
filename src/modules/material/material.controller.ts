@@ -206,7 +206,7 @@ export class MaterialController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async getMaterial(@Param('id') id: string) {
     const material = await this.materialService.getMaterial(id);
     return ResponseDto.createSuccessResponse(
       'Material retrieved successfully',

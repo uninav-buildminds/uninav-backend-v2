@@ -31,7 +31,6 @@ export const material = pgTable(
     type: materialTypeEnum('type').notNull(),
     tags: text('tags').array(),
     // statistics
-    clicks: integer('clicks').default(0),
     views: integer('views').default(0),
     downloads: integer('downloads').default(0),
     likes: integer('likes').default(0),
