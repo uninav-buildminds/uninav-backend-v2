@@ -424,8 +424,8 @@ export class MaterialService {
   }
 
   async searchMaterials(
-    query: string,
     filters: {
+      query?: string;
       creatorId?: string;
       courseId?: string;
       type?: any;
@@ -434,11 +434,7 @@ export class MaterialService {
     user: UserEntity,
     page: number = 1,
   ) {
-    if (!query || query.trim().length === 0) {
-      throw new BadRequestException('Search query cannot be empty');
-    }
-
-    return this.materialRepository.searchMaterials(query, filters, user, page);
+    return this.materialRepository.searchMaterials(filters, user, page);
   }
 
   async findAllPaginated(filters: {

@@ -82,7 +82,7 @@ export class MaterialController {
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
   async search(
     @Req() req: Request,
-    @Query('query') query: string,
+    @Query('query') query?: string,
     @Query('creatorId') creatorId?: string,
     @Query('courseId') courseId?: string,
     @Query('type') type?: string,
@@ -90,13 +90,7 @@ export class MaterialController {
     @Query('page') page: number = 1,
   ) {
     const materials = await this.materialService.searchMaterials(
-      query,
-      {
-        creatorId,
-        courseId,
-        type,
-        tag,
-      },
+      { query, creatorId, courseId, type, tag },
       req.user as UserEntity,
       page,
     );
