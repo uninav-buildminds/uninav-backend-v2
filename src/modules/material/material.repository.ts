@@ -310,18 +310,19 @@ export class MaterialRepository {
             courseCode: true,
           },
         },
-        ...(includeReviewer
-          ? {
-              reviewerBy: {
-                columns: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  username: true,
-                },
-              },
-            }
-          : {}),
+        reviewedBy: true,
+        // ...(includeReviewer
+        //   ? {
+        //       reviewedBy: {
+        //         columns: {
+        //           id: true,
+        //           firstName: true,
+        //           lastName: true,
+        //           username: true,
+        //         },
+        //       },
+        //     }
+        //   : {}),
       },
       columns: {
         searchVector: false,
@@ -534,7 +535,7 @@ export class MaterialRepository {
           },
           ...(includeReviewer
             ? {
-                reviewerBy: {
+                reviewedBy: {
                   columns: {
                     id: true,
                     firstName: true,

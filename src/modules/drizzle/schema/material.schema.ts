@@ -68,7 +68,7 @@ export const materialRelations = relations(material, ({ one, many }) => ({
     fields: [material.creatorId],
     references: [users.id],
   }),
-  reviewer: one(users, {
+  reviewedBy: one(users, {
     fields: [material.reviewedById],
     references: [users.id],
   }),
