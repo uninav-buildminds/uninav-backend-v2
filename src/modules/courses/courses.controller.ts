@@ -5,6 +5,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -14,7 +15,8 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
-import { ApprovalStatus } from 'src/utils/types/db.types';
+import { ApprovalStatus, UserEntity } from 'src/utils/types/db.types';
+import { Request } from 'express';
 
 @Controller('courses')
 @UseInterceptors(CacheControlInterceptor)
@@ -23,8 +25,9 @@ export class CoursesController {
 
   @Post()
   @UseGuards(RolesGuard)
-  async create(@Body() createCourseDto: CreateCourseDto) {
-    const course = await this.coursesService.create(createCourseDto);
+  async create(@Req() req: Request, @Body() createCourseDto: CreateCourseDto) {
+    const user = req.user as UserEntity;
+    const course = await this.coursesService.create(createCourseDto, user);
     return ResponseDto.createSuccessResponse(
       'Course created successfully',
       course,

@@ -6,7 +6,11 @@ import {
 import { CoursesRepository } from './courses.repository';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { DepartmentService } from '../department/department.service';
-import { ApprovalStatus } from 'src/utils/types/db.types';
+import {
+  ApprovalStatus,
+  UserEntity,
+  UserRoleEnum,
+} from 'src/utils/types/db.types';
 import { courses } from '../drizzle/schema/course.schema';
 
 @Injectable()
@@ -16,17 +20,23 @@ export class CoursesService {
     private readonly departmentService: DepartmentService,
   ) {}
 
-  async create(createCourseDto: CreateCourseDto) {
+  async create(createCourseDto: CreateCourseDto, user: UserEntity) {
     // Verify department exists
     const department = await this.departmentService.findOne(
       createCourseDto.departmentId,
     );
+
     if (!department) {
       throw new BadRequestException(
         `Department with ID ${createCourseDto.departmentId} not found`,
       );
     }
 
+    createCourseDto.creatorId = user.id;
+    if (user.role === UserRoleEnum.ADMIN) {
+      createCourseDto.reviewStatus = ApprovalStatus.APPROVED;
+      createCourseDto.reviewedById = user.id;
+    }
     // Create or update course with department level
     const course = this.coursesRepository.create(createCourseDto);
     if (!course) {
