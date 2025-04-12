@@ -64,11 +64,15 @@ export class CoursesService {
     reviewStatus?: ApprovalStatus;
     page?: number;
     query?: string;
+    allowDuplicates?: boolean;
   }) {
     if (filters?.page !== undefined) {
       return this.findAllPaginated(filters);
     }
-    return this.coursesRepository.findAll(filters);
+    return this.coursesRepository.findAll({
+      ...filters,
+      allowDuplicates: filters?.allowDuplicates,
+    });
   }
 
   async findById(id: string) {

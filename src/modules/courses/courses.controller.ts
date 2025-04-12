@@ -39,10 +39,12 @@ export class CoursesController {
   async findAll(
     @Query('departmentId') departmentId?: string,
     @Query('level') level?: number,
+    @Query('allowDuplicates') allowDuplicates?: string,
   ) {
     const courses = await this.coursesService.findAll({
       departmentId,
       level,
+      allowDuplicates: !!allowDuplicates,
     });
     return ResponseDto.createSuccessResponse(
       'Courses retrieved successfully',
