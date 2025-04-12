@@ -97,7 +97,13 @@ export class CoursesRepository {
     departmentId?: string;
     level?: number;
     reviewStatus?: ApprovalStatus;
+    allowDuplicates?: boolean;
   }) {
+    if (filters?.departmentId || filters?.level) {
+      filters.allowDuplicates = true;
+    } else if (!filters?.allowDuplicates) {
+      filters.allowDuplicates = false;
+    }
     // Base query to get all courses with department info but without deep nesting
     const baseQuery = this.db
       .select({
@@ -106,14 +112,21 @@ export class CoursesRepository {
         courseCode: courses.courseCode,
         description: courses.description,
         reviewStatus: courses.reviewStatus,
-        departmentId: departmentLevelCourses.departmentId,
-        level: departmentLevelCourses.level,
+        ...(filters?.allowDuplicates
+          ? {
+              departmentId: departmentLevelCourses.departmentId,
+              level: departmentLevelCourses.level,
+            }
+          : {}),
       })
-      .from(courses)
-      .leftJoin(
+      .from(courses);
+
+    if (filters?.allowDuplicates) {
+      baseQuery.leftJoin(
         departmentLevelCourses,
         eq(courses.id, departmentLevelCourses.courseId),
       );
+    }
 
     let conditions = [];
 

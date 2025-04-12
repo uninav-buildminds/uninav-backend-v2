@@ -43,6 +43,7 @@ export class CoursesService {
     reviewStatus?: ApprovalStatus;
     page?: number;
     query?: string;
+    allowDuplicates?: boolean;
   }) {
     return this.coursesRepository.findAllPaginated(filters);
   }
