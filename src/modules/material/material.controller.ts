@@ -169,11 +169,15 @@ export class MaterialController {
   async findMyMaterials(
     @Req() req: Request,
     @Query('page') page: string = '1',
+    @Query('type') type?: string,
+    @Query('tag') tag?: string,
   ) {
     const user = req['user'] as UserEntity;
     const materials = await this.materialService.findAllPaginated({
       creatorId: user.id,
       page: +page,
+      type,
+      tag,
     });
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
