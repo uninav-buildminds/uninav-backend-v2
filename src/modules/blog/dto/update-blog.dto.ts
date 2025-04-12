@@ -6,7 +6,6 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { blogTypeEnum } from 'src/modules/drizzle/schema/enums.schema';
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateBlogDto } from './create-blog.dto';
 import { BlogTypeEnum } from 'src/utils/types/db.types';
@@ -21,7 +20,7 @@ export class UpdateBlogDto extends PartialType(CreateBlogDto) {
   @IsOptional()
   description?: string;
 
-  @IsEnum(blogTypeEnum)
+  @IsEnum(BlogTypeEnum)
   @IsOptional()
   type?: BlogTypeEnum;
 
