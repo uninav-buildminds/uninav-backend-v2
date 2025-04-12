@@ -166,9 +166,15 @@ export class MaterialController {
 
   @Get('me')
   @UseGuards(RolesGuard)
-  async findMyMaterials(@Req() req: Request) {
+  async findMyMaterials(
+    @Req() req: Request,
+    @Query('page') page: string = '1',
+  ) {
     const user = req['user'] as UserEntity;
-    const materials = await this.materialService.findByCreator(user.id);
+    const materials = await this.materialService.findAllPaginated({
+      creatorId: user.id,
+      page: +page,
+    });
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,
