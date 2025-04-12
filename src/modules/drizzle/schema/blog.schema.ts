@@ -26,7 +26,6 @@ export const blogs = pgTable(TABLES.BLOGS, {
   bodyKey: text('bodyKey'),
   likes: integer('likes').default(0),
   views: integer('views').default(0),
-  clicks: integer('clicks').default(0),
   tags: text('tags').array(),
 
   reviewStatus: approvalStatusEnum('review_status').default('pending'),

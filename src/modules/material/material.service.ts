@@ -190,11 +190,11 @@ export class MaterialService {
         this.materialRepository.updateResource(id, {
           resourceAddress: signedUrl,
         });
-        this.materialRepository.incrementViews(id);
 
         material.resource.resourceAddress = signedUrl; // Update the resource address in the material
       }
     }
+    this.materialRepository.incrementViews(id);
 
     return material;
   }

@@ -78,7 +78,6 @@ export class MaterialController {
   }
 
   @Get('search')
-  @UseGuards(RolesGuard)
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
   async search(
     @Req() req: Request,

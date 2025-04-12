@@ -142,23 +142,13 @@ export class BlogController {
     return ResponseDto.createSuccessResponse('Blog deleted successfully');
   }
 
-  @Post(':id/like')
+  @Post('like/:id')
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.OK)
   async likeBlog(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
     const user = req.user as UserEntity;
     const data = await this.blogService.likeBlog(id, user.id);
     return ResponseDto.createSuccessResponse('Blog liked successfully', data);
-  }
-
-  @Post(':id/click')
-  @HttpCode(HttpStatus.OK)
-  async trackClick(@Param('id', ParseUUIDPipe) id: string) {
-    const data = await this.blogService.trackClick(id);
-    return ResponseDto.createSuccessResponse(
-      'Click tracked successfully',
-      data,
-    );
   }
 
   @Post(':id/comments')

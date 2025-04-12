@@ -95,7 +95,6 @@ export class BlogRepository {
             id: true,
             firstName: true,
             lastName: true,
-
             username: true,
           },
         },
@@ -348,15 +347,6 @@ export class BlogRepository {
       .update(blogs)
       .set({
         views: sql`${blogs.views} + 1`,
-      } as any)
-      .where(eq(blogs.id, id));
-  }
-
-  async incrementClicks(id: string): Promise<void> {
-    await this.db
-      .update(blogs)
-      .set({
-        clicks: sql`${blogs.clicks} + 1`,
       } as any)
       .where(eq(blogs.id, id));
   }

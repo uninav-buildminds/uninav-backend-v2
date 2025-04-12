@@ -173,20 +173,6 @@ export class BlogService {
   }
 
   /**
-   * Increment click count when a blog is clicked
-   */
-  async trackClick(id: string) {
-    const blog = await this.blogRepository.findOne(id);
-
-    if (!blog) {
-      throw new NotFoundException(`Blog with ID ${id} not found`);
-    }
-
-    await this.blogRepository.incrementClicks(id);
-    return { success: true };
-  }
-
-  /**
    * Toggle like status for a blog
    */
   async likeBlog(id: string, userId: string) {
