@@ -57,10 +57,13 @@ export class CoursesController {
   async findAll(
     @Query('departmentId') departmentId?: string,
     @Query('level') level?: number,
+    // when you specify page, that's when it supports pagination
+    @Query('page') page?: number,
     @Query('allowDuplicates') allowDuplicates?: string,
   ) {
     const courses = await this.coursesService.findAll({
       departmentId,
+      page,
       level,
       allowDuplicates: !!allowDuplicates,
     });

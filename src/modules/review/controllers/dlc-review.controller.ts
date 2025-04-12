@@ -27,7 +27,7 @@ import { EVENTS } from 'src/utils/events/events.enum';
 import { UserService } from 'src/modules/user/user.service';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 
-@Controller('review/department-level-courses')
+@Controller('review/dlc')
 @UseGuards(RolesGuard)
 @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
 export class DLCReviewController {
