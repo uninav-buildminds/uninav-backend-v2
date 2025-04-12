@@ -20,6 +20,7 @@ import {
 import { ADVERT_IMAGE_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
 import { MaterialService } from 'src/modules/material/material.service';
+import { UserService } from 'src/modules/user/user.service';
 
 @Injectable()
 export class AdvertService {
@@ -29,6 +30,7 @@ export class AdvertService {
     private readonly advertRepository: AdvertRepository,
     private readonly storageService: StorageService,
     private readonly materialService: MaterialService,
+    private readonly userService: UserService,
   ) {}
 
   async createFreeAd(
@@ -228,9 +230,12 @@ export class AdvertService {
 
       // Check if user owns this advert
       if (advert.creatorId !== userId) {
-        throw new ForbiddenException(
-          'You do not have permission to delete this advert',
-        );
+        const user = await this.userService.findOne(userId);
+        if (user.role !== UserRoleEnum.ADMIN) {
+          throw new ForbiddenException(
+            'You do not have permission to delete this advert',
+          );
+        }
       }
 
       // Delete image from storage if exists

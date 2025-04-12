@@ -137,7 +137,6 @@ export class AdvertRepository {
       .update(advert)
       .set({
         clicks: sql`${advert.clicks} + 1`,
-        updatedAt: new Date(),
       } as any)
       .where(eq(advert.id, id));
   }
