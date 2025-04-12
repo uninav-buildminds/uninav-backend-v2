@@ -57,6 +57,7 @@ export class CoursesController {
   async findAll(
     @Query('departmentId') departmentId?: string,
     @Query('level') level?: number,
+    @Query('query') query?: string,
     // when you specify page, that's when it supports pagination
     @Query('page') page?: number,
     @Query('allowDuplicates') allowDuplicates?: string,
@@ -65,6 +66,7 @@ export class CoursesController {
       departmentId,
       page,
       level,
+      query,
       allowDuplicates: !!allowDuplicates,
     });
     return ResponseDto.createSuccessResponse(

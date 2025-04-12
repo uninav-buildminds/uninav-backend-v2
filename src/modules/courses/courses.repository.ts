@@ -101,6 +101,7 @@ export class CoursesRepository {
     departmentId?: string;
     level?: number;
     reviewStatus?: ApprovalStatus;
+    query?: string;
     allowDuplicates?: boolean;
   }) {
     if (filters?.departmentId || filters?.level) {
@@ -146,7 +147,15 @@ export class CoursesRepository {
     if (filters?.reviewStatus) {
       conditions.push(eq(courses.reviewStatus, filters.reviewStatus));
     }
-
+    if (filters?.query && filters.query.trim() !== '') {
+      const searchTerm = `%${filters.query}%`;
+      const searchCondition = or(
+        ilike(courses.courseName, searchTerm),
+        ilike(courses.courseCode, searchTerm),
+        ilike(courses.description, searchTerm),
+      );
+      conditions.push(searchCondition);
+    }
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get data with filters
