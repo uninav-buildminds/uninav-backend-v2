@@ -12,6 +12,7 @@ import {
   UserRoleEnum,
 } from 'src/utils/types/db.types';
 import { courses } from '../drizzle/schema/course.schema';
+import { LinkCourseDto } from './dto/link-course.dto';
 
 @Injectable()
 export class CoursesService {
@@ -47,6 +48,58 @@ export class CoursesService {
     return course;
   }
 
+  async linkCourseToDepartment(linkCourseDto: LinkCourseDto, user: UserEntity) {
+    // Verify course exists
+    const course = await this.findById(linkCourseDto.courseId);
+    if (!course) {
+      throw new NotFoundException(
+        `Course with ID ${linkCourseDto.courseId} not found`,
+      );
+    }
+
+    // Verify department exists
+    const department = await this.departmentService.findOne(
+      linkCourseDto.departmentId,
+    );
+
+    if (!department) {
+      throw new NotFoundException(
+        `Department with ID ${linkCourseDto.departmentId} not found`,
+      );
+    }
+
+    // Check if this department-level course combination already exists
+    const existingDLC =
+      await this.coursesRepository.findExistingDepartmentLevelCourse(
+        linkCourseDto.courseId,
+        linkCourseDto.departmentId,
+      );
+
+    if (existingDLC) {
+      throw new BadRequestException(
+        `This course is already linked to this department for level ${existingDLC.level}`,
+      );
+    }
+
+    // Create the department level course link with appropriate review status
+    const reviewStatus =
+      user.role === UserRoleEnum.ADMIN
+        ? ApprovalStatus.APPROVED
+        : ApprovalStatus.PENDING;
+
+    const reviewedById = user.role === UserRoleEnum.ADMIN ? user.id : null;
+
+    const result = await this.coursesRepository.createDepartmentLevelCourse(
+      linkCourseDto.courseId,
+      linkCourseDto.departmentId,
+      linkCourseDto.level,
+      reviewStatus,
+      reviewedById,
+    );
+
+    return result[0];
+  }
+
   async findAllPaginated(filters?: {
     departmentId?: string;
     level?: number;
@@ -66,7 +119,7 @@ export class CoursesService {
     query?: string;
     allowDuplicates?: boolean;
   }) {
-    if (filters?.page !== undefined) {
+    if (filters?.page) {
       return this.findAllPaginated(filters);
     }
     return this.coursesRepository.findAll({

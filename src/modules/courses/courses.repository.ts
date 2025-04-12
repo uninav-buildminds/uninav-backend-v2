@@ -34,6 +34,8 @@ export class CoursesRepository {
     courseId: string,
     departmentId: string,
     level: number,
+    reviewStatus: ApprovalStatus = ApprovalStatus.PENDING,
+    reviewedById: string | null = null,
   ) {
     return await this.db
       .insert(departmentLevelCourses)
@@ -41,6 +43,8 @@ export class CoursesRepository {
         departmentId,
         courseId,
         level,
+        reviewStatus,
+        reviewedById,
       } as any)
       .returning();
   }

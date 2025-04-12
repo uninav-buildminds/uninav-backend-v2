@@ -17,6 +17,7 @@ import { CacheControlInterceptor } from 'src/interceptors/cache-control.intercep
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 import { ApprovalStatus, UserEntity } from 'src/utils/types/db.types';
 import { Request } from 'express';
+import { LinkCourseDto } from './dto/link-course.dto';
 
 @Controller('courses')
 @UseInterceptors(CacheControlInterceptor)
@@ -31,6 +32,23 @@ export class CoursesController {
     return ResponseDto.createSuccessResponse(
       'Course created successfully',
       course,
+    );
+  }
+
+  @Post('department-level')
+  @UseGuards(RolesGuard)
+  async linkCourseToDepartment(
+    @Req() req: Request,
+    @Body() linkCourseDto: LinkCourseDto,
+  ) {
+    const user = req.user as UserEntity;
+    const result = await this.coursesService.linkCourseToDepartment(
+      linkCourseDto,
+      user,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Course linked to department successfully',
+      result,
     );
   }
 
