@@ -97,23 +97,29 @@ export class BlogService {
   /**
    * Get paginated list of blogs with optional search and type filters
    */
-  async findAllPaginated(options: {
-    query?: string;
-    page?: number;
-    limit?: number;
-    userId?: string;
-    reviewStatus?: ApprovalStatus;
-    type?: BlogTypeEnum;
-  }) {
+  async findAllPaginated(
+    options: {
+      query?: string;
+      page?: number;
+      limit?: number;
+      userId?: string;
+      reviewStatus?: ApprovalStatus;
+      type?: BlogTypeEnum;
+    },
+    includeReviewer?: boolean,
+  ) {
     const page = options.page || 1;
     const limit = options.limit || 10;
 
     // Always sort by creation date, newest first
-    return this.blogRepository.findAllPaginated({
-      ...options,
-      page,
-      limit,
-    });
+    return this.blogRepository.findAllPaginated(
+      {
+        ...options,
+        page,
+        limit,
+      },
+      includeReviewer,
+    );
   }
 
   /**

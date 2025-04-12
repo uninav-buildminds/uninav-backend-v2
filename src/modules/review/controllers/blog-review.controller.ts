@@ -41,11 +41,14 @@ export class BlogReviewController {
     @Query('page') page?: number,
     @Query('query') query?: string,
   ) {
-    const result = await this.blogService.findAllPaginated({
-      reviewStatus,
-      page,
-      query,
-    });
+    const result = await this.blogService.findAllPaginated(
+      {
+        reviewStatus,
+        page,
+        query,
+      },
+      true,
+    ); // Pass true for includeReviewer
     return ResponseDto.createSuccessResponse(
       'Blogs retrieved successfully',
       result,

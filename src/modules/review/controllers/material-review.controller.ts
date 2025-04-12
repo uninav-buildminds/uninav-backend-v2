@@ -42,11 +42,14 @@ export class MaterialReviewController {
     @Query('page') page?: number,
     @Query('query') query?: string,
   ) {
-    const result = await this.materialService.findAllPaginated({
-      reviewStatus: status,
-      page,
-      query,
-    });
+    const result = await this.materialService.findAllPaginated(
+      {
+        reviewStatus: status,
+        page,
+        query,
+      },
+      true,
+    );
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       result,

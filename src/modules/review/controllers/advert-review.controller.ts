@@ -41,11 +41,14 @@ export class AdvertReviewController {
     @Query('page') page?: number,
     @Query('query') query?: string,
   ) {
-    const result = await this.advertService.findAllPaginated({
-      reviewStatus: status,
-      page,
-      query,
-    });
+    const result = await this.advertService.findAllPaginated(
+      {
+        reviewStatus: status,
+        page,
+        query,
+      },
+      true,
+    ); // Pass true for includeReviewer
     return ResponseDto.createSuccessResponse(
       'Adverts retrieved successfully',
       result,

@@ -8,7 +8,6 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
   UseGuards,
   Req,
   Query,
@@ -20,7 +19,11 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { ResourceType, UserEntity } from 'src/utils/types/db.types';
+import {
+  ResourceType,
+  UserEntity,
+  UserRoleEnum,
+} from 'src/utils/types/db.types';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Request } from 'express';
 import { MulterFile } from 'src/utils/types';
@@ -94,6 +97,7 @@ export class MaterialController {
     @Query('tag') tag?: string,
     @Query('page') page: string = '1',
   ) {
+    const user = req.user as UserEntity;
     const materials = await this.materialService.searchMaterials(
       {
         query,
@@ -103,8 +107,9 @@ export class MaterialController {
         tag,
         advancedSearch: !!advancedSearch,
       },
-      req.user as UserEntity,
+      user,
       +page,
+      user.role === UserRoleEnum.ADMIN,
     );
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',

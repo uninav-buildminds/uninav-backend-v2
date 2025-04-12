@@ -11,7 +11,6 @@ import { UpdateMaterialDto } from './dto/update-material.dto';
 import { StorageService } from 'src/storage/storage.service';
 import {
   ApprovalStatus,
-  BlogEntity,
   MaterialEntity,
   MaterialTypeEnum,
   ResourceType,
@@ -429,24 +428,36 @@ export class MaterialService {
     },
     user: UserEntity,
     page: number = 1,
+    includeReviewer = false,
   ) {
-    return this.materialRepository.searchMaterials(filters, user, page);
+    return this.materialRepository.searchMaterials(
+      filters,
+      user,
+      page,
+      includeReviewer,
+    );
   }
 
-  async findAllPaginated(filters: {
-    creatorId?: string;
-    courseId?: string;
-    type?: string;
-    tag?: string;
-    reviewStatus?: ApprovalStatus;
-    query?: string;
-    page?: number;
-    advancedSearch?: boolean;
-  }) {
-    return this.materialRepository.findAllPaginated({
-      ...filters,
-      type: filters.type as MaterialTypeEnum,
-    });
+  async findAllPaginated(
+    filters: {
+      creatorId?: string;
+      courseId?: string;
+      type?: string;
+      tag?: string;
+      reviewStatus?: ApprovalStatus;
+      query?: string;
+      page?: number;
+      advancedSearch?: boolean;
+    },
+    includeReviewer = false,
+  ) {
+    return this.materialRepository.findAllPaginated(
+      {
+        ...filters,
+        type: filters.type as MaterialTypeEnum,
+      },
+      includeReviewer,
+    );
   }
 
   async getRecommendations(user: UserEntity, page: number = 1) {

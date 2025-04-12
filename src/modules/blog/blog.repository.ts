@@ -22,14 +22,17 @@ export class BlogRepository {
     return result[0];
   }
 
-  async findAllPaginated(options: {
-    query?: string;
-    page?: number;
-    limit?: number;
-    userId?: string;
-    reviewStatus?: ApprovalStatus;
-    type?: BlogTypeEnum;
-  }): Promise<{
+  async findAllPaginated(
+    options: {
+      query?: string;
+      page?: number;
+      limit?: number;
+      userId?: string;
+      reviewStatus?: ApprovalStatus;
+      type?: BlogTypeEnum;
+    },
+    includeReviewer?: boolean,
+  ): Promise<{
     data: Partial<BlogEntity>[];
     pagination: {
       page: number;
@@ -98,6 +101,18 @@ export class BlogRepository {
             username: true,
           },
         },
+        ...(includeReviewer
+          ? {
+              reviewedBy: {
+                columns: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  username: true,
+                },
+              },
+            }
+          : {}),
       },
       columns: {
         bodyAddress: false,

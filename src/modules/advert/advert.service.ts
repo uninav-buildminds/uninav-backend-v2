@@ -291,13 +291,19 @@ export class AdvertService {
     return refreshedAdverts;
   }
 
-  async findAllPaginated(options: {
-    reviewStatus?: ApprovalStatus;
-    page?: number;
-    query?: string;
-  }) {
+  async findAllPaginated(
+    options: {
+      reviewStatus?: ApprovalStatus;
+      page?: number;
+      query?: string;
+    },
+    includeReviewer?: boolean,
+  ) {
     try {
-      return await this.advertRepository.findAllPaginated(options);
+      return await this.advertRepository.findAllPaginated(
+        options,
+        includeReviewer,
+      );
     } catch (error) {
       this.logger.error(`Failed to fetch paginated adverts: ${error.message}`);
       throw new InternalServerErrorException('Failed to fetch adverts');

@@ -198,16 +198,19 @@ export class MaterialRepository {
     });
   }
 
-  async findAllPaginated(options: {
-    creatorId?: string;
-    courseId?: string;
-    type?: MaterialTypeEnum;
-    tag?: string;
-    reviewStatus?: ApprovalStatus;
-    page?: number;
-    query?: string;
-    advancedSearch?: boolean;
-  }): Promise<{
+  async findAllPaginated(
+    options: {
+      creatorId?: string;
+      courseId?: string;
+      type?: MaterialTypeEnum;
+      tag?: string;
+      reviewStatus?: ApprovalStatus;
+      page?: number;
+      query?: string;
+      advancedSearch?: boolean;
+    },
+    includeReviewer?: boolean,
+  ): Promise<{
     data: Partial<MaterialEntity>[];
     pagination: {
       page: number;
@@ -307,6 +310,18 @@ export class MaterialRepository {
             courseCode: true,
           },
         },
+        ...(includeReviewer
+          ? {
+              reviewerBy: {
+                columns: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  username: true,
+                },
+              },
+            }
+          : {}),
       },
       columns: {
         searchVector: false,
@@ -339,6 +354,7 @@ export class MaterialRepository {
     },
     user: UserEntity,
     page: number = 1,
+    includeReviewer?: boolean,
   ) {
     const conditions = [];
     const limit = 10;
@@ -410,6 +426,17 @@ export class MaterialRepository {
             courseName: courses.courseName,
             courseCode: courses.courseCode,
           },
+          ...(includeReviewer
+            ? {
+                reviewerBy: {
+                  id: users.id,
+                  firstName: users.firstName,
+                  lastName: users.lastName,
+                  username: users.username,
+                },
+              }
+            : {}),
+
           rank: sql<number>`
           ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query})) 
 
@@ -505,6 +532,18 @@ export class MaterialRepository {
               courseCode: true,
             },
           },
+          ...(includeReviewer
+            ? {
+                reviewerBy: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                  },
+                },
+              }
+            : {}),
         },
         columns: {
           searchVector: false,

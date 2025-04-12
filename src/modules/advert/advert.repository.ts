@@ -149,11 +149,14 @@ export class AdvertRepository {
     return result[0];
   }
 
-  async findAllPaginated(options: {
-    reviewStatus?: ApprovalStatus;
-    page?: number;
-    query?: string;
-  }): Promise<{
+  async findAllPaginated(
+    options: {
+      reviewStatus?: ApprovalStatus;
+      page?: number;
+      query?: string;
+    },
+    includeReviewer?: boolean,
+  ): Promise<{
     data: AdvertEntity[];
     pagination: {
       page: number;
@@ -211,14 +214,18 @@ export class AdvertRepository {
             username: true,
           },
         },
-        reviewedBy: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-          },
-        },
+        ...(includeReviewer
+          ? {
+              reviewedBy: {
+                columns: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  username: true,
+                },
+              },
+            }
+          : {}),
       },
       offset,
       limit,
