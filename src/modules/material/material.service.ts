@@ -425,6 +425,7 @@ export class MaterialService {
       courseId?: string;
       type?: any;
       tag?: string;
+      advancedSearch?: boolean;
     },
     user: UserEntity,
     page: number = 1,
@@ -440,6 +441,7 @@ export class MaterialService {
     reviewStatus?: ApprovalStatus;
     query?: string;
     page?: number;
+    advancedSearch?: boolean;
   }) {
     return this.materialRepository.findAllPaginated({
       ...filters,

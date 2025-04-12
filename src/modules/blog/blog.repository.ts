@@ -88,7 +88,7 @@ export class BlogRepository {
 
     const data = await this.db.query.blogs.findMany({
       where: whereClause,
-      orderBy: [desc(blogs.createdAt), desc(blogs.likes)],
+      orderBy: [desc(blogs.likes), desc(blogs.createdAt), desc(blogs.views)],
       with: {
         creator: {
           columns: {

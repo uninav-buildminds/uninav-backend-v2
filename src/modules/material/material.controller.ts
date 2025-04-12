@@ -63,6 +63,7 @@ export class MaterialController {
     @Query('type') type?: string,
     @Query('tag') tag?: string,
     @Query('query') query?: string,
+    @Query('advancedSearch') advancedSearch?: string,
     @Query('page') page: number = 1,
   ) {
     const materials = await this.materialService.findAllPaginated({
@@ -72,6 +73,7 @@ export class MaterialController {
       tag,
       query,
       page,
+      advancedSearch: !!advancedSearch,
     });
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
@@ -85,6 +87,7 @@ export class MaterialController {
   async search(
     @Req() req: Request,
     @Query('query') query?: string,
+    @Query('advancedSearch') advancedSearch?: string,
     @Query('creatorId') creatorId?: string,
     @Query('courseId') courseId?: string,
     @Query('type') type?: string,
@@ -92,7 +95,14 @@ export class MaterialController {
     @Query('page') page: number = 1,
   ) {
     const materials = await this.materialService.searchMaterials(
-      { query, creatorId, courseId, type, tag },
+      {
+        query,
+        creatorId,
+        courseId,
+        type,
+        tag,
+        advancedSearch: !!advancedSearch,
+      },
       req.user as UserEntity,
       page,
     );

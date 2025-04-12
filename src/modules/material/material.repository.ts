@@ -7,7 +7,15 @@ import {
   MaterialTypeEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
-import { eq, and, desc, getTableColumns, inArray } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  desc,
+  getTableColumns,
+  inArray,
+  ilike,
+  or,
+} from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { material } from 'src/modules/drizzle/schema/material.schema';
 import { materialLikes } from 'src/modules/drizzle/schema/material-likes.schema';
@@ -198,6 +206,7 @@ export class MaterialRepository {
     reviewStatus?: ApprovalStatus;
     page?: number;
     query?: string;
+    advancedSearch?: boolean;
   }): Promise<{
     data: Partial<MaterialEntity>[];
     pagination: {
@@ -209,7 +218,7 @@ export class MaterialRepository {
       hasPrev: boolean;
     };
   }> {
-    let { page = 1, query, ...filters } = options;
+    let { page = 1, query, advancedSearch, ...filters } = options;
     let conditions = [];
     const limit = 10;
     const offset = (page - 1) * limit;
@@ -232,9 +241,22 @@ export class MaterialRepository {
 
     // Add text search if query is provided - using the full-text search index
     if (query && query.trim() !== '') {
-      conditions.push(
-        sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-      );
+      if (advancedSearch) {
+        const searchCondition = or(
+          ilike(material.label, `%${query}%`),
+          ilike(material.description, `%${query}%`),
+          sql`${query} = ANY(${material.tags})`,
+        );
+        conditions.push(searchCondition);
+        console.log('doing advanced search');
+      } else {
+        conditions.push(
+          or(
+            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+            sql`${query} = ANY(${material.tags})`,
+          ),
+        );
+      }
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -252,6 +274,9 @@ export class MaterialRepository {
     // Define order by
     let orderByFields = [
       desc(material.createdAt), // Default ordering
+      desc(material.likes),
+      desc(material.downloads),
+      desc(material.views),
     ];
 
     // If query was provided, sort by rank first using the vector index
@@ -262,15 +287,7 @@ export class MaterialRepository {
         ),
         ...orderByFields,
       ];
-    } else {
-      orderByFields = [
-        desc(material.likes),
-        desc(material.downloads),
-        desc(material.views),
-        ...orderByFields,
-      ];
     }
-
     const data = await this.db.query.material.findMany({
       where: whereClause,
       orderBy: orderByFields,
@@ -318,6 +335,7 @@ export class MaterialRepository {
       courseId?: string;
       type?: MaterialTypeEnum;
       tag?: string;
+      advancedSearch?: boolean;
     },
     user: UserEntity,
     page: number = 1,
@@ -343,10 +361,23 @@ export class MaterialRepository {
 
     // If query is provided, use full-text search
     if (query && query.trim() !== '') {
-      // Add text search condition
-      conditions.push(
-        sql<boolean>`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-      );
+      // Add text search if query is provided - using the full-text search index
+      if (filters.advancedSearch) {
+        const searchCondition = or(
+          ilike(material.label, `%${query}%`),
+          ilike(material.description, `%${query}%`),
+          sql`${query} = ANY(${material.tags})`,
+        );
+        conditions.push(searchCondition);
+        console.log('doing advanced search');
+      } else {
+        conditions.push(
+          or(
+            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+            sql`${query} = ANY(${material.tags})`,
+          ),
+        );
+      }
 
       // Get total count for pagination with search condition
       const whereCondition =
