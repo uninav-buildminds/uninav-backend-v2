@@ -62,6 +62,7 @@ export class MaterialController {
     @Query('courseId') courseId?: string,
     @Query('type') type?: string,
     @Query('tag') tag?: string,
+    @Query('query') query?: string,
     @Query('page') page: number = 1,
   ) {
     const materials = await this.materialService.findAllPaginated({
@@ -69,6 +70,7 @@ export class MaterialController {
       courseId,
       type,
       tag,
+      query,
       page,
     });
     return ResponseDto.createSuccessResponse(
@@ -78,6 +80,7 @@ export class MaterialController {
   }
 
   @Get('search')
+  @UseGuards(RolesGuard)
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
   async search(
     @Req() req: Request,
