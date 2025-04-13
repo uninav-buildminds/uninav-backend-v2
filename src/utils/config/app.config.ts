@@ -8,7 +8,7 @@ const HELMET_OPTIONS: HelmetOptions = {
 };
 
 const CORS_OPTIONS: CorsOptions = {
-  origin: ['http://localhost:3000'],
+  origin: ['http://localhost:3000', 'https://uninav-buildminds.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type',
