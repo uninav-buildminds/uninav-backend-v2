@@ -53,7 +53,6 @@ export class CoursesController {
   }
 
   @Get()
-  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findAll(
     @Query('departmentId') departmentId?: string,
     @Query('level') level?: number,
@@ -76,7 +75,6 @@ export class CoursesController {
   }
 
   @Get('code/:courseCode')
-  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findByCourseCode(@Param('courseCode') courseCode: string) {
     const course = await this.coursesService.findByCourseCode(courseCode);
     return ResponseDto.createSuccessResponse(
@@ -86,7 +84,6 @@ export class CoursesController {
   }
 
   @Get('department-level')
-  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findDepartmentLevelCourses(
     @Query('departmentId') departmentId?: string,
     @Query('courseId') courseId?: string,
@@ -105,7 +102,6 @@ export class CoursesController {
   }
 
   @Get(':id')
-  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findById(@Param('id') id: string) {
     const course = await this.coursesService.findById(id);
     return ResponseDto.createSuccessResponse(
