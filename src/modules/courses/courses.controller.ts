@@ -102,6 +102,7 @@ export class CoursesController {
   }
 
   @Get(':id')
+  @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findById(@Param('id') id: string) {
     const course = await this.coursesService.findById(id);
     return ResponseDto.createSuccessResponse(
