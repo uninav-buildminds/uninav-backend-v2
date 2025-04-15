@@ -278,6 +278,77 @@ export class AuthService {
     return true;
   }
 
+  async forgotPassword(email: string): Promise<boolean> {
+    const auth = await this.authRepository.findByEmail(email);
+    if (!auth || !auth.user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Generate reset token
+    const payload = { email, type: 'password_reset' };
+    const token = await this.jwtService.signAsync(payload, { expiresIn: '1h' });
+    const encryptedToken = cryptoService.encrypt(token);
+
+    // Save reset token and expiry
+    await this.authRepository.savePasswordResetToken(
+      auth.userId,
+      encryptedToken,
+      new Date(Date.now() + 3600000), // 1 hour from now
+    );
+
+    // Create reset URL
+    const resetUrl = `${this.config.FRONTEND_URL}/auth/reset-password?token=${encodeURIComponent(encryptedToken)}`;
+
+    // Emit event for password reset email
+    this.eventEmitter.emit(EVENTS.PASSWORD_RESET_REQUESTED, {
+      email,
+      firstName: auth.user.firstName,
+      lastName: auth.user.lastName,
+      resetUrl,
+    });
+
+    return true;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    try {
+      // Decrypt token
+      const decryptedToken = cryptoService.decrypt(token);
+
+      // Verify JWT
+      const payload = await this.jwtService.verifyAsync(decryptedToken);
+
+      // Check token type
+      if (payload.type !== 'password_reset') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+
+      const auth = await this.authRepository.findByEmail(payload.email);
+      if (!auth || !auth.user || !auth.passwordResetToken) {
+        throw new NotFoundException('Invalid or expired reset token');
+      }
+
+      // Verify token matches and hasn't expired
+      if (
+        auth.passwordResetToken !== token ||
+        auth.passwordResetExpires < new Date()
+      ) {
+        throw new UnauthorizedException('Invalid or expired reset token');
+      }
+
+      // Hash new password
+      const hashedPassword = await this.hashPassword(newPassword);
+
+      // Update password and clear reset token
+      await this.authRepository.updatePassword(auth.userId, hashedPassword);
+      await this.authRepository.clearPasswordResetToken(auth.userId);
+
+      return true;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+  }
+
   async hashPassword(password: string) {
     const modifiedPassword = password + this.config.BCRYPT_PEPPER;
     const hashedPassword = await bcrypt.hash(

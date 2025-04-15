@@ -26,6 +26,10 @@ import {
 } from './dto/verify-email.dto';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from 'src/utils/config/env.enum';
+import {
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from 'src/modules/auth/dto/password-reset.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -160,6 +164,37 @@ export class AuthController {
     const responseObj = ResponseDto.createSuccessResponse(
       'Logged out successfully',
       null,
+    );
+    return responseObj;
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    const sent = await this.authService.forgotPassword(forgotPasswordDto.email);
+    if (!sent) {
+      throw new BadRequestException('Failed to send password reset email');
+    }
+
+    const responseObj = ResponseDto.createSuccessResponse(
+      'Password reset instructions sent to your email',
+      { sent },
+    );
+    return responseObj;
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    const reset = await this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
+    if (!reset) {
+      throw new BadRequestException('Password reset failed');
+    }
+
+    const responseObj = ResponseDto.createSuccessResponse(
+      'Password reset successful',
+      { reset },
     );
     return responseObj;
   }

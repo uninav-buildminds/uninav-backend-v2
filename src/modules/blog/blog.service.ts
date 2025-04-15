@@ -43,20 +43,24 @@ export class BlogService {
   async create(
     createBlogDto: CreateBlogDto,
     user: UserEntity,
-    headingImage: MulterFile,
+    headingImage?: MulterFile,
   ) {
     try {
-      // 1. Upload the heading image to B2 media bucket
-      const { fileKey: headingImageKey } =
-        await this.storageService.uploadBlogImage(headingImage);
+      let headingImageUrl = '';
+      let headingImageKey = null;
+      if (headingImage) {
+        // 1. Upload the heading image to B2 media bucket
+        const { fileKey: headingImageKey } =
+          await this.storageService.uploadBlogImage(headingImage);
 
-      // Generate a signed URL for the heading image
-      const headingImageUrl = await this.storageService.getSignedUrl(
-        headingImageKey,
-        3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
-        false,
-        'media',
-      );
+        // Generate a signed URL for the heading image
+        headingImageUrl = await this.storageService.getSignedUrl(
+          headingImageKey,
+          3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
+          false,
+          'media',
+        );
+      }
 
       // 2. Store the blog body content in B2 blogs bucket
       const { publicUrl: bodyUrl, fileKey: bodyKey } =

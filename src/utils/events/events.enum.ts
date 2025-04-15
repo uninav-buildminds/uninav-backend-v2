@@ -4,6 +4,7 @@ export enum EVENTS {
   EMAIL_VERIFICATION_REQUESTED = 'email.verification.requested',
   EMAIL_VERIFICATION_SUCCESS = 'email.verification.success',
   EMAIL_VERIFICATION_RESEND = 'email.verification.resend',
+  PASSWORD_RESET_REQUESTED = 'password.reset.requested',
 
   // Review Events - Approvals
   COURSE_APPROVED = 'review.course.approved',

@@ -232,6 +232,35 @@ export class EventsListeners {
     );
   }
 
+  @OnEvent(EVENTS.PASSWORD_RESET_REQUESTED)
+  async handlePasswordResetRequest(payload: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    resetUrl: string;
+  }) {
+    try {
+      await this.emailService.sendMail({
+        to: payload.email,
+        subject: EmailSubjects.PASSWORD_RESET,
+        options: {
+          template: EmailPaths.PASSWORD_RESET,
+          data: {
+            firstName: payload.firstName,
+            lastName: payload.lastName,
+            resetUrl: payload.resetUrl,
+          },
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send password reset email to ${payload.email}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
   // Helper method to generate verification token
   private async generateVerificationToken(
     email: string,

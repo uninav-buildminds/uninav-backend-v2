@@ -15,7 +15,7 @@ export enum EmailPaths {
 
 export enum EmailSubjects {
   WELCOME = 'Welcome to Uninav',
-  PASSWORD_RESET = 'Reset Your Password',
+  PASSWORD_RESET = 'Reset Your UniNav Password',
   EMAIL_VERIFICATION = 'Verify Your Email Address',
   EMAIL_VERIFICATION_SUCCESS = 'Email Verification Successful',
   CONTACT_US = 'Contact Us',

@@ -117,4 +117,30 @@ export class AuthRepository {
 
     return { success: true };
   }
+
+  async savePasswordResetToken(userId: string, token: string, expires: Date) {
+    const updatedAuth = await this.db
+      .update(auth)
+      .set({
+        passwordResetToken: token,
+        passwordResetExpires: expires,
+      } as any)
+      .where(eq(auth.userId, userId))
+      .returning();
+
+    return updatedAuth[0];
+  }
+
+  async clearPasswordResetToken(userId: string) {
+    const updatedAuth = await this.db
+      .update(auth)
+      .set({
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      } as any)
+      .where(eq(auth.userId, userId))
+      .returning();
+
+    return updatedAuth[0];
+  }
 }
