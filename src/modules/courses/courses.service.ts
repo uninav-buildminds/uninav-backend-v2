@@ -11,14 +11,15 @@ import {
   UserEntity,
   UserRoleEnum,
 } from 'src/utils/types/db.types';
-import { courses } from '../drizzle/schema/course.schema';
 import { LinkCourseDto } from './dto/link-course.dto';
+import { UserService } from 'src/modules/user/user.service';
 
 @Injectable()
 export class CoursesService {
   constructor(
     private readonly coursesRepository: CoursesRepository,
     private readonly departmentService: DepartmentService,
+    private readonly userService: UserService,
   ) {}
 
   async create(createCourseDto: CreateCourseDto, user: UserEntity) {
@@ -158,10 +159,17 @@ export class CoursesService {
     });
   }
 
-  async remove(courseId: string) {
+  async remove(courseId: string, userId) {
     const course = await this.findById(courseId);
     if (!course) {
       throw new NotFoundException(`Course with ID ${courseId} not found`);
+    }
+    let user = await this.userService.findOne(userId);
+    // Check if the user is the creator or an admin
+    if (course.creatorId !== user.id && user.role !== UserRoleEnum.ADMIN) {
+      throw new BadRequestException(
+        `You do not have permission to delete this course`,
+      );
     }
 
     return this.coursesRepository.delete(courseId);

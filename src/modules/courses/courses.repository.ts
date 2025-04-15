@@ -117,6 +117,7 @@ export class CoursesRepository {
         courseCode: courses.courseCode,
         description: courses.description,
         reviewStatus: courses.reviewStatus,
+        createdAt: courses.createdAt,
         ...(filters?.allowDuplicates
           ? {
               departmentId: departmentLevelCourses.departmentId,
@@ -187,6 +188,7 @@ export class CoursesRepository {
         courseCode: courses.courseCode,
         description: courses.description,
         reviewStatus: courses.reviewStatus,
+        createdAt: courses.createdAt,
         ...(filters?.allowDuplicates
           ? {
               departmentId: departmentLevelCourses.departmentId,

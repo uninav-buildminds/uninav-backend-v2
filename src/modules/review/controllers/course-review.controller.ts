@@ -128,10 +128,7 @@ export class CourseReviewController {
     // Get course creator details for notification
     const creator = await this.userService.findOne(course.creatorId);
 
-    await this.coursesService.review(id, {
-      reviewStatus: ApprovalStatus.REJECTED,
-      reviewedById: reviewer.id,
-    });
+    await this.coursesService.remove(id, reviewer.id);
 
     this.eventEmitter.emit(EVENTS.COURSE_DELETED, {
       courseId: id,
