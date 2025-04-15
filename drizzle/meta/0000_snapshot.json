@@ -1,5 +1,5 @@
 {
-  "id": "c565344b-7ce5-42d4-aaac-5630977c138c",
+  "id": "59f900d8-f3c7-4860-886f-08a49d3c1056",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -434,14 +434,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "department": {
-          "name": "department",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "faculty": {
-          "name": "faculty",
+        "department_id": {
+          "name": "department_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -453,6 +447,26 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'pending'"
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -470,12 +484,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "moderator_department_department_id_fk": {
-          "name": "moderator_department_department_id_fk",
+        "moderator_department_id_department_id_fk": {
+          "name": "moderator_department_id_department_id_fk",
           "tableFrom": "moderator",
           "tableTo": "department",
           "columnsFrom": [
-            "department"
+            "department_id"
           ],
           "columnsTo": [
             "id"
@@ -483,12 +497,12 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "moderator_faculty_faculty_id_fk": {
-          "name": "moderator_faculty_faculty_id_fk",
+        "moderator_reviewed_by_users_id_fk": {
+          "name": "moderator_reviewed_by_users_id_fk",
           "tableFrom": "moderator",
-          "tableTo": "faculty",
+          "tableTo": "users",
           "columnsFrom": [
-            "faculty"
+            "reviewed_by"
           ],
           "columnsTo": [
             "id"
@@ -632,6 +646,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "review_status": {
           "name": "review_status",
           "type": "approval_status",
@@ -663,15 +683,28 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "courses_reviewed_by_moderator_userId_fk": {
-          "name": "courses_reviewed_by_moderator_userId_fk",
+        "courses_creator_id_users_id_fk": {
+          "name": "courses_creator_id_users_id_fk",
           "tableFrom": "courses",
-          "tableTo": "moderator",
+          "tableTo": "users",
+          "columnsFrom": [
+            "creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "courses_reviewed_by_users_id_fk": {
+          "name": "courses_reviewed_by_users_id_fk",
+          "tableFrom": "courses",
+          "tableTo": "users",
           "columnsFrom": [
             "reviewed_by"
           ],
           "columnsTo": [
-            "userId"
+            "id"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
@@ -756,15 +789,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "department_level_courses_reviewed_by_moderator_userId_fk": {
-          "name": "department_level_courses_reviewed_by_moderator_userId_fk",
+        "department_level_courses_reviewed_by_users_id_fk": {
+          "name": "department_level_courses_reviewed_by_users_id_fk",
           "tableFrom": "department_level_courses",
-          "tableTo": "moderator",
+          "tableTo": "users",
           "columnsFrom": [
             "reviewed_by"
           ],
           "columnsTo": [
-            "userId"
+            "id"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
@@ -775,66 +808,6 @@
           "name": "department_level_courses_department_id_course_id_pk",
           "columns": [
             "department_id",
-            "course_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.student_courses": {
-      "name": "student_courses",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "course_id": {
-          "name": "course_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "student_courses_user_id_users_id_fk": {
-          "name": "student_courses_user_id_users_id_fk",
-          "tableFrom": "student_courses",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "student_courses_course_id_courses_id_fk": {
-          "name": "student_courses_course_id_courses_id_fk",
-          "tableFrom": "student_courses",
-          "tableTo": "courses",
-          "columnsFrom": [
-            "course_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "student_courses_user_id_course_id_pk": {
-          "name": "student_courses_user_id_course_id_pk",
-          "columns": [
-            "user_id",
             "course_id"
           ]
         }
@@ -867,13 +840,6 @@
           "type": "text[]",
           "primaryKey": false,
           "notNull": false
-        },
-        "clicks": {
-          "name": "clicks",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
         },
         "views": {
           "name": "views",
@@ -1015,15 +981,15 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "material_reviewed_by_moderator_userId_fk": {
-          "name": "material_reviewed_by_moderator_userId_fk",
+        "material_reviewed_by_users_id_fk": {
+          "name": "material_reviewed_by_users_id_fk",
           "tableFrom": "material",
-          "tableTo": "moderator",
+          "tableTo": "users",
           "columnsFrom": [
             "reviewed_by"
           ],
           "columnsTo": [
-            "userId"
+            "id"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
@@ -1243,16 +1209,23 @@
           "notNull": false,
           "default": 0
         },
-        "clicks": {
-          "name": "clicks",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
         "tags": {
           "name": "tags",
           "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "review_status": {
+          "name": "review_status",
+          "type": "approval_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -1284,6 +1257,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "blogs_reviewed_by_users_id_fk": {
+          "name": "blogs_reviewed_by_users_id_fk",
+          "tableFrom": "blogs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1461,6 +1447,12 @@
           "notNull": false,
           "default": "'pending'"
         },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -1515,6 +1507,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "advert_reviewed_by_users_id_fk": {
+          "name": "advert_reviewed_by_users_id_fk",
+          "tableFrom": "advert",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1739,6 +1744,39 @@
           ]
         }
       },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.admin": {
+      "name": "admin",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "admin_userId_users_id_fk": {
+          "name": "admin_userId_users_id_fk",
+          "tableFrom": "admin",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

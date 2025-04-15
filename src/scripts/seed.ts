@@ -5,9 +5,10 @@ import {
   universityData,
   facultyDescriptions,
   departmentDescriptions,
-  courseData,
+  // Remove courseData import
 } from './data';
-import { seedFacultiesAndDepartments, seedCourses } from './utils/seedHelpers';
+// Remove seedCourses import
+import { seedFacultiesAndDepartments } from './utils/seedHelpers';
 
 const seedDatabase = async () => {
   console.log('Starting database seeding...');
@@ -44,10 +45,7 @@ const seedDatabase = async () => {
       departmentDescriptions,
     );
 
-    console.log('Seeding courses and relationships...');
-    await seedCourses(db, courseData);
-
-    console.log('Database seeding completed successfully! 🎉');
+    console.log('Faculty and Department seeding completed successfully! 🎉'); // Updated log message
   } catch (error) {
     console.error('Error during database seeding:', error);
   } finally {

@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1744249219811,
-      "tag": "0000_loud_puff_adder",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1744297505674,
-      "tag": "0001_curved_sprite",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1744308508691,
-      "tag": "0002_empty_mongoose",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1744321811670,
-      "tag": "0003_tough_juggernaut",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1744322191514,
-      "tag": "0004_unknown_menace",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1744440276007,
-      "tag": "0005_narrow_shinko_yamashiro",
+      "when": 1744718950693,
+      "tag": "0000_steep_rhodey",
       "breakpoints": true
     }
   ]
