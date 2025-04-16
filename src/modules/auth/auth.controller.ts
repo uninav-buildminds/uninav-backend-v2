@@ -90,8 +90,8 @@ export class AuthController {
   }
 
   @Get('verify-email/token')
-  async verifyEmailWithToken(@Query() tokenDto: VerifyEmailTokenDto) {
-    const verified = await this.authService.verifyEmailWithToken(tokenDto);
+  async verifyEmailWithToken(@Query('token') token: string) {
+    const verified = await this.authService.verifyEmailWithToken(token);
     if (!verified) {
       throw new BadRequestException('Email verification failed');
     }

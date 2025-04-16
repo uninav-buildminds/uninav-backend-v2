@@ -168,8 +168,8 @@ export class AuthService {
     // Generate verification token as a backup method
     const token = await this.generateVerificationToken(email, verificationCode);
 
-    // Create verification URL
-    const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${encodeURIComponent(token)}`;
+    // Create verification URL - don't URL encode here since the frontend will handle it
+    const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${token}`;
 
     // Emit event for email verification
     this.eventEmitter.emit(EVENTS.EMAIL_VERIFICATION_REQUESTED, {
@@ -184,26 +184,67 @@ export class AuthService {
   }
 
   // Verify email with token (backup method)
-  async verifyEmailWithToken(tokenDto: VerifyEmailTokenDto): Promise<boolean> {
+  async verifyEmailWithToken(token: string): Promise<boolean> {
     try {
+      // Decode the URL-encoded token first
+      const decodedToken = decodeURIComponent(token);
+
       // Decrypt token
-      const decryptedToken = cryptoService.decrypt(tokenDto.token);
+      const decryptedToken = cryptoService.decrypt(decodedToken);
+      // Verify JWT and handle expiration
+      try {
+        const payload = await this.jwtService.verifyAsync(decryptedToken);
 
-      // Verify JWT
-      const payload = await this.jwtService.verifyAsync(decryptedToken);
+        // Validate token type
+        if (payload.type !== 'email_verification') {
+          throw new UnauthorizedException('Invalid token type');
+        }
 
-      // Check token type
-      if (payload.type !== 'email_verification') {
-        throw new UnauthorizedException('Invalid token type');
+        // Find user and validate email matches
+        const auth = await this.authRepository.findByEmail(payload.email);
+        if (!auth || !auth.user) {
+          throw new NotFoundException('User not found');
+        }
+
+        // Check if already verified
+        if (auth.emailVerified) {
+          return true;
+        }
+
+        // Validate stored verification code matches token code
+        if (auth.verificationCode !== payload.code) {
+          throw new UnauthorizedException('Invalid verification code');
+        }
+
+        // Update email verification status
+        await this.authRepository.updateEmailVerificationStatus(
+          auth.userId,
+          true,
+        );
+
+        // Emit event for verification success
+        this.eventEmitter.emit(EVENTS.EMAIL_VERIFICATION_SUCCESS, {
+          email: payload.email,
+          firstName: auth.user.firstName,
+          lastName: auth.user.lastName,
+        });
+
+        return true;
+      } catch (jwtError) {
+        if (jwtError.name === 'TokenExpiredError') {
+          throw new UnauthorizedException('Verification token has expired');
+        }
+        throw new UnauthorizedException('Invalid verification token');
       }
-
-      // Extract email and code
-      const { email, code } = payload;
-
-      // Verify using the database-stored code
-      return this.verifyEmail({ email, code });
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired verification token');
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      this.logger.error('Token verification failed:', error);
+      throw new UnauthorizedException('Token verification failed');
     }
   }
 
