@@ -187,7 +187,8 @@ export class AuthService {
   async verifyEmailWithToken(token: string): Promise<boolean> {
     try {
       // Decode the URL-encoded token first
-      const decodedToken = decodeURIComponent(token);
+      // const decodedToken = decodeURIComponent(token);
+      const decodedToken = token;
 
       // Decrypt token
       const decryptedToken = cryptoService.decrypt(decodedToken);
