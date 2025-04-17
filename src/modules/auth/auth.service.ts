@@ -189,7 +189,7 @@ export class AuthService {
       // Decode the URL-encoded token first
       // const decodedToken = decodeURIComponent(token);
       const decodedToken = token;
-
+      console.log('decoded token', decodedToken);
       // Decrypt token
       const decryptedToken = cryptoService.decrypt(decodedToken);
       // Verify JWT and handle expiration

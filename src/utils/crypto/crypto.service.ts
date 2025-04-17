@@ -40,7 +40,9 @@ class CryptoService implements CryptoInterface {
     );
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return Buffer.from(encrypted, 'hex').toString('base64');
+    let encryptedText = Buffer.from(encrypted, 'hex').toString('base64');
+    console.log('encryptedText', encryptedText);
+    return encryptedText;
   }
 
   decrypt(text: string) {
