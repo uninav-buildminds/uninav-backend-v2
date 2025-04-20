@@ -86,7 +86,11 @@ export class MaterialRepository {
         targetCourse: true,
         resource: true,
         adverts: true,
-        collections: true,
+        collections: {
+          with: {
+            collection: true,
+          },
+        },
       },
     });
   }
