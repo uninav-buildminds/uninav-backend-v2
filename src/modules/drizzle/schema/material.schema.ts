@@ -15,7 +15,7 @@ import {
   approvalStatusEnum,
 } from './enums.schema';
 import { bookmarks, users } from './user.schema';
-import { collectionMaterial } from './collection.schema';
+import { collectionContent } from './collection.schema';
 import { advert } from './advert.schema';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
@@ -77,7 +77,7 @@ export const materialRelations = relations(material, ({ one, many }) => ({
     references: [resource.materialId],
   }),
   bookmarks: many(bookmarks),
-  collections: many(collectionMaterial),
+  collections: many(collectionContent),
   adverts: many(advert),
   targetCourse: one(courses, {
     fields: [material.targetCourseId],

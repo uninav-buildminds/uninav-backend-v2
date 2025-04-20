@@ -11,7 +11,7 @@ export const TABLES = {
   MATERIALS: 'material',
   RESOURCE: 'resource',
   COLLECTION: 'collection',
-  COLLECTION_MATERIAL: 'collection_material',
+  COLLECTION_CONTENT: 'collection_content',
   BOOKMARKS: 'bookmarks',
   BLOGS: 'blogs',
   COMMENTS: 'comments',

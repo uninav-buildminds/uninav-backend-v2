@@ -1,26 +1,23 @@
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-} from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
 import { VisibilityEnum } from 'src/utils/types/db.types';
 
 export class CreateCollectionDto {
-  @IsNotEmpty()
+  @IsUUID()
+  @IsOptional()
+  creatorId?: string;
+
   @IsString()
   label: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   description?: string;
 
-  @IsOptional()
   @IsEnum(VisibilityEnum)
+  @IsOptional()
   visibility?: VisibilityEnum;
 
-  @IsOptional()
   @IsUUID()
-  creatorId?: string;
+  @IsOptional()
+  targetCourseId?: string;
 }
