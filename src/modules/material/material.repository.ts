@@ -88,7 +88,19 @@ export class MaterialRepository {
         adverts: true,
         collections: {
           with: {
-            collection: true,
+            collection: {
+              with: {
+                creator: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                  },
+                },
+                content: true,
+              },
+            },
           },
         },
       },
