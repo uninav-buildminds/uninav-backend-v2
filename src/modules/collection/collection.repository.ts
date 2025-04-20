@@ -36,12 +36,7 @@ export class CollectionRepository {
             username: true,
           },
         },
-        content: {
-          with: {
-            material: true,
-            nestedCollection: true,
-          },
-        },
+        content: true,
       },
     });
   }
@@ -62,7 +57,6 @@ export class CollectionRepository {
           with: {
             material: {
               with: {
-                resource: true,
                 creator: {
                   columns: {
                     id: true,

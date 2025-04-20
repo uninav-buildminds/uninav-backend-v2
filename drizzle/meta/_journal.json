@@ -15,6 +15,13 @@
       "when": 1744747061647,
       "tag": "0001_high_puff_adder",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1745133642466,
+      "tag": "0002_bored_jasper_sitwell",
+      "breakpoints": true
     }
   ]
 }
