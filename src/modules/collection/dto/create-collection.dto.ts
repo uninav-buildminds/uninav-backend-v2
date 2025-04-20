@@ -2,10 +2,6 @@ import { IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
 import { VisibilityEnum } from 'src/utils/types/db.types';
 
 export class CreateCollectionDto {
-  @IsUUID()
-  @IsOptional()
-  creatorId?: string;
-
   @IsString()
   label: string;
 
@@ -20,4 +16,6 @@ export class CreateCollectionDto {
   @IsUUID()
   @IsOptional()
   targetCourseId?: string;
+
+  creatorId: string;
 }

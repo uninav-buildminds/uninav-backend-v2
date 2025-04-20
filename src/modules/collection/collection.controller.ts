@@ -32,9 +32,7 @@ export class CollectionController {
     const user = req['user'] as UserEntity;
 
     // Set creatorId if not provided in the DTO
-    if (!createCollectionDto.creatorId && user) {
-      createCollectionDto.creatorId = user.id;
-    }
+    createCollectionDto.creatorId = user.id;
 
     const collection = await this.collectionService.create(createCollectionDto);
     return ResponseDto.createSuccessResponse(
