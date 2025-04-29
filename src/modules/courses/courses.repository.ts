@@ -102,36 +102,53 @@ export class CoursesRepository {
     level?: number;
     reviewStatus?: ApprovalStatus;
     query?: string;
-    allowDuplicates?: boolean;
+    allowDepartments?: boolean;
   }) {
     if (filters?.departmentId || filters?.level) {
-      filters.allowDuplicates = true;
-    } else if (!filters?.allowDuplicates) {
-      filters.allowDuplicates = false;
+      filters.allowDepartments = true;
     }
-    // Base query to get all courses with department info but without deep nesting
-    const baseQuery = this.db
-      .select({
-        id: courses.id,
-        courseName: courses.courseName,
-        courseCode: courses.courseCode,
-        description: courses.description,
-        reviewStatus: courses.reviewStatus,
-        createdAt: courses.createdAt,
-        ...(filters?.allowDuplicates
-          ? {
-              departmentId: departmentLevelCourses.departmentId,
-              level: departmentLevelCourses.level,
-            }
-          : {}),
-      })
-      .from(courses);
 
-    if (filters?.allowDuplicates) {
-      baseQuery.leftJoin(
-        departmentLevelCourses,
-        eq(courses.id, departmentLevelCourses.courseId),
-      );
+    let baseQuery;
+    if (filters?.allowDepartments) {
+      // Query with department info grouped by course
+      baseQuery = this.db
+        .select({
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          reviewStatus: courses.reviewStatus,
+          createdAt: courses.createdAt,
+          departments: sql<{ departmentId: string; level: number }[]>`
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'departmentId', ${departmentLevelCourses.departmentId},
+                  'level', ${departmentLevelCourses.level}
+                )
+              ) FILTER (WHERE ${departmentLevelCourses.departmentId} IS NOT NULL),
+              '[]'
+            )
+          `,
+        })
+        .from(courses)
+        .leftJoin(
+          departmentLevelCourses,
+          eq(courses.id, departmentLevelCourses.courseId),
+        )
+        .groupBy(courses.id);
+    } else {
+      // Original query without department info
+      baseQuery = this.db
+        .select({
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          reviewStatus: courses.reviewStatus,
+          createdAt: courses.createdAt,
+        })
+        .from(courses);
     }
 
     let conditions = [];
@@ -169,40 +186,57 @@ export class CoursesRepository {
     reviewStatus?: ApprovalStatus;
     page?: number;
     query?: string;
-    allowDuplicates?: boolean;
+    allowDepartments?: boolean;
   }) {
     const limit = 10;
     const page = filters?.page || 1;
     const offset = (page - 1) * limit;
 
     if (filters?.departmentId || filters?.level) {
-      filters.allowDuplicates = true;
-    } else if (!filters?.allowDuplicates) {
-      filters.allowDuplicates = false;
+      filters.allowDepartments = true;
     }
-    // Base query to get all courses with department info but without deep nesting
-    const baseQuery = this.db
-      .select({
-        id: courses.id,
-        courseName: courses.courseName,
-        courseCode: courses.courseCode,
-        description: courses.description,
-        reviewStatus: courses.reviewStatus,
-        createdAt: courses.createdAt,
-        ...(filters?.allowDuplicates
-          ? {
-              departmentId: departmentLevelCourses.departmentId,
-              level: departmentLevelCourses.level,
-            }
-          : {}),
-      })
-      .from(courses);
 
-    if (filters?.allowDuplicates) {
-      baseQuery.leftJoin(
-        departmentLevelCourses,
-        eq(courses.id, departmentLevelCourses.courseId),
-      );
+    let baseQuery;
+    if (filters?.allowDepartments) {
+      // Query with department info grouped by course
+      baseQuery = this.db
+        .select({
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          reviewStatus: courses.reviewStatus,
+          createdAt: courses.createdAt,
+          departments: sql<{ departmentId: string; level: number }[]>`
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'departmentId', ${departmentLevelCourses.departmentId},
+                  'level', ${departmentLevelCourses.level}
+                )
+              ) FILTER (WHERE ${departmentLevelCourses.departmentId} IS NOT NULL),
+              '[]'
+            )
+          `,
+        })
+        .from(courses)
+        .leftJoin(
+          departmentLevelCourses,
+          eq(courses.id, departmentLevelCourses.courseId),
+        )
+        .groupBy(courses.id);
+    } else {
+      // Original query without department info
+      baseQuery = this.db
+        .select({
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          reviewStatus: courses.reviewStatus,
+          createdAt: courses.createdAt,
+        })
+        .from(courses);
     }
 
     let conditions = [];
@@ -234,19 +268,18 @@ export class CoursesRepository {
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count for pagination
-    let countQuery: any = this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(courses);
-
-    if (filters?.allowDuplicates) {
-      countQuery = countQuery.leftJoin(
+    const countQuery = this.db
+      .select({
+        count: sql<number>`cast(count(DISTINCT ${courses.id}) as integer)`,
+      })
+      .from(courses)
+      .leftJoin(
         departmentLevelCourses,
         eq(courses.id, departmentLevelCourses.courseId),
-      );
-    }
+      )
+      .where(whereClause);
 
-    const countResult = await countQuery.where(whereClause).execute();
-
+    const countResult = await countQuery;
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
@@ -275,7 +308,7 @@ export class CoursesRepository {
     return this.db.query.courses.findFirst({
       where: eq(courses.id, id),
       with: {
-        departmentCourses: {
+        departments: {
           with: {
             department: {
               with: {
@@ -292,7 +325,7 @@ export class CoursesRepository {
     return this.db.query.courses.findFirst({
       where: eq(courses.courseCode, courseCode),
       with: {
-        departmentCourses: {
+        departments: {
           with: {
             department: {
               with: {

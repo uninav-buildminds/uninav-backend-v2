@@ -107,7 +107,7 @@ export class CoursesService {
     reviewStatus?: ApprovalStatus;
     page?: number;
     query?: string;
-    allowDuplicates?: boolean;
+    allowDepartments?: boolean;
   }) {
     return this.coursesRepository.findAllPaginated(filters);
   }
@@ -118,14 +118,14 @@ export class CoursesService {
     reviewStatus?: ApprovalStatus;
     page?: number;
     query?: string;
-    allowDuplicates?: boolean;
+    allowDepartments?: boolean;
   }) {
     if (filters?.page) {
       return this.findAllPaginated(filters);
     }
     return this.coursesRepository.findAll({
       ...filters,
-      allowDuplicates: filters?.allowDuplicates,
+      allowDepartments: filters?.allowDepartments,
     });
   }
 

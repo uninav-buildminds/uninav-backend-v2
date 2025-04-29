@@ -59,14 +59,14 @@ export class CoursesController {
     @Query('query') query?: string,
     // when you specify page, that's when it supports pagination
     @Query('page') page?: number,
-    @Query('allowDuplicates') allowDuplicates?: string,
+    @Query('allowDepartments') allowDepartments?: string,
   ) {
     const courses = await this.coursesService.findAll({
       departmentId,
       page,
       level,
       query,
-      allowDuplicates: !!allowDuplicates,
+      allowDepartments: !!allowDepartments,
     });
     return ResponseDto.createSuccessResponse(
       'Courses retrieved successfully',
