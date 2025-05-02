@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -15,9 +17,15 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
-import { ApprovalStatus, UserEntity } from 'src/utils/types/db.types';
+import {
+  ApprovalStatus,
+  UserEntity,
+  UserRoleEnum,
+} from 'src/utils/types/db.types';
 import { Request } from 'express';
 import { LinkCourseDto } from './dto/link-course.dto';
+import { Roles } from 'src/utils/decorators/roles.decorator';
+import { UpdateCourseDto } from 'src/modules/courses/dto/update-course.dto';
 
 @Controller('courses')
 @UseInterceptors(CacheControlInterceptor)
@@ -108,6 +116,47 @@ export class CoursesController {
     return ResponseDto.createSuccessResponse(
       'Course retrieved successfully',
       course,
+    );
+  }
+
+  @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRoleEnum.ADMIN)
+  async update(
+    @Param('id') id: string,
+    @Body() updateCourseDto: UpdateCourseDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const course = await this.coursesService.update(id, updateCourseDto, user);
+    return ResponseDto.createSuccessResponse(
+      'Course updated successfully',
+      course,
+    );
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRoleEnum.ADMIN)
+  async remove(@Param('id') id: string, @Req() req: Request) {
+    const user = req.user as UserEntity;
+    await this.coursesService.remove(id, user.id);
+    return ResponseDto.createSuccessResponse('Course deleted successfully');
+  }
+
+  @Delete('department-level/:departmentId/:courseId')
+  @UseGuards(RolesGuard)
+  @Roles(UserRoleEnum.ADMIN)
+  async removeDepartmentLevelCourse(
+    @Param('departmentId') departmentId: string,
+    @Param('courseId') courseId: string,
+  ) {
+    await this.coursesService.deleteDepartmentLevelCourse(
+      departmentId,
+      courseId,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Department level course removed successfully',
     );
   }
 }

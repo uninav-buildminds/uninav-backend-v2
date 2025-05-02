@@ -13,6 +13,7 @@ import {
 } from 'src/utils/types/db.types';
 import { LinkCourseDto } from './dto/link-course.dto';
 import { UserService } from 'src/modules/user/user.service';
+import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Injectable()
 export class CoursesService {
@@ -272,5 +273,19 @@ export class CoursesService {
     return this.coursesRepository.countDepartmentLevelCoursesByStatus(
       departmentId,
     );
+  }
+
+  async update(id: string, updateCourseDto: UpdateCourseDto, user: UserEntity) {
+    const course = await this.findById(id);
+    if (!course) {
+      throw new NotFoundException(`Course with ID ${id} not found`);
+    }
+
+    // Only admins can update courses
+    if (user.role !== UserRoleEnum.ADMIN) {
+      throw new BadRequestException('Only admins can update courses');
+    }
+
+    return this.coursesRepository.update(id, updateCourseDto);
   }
 }
