@@ -2,35 +2,65 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Moderator Application Result - Not Approved</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         line-height: 1.6;
-        color: #333;
-      }
-      .container {
+        color: #333333; /* --text-color-dark approximation */
         max-width: 600px;
         margin: 0 auto;
         padding: 20px;
+        background-color: #f0f8ff; /* --bg-main */
+      }
+      .container {
+        background-color: #ffffff;
+        padding: 25px;
+        border-radius: 8px;
+        border: 1px solid #ccebff; /* Lighter shade derived from --border-color */
       }
       .header {
         text-align: center;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #ccebff;
+      }
+      .header h2 {
+        color: #003666; /* --bg-dark */
+        margin: 0;
       }
       .content {
-        margin-bottom: 30px;
+        margin-bottom: 20px;
       }
       .footer {
         text-align: center;
-        font-size: 14px;
-        color: #666;
+        margin-top: 20px;
+        font-size: 12px;
+        color: #6b7280; /* --muted-foreground approximation */
       }
       .reason {
-        background-color: #f8f8f8;
+        background-color: #fee2e2; /* Light red background */
         padding: 15px;
-        border-left: 4px solid #dc3545;
+        border-left: 4px solid #ef4444; /* --destructive approximation */
         margin: 20px 0;
+        color: #b91c1c; /* Darker red text */
+      }
+      .reason p {
+        margin: 0;
+      }
+      .reason strong {
+        color: #991b1b; /* Even darker red for emphasis */
+      }
+      ul {
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 5px;
+      }
+      a {
+        color: #003666; /* --bg-dark */
+        text-decoration: underline;
       }
     </style>
   </head>
@@ -43,9 +73,9 @@
         <p>Dear Applicant,</p>
 
         <p>
-          Thank you for your interest in becoming a moderator for our platform.
-          After careful review of your application, we regret to inform you that
-          we are unable to approve your request at this time.
+          Thank you for your interest in becoming a moderator for UniNav. After
+          careful review of your application, we regret to inform you that we
+          are unable to approve your request at this time.
         </p>
 
         <div class="reason">
@@ -58,20 +88,27 @@
           encourage you to:
         </p>
         <ul>
-          <li>Continue being an active member of our community</li>
+          <li>Continue being an active member of our community.</li>
           <li>
-            Consider applying again after addressing the mentioned concerns
+            Consider applying again after addressing the mentioned concerns.
           </li>
-          <li>Reach out to our support team if you need any clarification</li>
+          <li>Reach out to our support team if you need any clarification.</li>
         </ul>
 
         <p>
           We appreciate your understanding and your commitment to our academic
           community.
         </p>
+        <p>Best regards,<br />The UniNav Team</p>
       </div>
       <div class="footer">
-        <p>Need help? Contact us at <%= supportEmail %></p>
+        <p>© <%= new Date().getFullYear() %> UniNav. All rights reserved.</p>
+        <p>
+          Need help? Contact us at
+          <a href="mailto:<%= supportEmail %>" style="color: #003666"
+            ><%= supportEmail %></a
+          >
+        </p>
       </div>
     </div>
   </body>
