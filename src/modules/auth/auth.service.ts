@@ -330,16 +330,16 @@ export class AuthService {
     const payload = { email, type: 'password_reset' };
     const token = await this.jwtService.signAsync(payload, { expiresIn: '1h' });
     const encryptedToken = cryptoService.encrypt(token);
-
+    // needs to be encoded to prevent characters being interpreted as URL symbols
+    const encodedToken = encodeURIComponent(encryptedToken);
     // Save reset token and expiry
     await this.authRepository.savePasswordResetToken(
       auth.userId,
       encryptedToken,
       new Date(Date.now() + 3600000), // 1 hour from now
     );
-
     // Create reset URL
-    const resetUrl = `${this.config.FRONTEND_URL}/auth/reset-password?token=${encodeURIComponent(encryptedToken)}`;
+    const resetUrl = `${this.config.FRONTEND_URL}/auth/reset-password?token=${encodedToken}`;
 
     // Emit event for password reset email
     this.eventEmitter.emit(EVENTS.PASSWORD_RESET_REQUESTED, {
@@ -387,7 +387,7 @@ export class AuthService {
 
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired reset token');
+      throw new UnauthorizedException('Invalid or expired reset token...');
     }
   }
 
