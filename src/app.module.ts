@@ -30,7 +30,7 @@ import { ReviewModule } from './modules/review/review.module';
     AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env'],
+      envFilePath: ['.env', '.env.local'],
       cache: true,
       expandVariables: true,
       load: [envConfig],
