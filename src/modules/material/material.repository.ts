@@ -412,12 +412,12 @@ export class MaterialRepository {
           ilike(material.description, `%${query}%`),
           sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
           sql`EXISTS (
-            SELECT 1 FROM course c 
-            WHERE c.id = ${material.targetCourseId} 
+            SELECT 1 FROM ${courses} 
+            WHERE ${courses.id} = ${material.targetCourseId} 
             AND (
-              ${courseCodeIfExists ? sql`ilike(c.course_code, ${`%${courseCodeIfExists}%`}) OR` : sql`FALSE OR`}
-              ilike(c.course_name, ${`%${query}%`}) OR 
-              ilike(c.course_description, ${`%${query}%`})
+              ${courseCodeIfExists ? sql`${courses.courseCode} ILIKE ${`%${courseCodeIfExists}%`} OR` : sql`FALSE OR`}
+              ${courses.courseName} ILIKE ${`%${query}%`} OR 
+              ${courses.description} ILIKE ${`%${query}%`}
             )
           )`,
         );
