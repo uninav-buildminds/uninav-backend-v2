@@ -34,6 +34,7 @@ import {
   departmentLevelCourses as dlc,
   departmentLevelCourses,
 } from 'src/modules/drizzle/schema/course.schema';
+import { extractCourseCode } from 'src/utils/util';
 
 @Injectable()
 export class MaterialRepository {
@@ -261,19 +262,29 @@ export class MaterialRepository {
 
     // Add text search if query is provided - using the full-text search index
     if (query && query.trim() !== '') {
+      const courseCodeIfExists = extractCourseCode(query).toLowerCase();
       if (advancedSearch) {
         const searchCondition = or(
           ilike(material.label, `%${query}%`),
           ilike(material.description, `%${query}%`),
-          sql`${query} = ANY(${material.tags})`,
+          sql`${query.toLowerCase()} = ILIKE ANY(${material.tags})`,
+        sql`EXISTS (
+          SELECT 1 FROM course c 
+          WHERE c.id = ${material.targetCourseId} 
+          AND (
+            ilike(c.course_code, ${`%${courseCodeIfExists}%`}) OR
+            ilike(c.course_name, ${`%${query}%`}) OR 
+            ilike(c.course_description, ${`%${query}%`})
+          )
+        )`,
         );
         conditions.push(searchCondition);
-        console.log('doing advanced search');
       } else {
         conditions.push(
           or(
             sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-            sql`${query} = ANY(${material.tags})`,
+            sql`${query.toLowerCase()} = ILIKE ANY(${material.tags})`,
+            sql`${courseCodeIfExists} = ANY(${material.tags})`,
           ),
         );
       }
@@ -395,20 +406,29 @@ export class MaterialRepository {
 
     // If query is provided, use full-text search
     if (query && query.trim() !== '') {
-      // Add text search if query is provided - using the full-text search index
+      const courseCodeIfExists = extractCourseCode(query).toLowerCase();
       if (filters.advancedSearch) {
         const searchCondition = or(
           ilike(material.label, `%${query}%`),
           ilike(material.description, `%${query}%`),
-          sql`${query} = ANY(${material.tags})`,
+          sql`${query.toLowerCase()} = ILIKE ANY(${material.tags})`,
+        sql`EXISTS (
+          SELECT 1 FROM course c 
+          WHERE c.id = ${material.targetCourseId} 
+          AND (
+            ilike(c.course_code, ${`%${courseCodeIfExists}%`}) OR
+            ilike(c.course_name, ${`%${query}%`}) OR 
+            ilike(c.course_description, ${`%${query}%`})
+          )
+        )`,
         );
         conditions.push(searchCondition);
-        console.log('doing advanced search');
       } else {
         conditions.push(
           or(
             sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-            sql`${query} = ANY(${material.tags})`,
+            sql`${query.toLowerCase()} = ILIKE ANY(${material.tags})`,
+            sql`${courseCodeIfExists} = ANY(${material.tags})`,
           ),
         );
       }
