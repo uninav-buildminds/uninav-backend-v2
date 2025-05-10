@@ -262,33 +262,32 @@ export class MaterialRepository {
 
     // Add text search if query is provided - using the full-text search index
     if (query && query.trim() !== '') {
-      const courseCodeIfExists = extractCourseCode(query).toLowerCase();
+      const courseCodeIfExists = extractCourseCode(query)?.toLowerCase();
       if (advancedSearch) {
         const searchCondition = or(
           ilike(material.label, `%${query}%`),
           ilike(material.description, `%${query}%`),
-          sql`${query.toLowerCase()} = ILIKE ANY(${material.tags})`,
-        sql`EXISTS (
-          SELECT 1 FROM course c 
-          WHERE c.id = ${material.targetCourseId} 
-          AND (
-            ilike(c.course_code, ${`%${courseCodeIfExists}%`}) OR
-            ilike(c.course_name, ${`%${query}%`}) OR 
-            ilike(c.course_description, ${`%${query}%`})
-          )
-        )`,
+          sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
+          sql`EXISTS (
+            SELECT 1 FROM course c 
+            WHERE c.id = ${material.targetCourseId} 
+            AND (
+              ${courseCodeIfExists ? sql`ilike(c.course_code, ${`%${courseCodeIfExists}%`}) OR` : sql`FALSE OR`}
+              ilike(c.course_name, ${`%${query}%`}) OR 
+              ilike(c.course_description, ${`%${query}%`})
+            )
+          )`,
         );
         conditions.push(searchCondition);
       } else {
         conditions.push(
           or(
             sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-            sql`${query.toLowerCase()} = ILIKE ANY(${material.tags})`,
-            sql`${courseCodeIfExists} = ANY(${material.tags})`,
+            sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
+            courseCodeIfExists ? sql`${courseCodeIfExists} = ANY(${material.tags})` : sql`FALSE`,
           ),
         );
-      }
-    }
+      }}
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
