@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
   UnauthorizedException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { CreateStudentDto } from 'src/modules/auth/dto/create-student.dto';
 import { UserService } from 'src/modules/user/user.service';
@@ -439,20 +440,26 @@ export class AuthService {
 
     // 2. If not, check if user exists by email
     this.logger.log(`User not found by googleId, checking by email: ${email}`);
-    user = await this.userService.findByEmail(email);
-
-    if (user) {
-      this.logger.log(`User found by email: ${email}. Linking googleId: ${googleId}`);
-      // User exists, link their Google ID
-      // Ensure the update method in userService can handle adding googleId
-      await this.userService.update(user.id, { googleId });
-      // Re-fetch to get potentially updated relations or ensure data consistency
-      const updatedUser = await this.userService.findOne(user.id);
-      if (!updatedUser) {
-        // This case should ideally not happen if update was successful
-        throw new NotFoundException('Failed to retrieve user after linking Google ID.');
+    try {
+      user = await this.userService.findByEmail(email);
+      if (user) {
+        this.logger.log(`User found by email: ${email}. Linking googleId: ${googleId}`);
+        // User exists, link their Google ID
+        await this.userService.update(user.id, { googleId });
+        // Re-fetch to get potentially updated relations or ensure data consistency
+        const updatedUser = await this.userService.findOne(user.id);
+        if (!updatedUser) {
+          throw new NotFoundException('Failed to retrieve user after linking Google ID.');
+        }
+        return updatedUser;
       }
-      return updatedUser;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        // User not found by email, continue to create new user
+        this.logger.log(`No existing user found. Creating new user for email: ${email}, googleId: ${googleId}`);
+      } else {
+        throw error;
+      }
     }
 
     // 3. If no user exists by email or googleId, create a new user
