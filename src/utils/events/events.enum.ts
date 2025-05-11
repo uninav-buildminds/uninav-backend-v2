@@ -1,6 +1,7 @@
 export enum EVENTS {
   // Auth & User Events
   USER_REGISTERED = 'user.registered',
+  USER_REGISTERED_WITH_GOOGLE = 'user.registered.google',
   EMAIL_VERIFICATION_REQUESTED = 'email.verification.requested',
   EMAIL_VERIFICATION_SUCCESS = 'email.verification.success',
   EMAIL_VERIFICATION_RESEND = 'email.verification.resend',

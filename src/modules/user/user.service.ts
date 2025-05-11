@@ -101,6 +101,45 @@ export class UserService {
       );
     }
   }
+
+  async findByGoogleId(googleId: string) {
+    try {
+      // userRepository will need findByGoogleId
+      const user = await this.userRepository.findByGoogleId(googleId);
+      return user; // Can be null if not found, handled by AuthService
+    } catch (error) {
+      this.logger.error(
+        `Error retrieving user by googleId ${googleId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error retrieving user by googleId: ${error.message}`,
+      );
+    }
+  }
+
+  async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
+    // Simple initial username generation
+    const baseUsername = (firstName.toLowerCase() + lastName.toLowerCase()).replace(/\s+/g, '');
+    let username = baseUsername;
+    let counter = 0;
+
+    // Loop to find a unique username
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const existingUser = await this.userRepository.findByUsername(username);
+      if (!existingUser) {
+        return username; // Username is unique
+      }
+      counter++;
+      username = `${baseUsername}${counter}`;
+      if (counter > 100) { // Safety break to prevent infinite loops in extreme cases
+        this.logger.error('Could not generate a unique username after 100 attempts for base:', baseUsername);
+        throw new ConflictException('Could not generate a unique username.');
+      }
+    }
+  }
+
   async getProfile(id: string) {
     let user = await this.userRepository.getProfile(id);
     DataFormatter.formatObject(user.auth, ['password']);

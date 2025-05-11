@@ -13,9 +13,14 @@ export class UserRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
 
   async create(createUserDto: CreateUserDto) {
+    const valuesToInsert = { ...createUserDto };
+    if (valuesToInsert.googleId === undefined) {
+      delete valuesToInsert.googleId;
+    }
+
     const createdUser = await this.db
       .insert(users)
-      .values([createUserDto])
+      .values([valuesToInsert])
       .returning();
     return createdUser[0];
   }
@@ -55,6 +60,12 @@ export class UserRepository {
     });
   }
 
+  async findByGoogleId(googleId: string) {
+    return this.db.query.users.findFirst({
+      where: (user, { eq }) => eq(user.googleId, googleId),
+    });
+  }
+
   async findByEmailOrUsername(emailOrUsername: string) {
     return this.db.query.users.findFirst({
       where: (userTable, { or, eq }) =>
@@ -74,9 +85,11 @@ export class UserRepository {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    const valuesToUpdate = { ...updateUserDto, updatedAt: new Date() };
+
     const updatedUser = await this.db
       .update(users)
-      .set({ ...updateUserDto, updatedAt: new Date() } as any)
+      .set(valuesToUpdate as any)
       .where(eq(users.id, id))
       .returning();
 

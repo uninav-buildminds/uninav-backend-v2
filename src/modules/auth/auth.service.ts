@@ -412,17 +412,96 @@ export class AuthService {
     emailOrMatricNo: string,
     password: string,
   ): Promise<UserEntity | null> {
-    const authData =
-      await this.authRepository.findByEmailOrMatricNo(emailOrMatricNo);
+    const auth = await this.authRepository.findByEmailOrMatricNo(
+      emailOrMatricNo,
+    );
 
-    if (!authData) {
-      return null;
-    }
-
-    if (await this.comparePassword(password, authData.password)) {
-      // Return the user data without sensitive auth information
-      return authData.user;
+    if (auth && (await this.comparePassword(password, auth.password))) {
+      return auth.user; // Assuming relation 'user' is loaded or use userService
     }
     return null;
+  }
+
+  async validateUserWithGoogle(
+    email: string,
+    firstName: string,
+    lastName: string,
+    googleId: string,
+  ): Promise<UserEntity> {
+    this.logger.log(`Attempting Google validation for email: ${email}, googleId: ${googleId}`);
+
+    // 1. Check if user exists by googleId
+    let user = await this.userService.findByGoogleId(googleId);
+    if (user) {
+      this.logger.log(`User found by googleId: ${googleId}`);
+      return user;
+    }
+
+    // 2. If not, check if user exists by email
+    this.logger.log(`User not found by googleId, checking by email: ${email}`);
+    user = await this.userService.findByEmail(email);
+
+    if (user) {
+      this.logger.log(`User found by email: ${email}. Linking googleId: ${googleId}`);
+      // User exists, link their Google ID
+      // Ensure the update method in userService can handle adding googleId
+      await this.userService.update(user.id, { googleId });
+      // Re-fetch to get potentially updated relations or ensure data consistency
+      const updatedUser = await this.userService.findOne(user.id);
+      if (!updatedUser) {
+        // This case should ideally not happen if update was successful
+        throw new NotFoundException('Failed to retrieve user after linking Google ID.');
+      }
+      return updatedUser;
+    }
+
+    // 3. If no user exists by email or googleId, create a new user
+    this.logger.log(`No existing user found. Creating new user for email: ${email}, googleId: ${googleId}`);
+    
+    // Ensure userService.generateUniqueUsername exists and works as expected
+    const username = await this.userService.generateUniqueUsername(firstName, lastName); 
+
+    const newUserDto = {
+      email,
+      firstName,
+      lastName,
+      username,
+      googleId,
+      role: 'student', // Default role
+      level: 100, // Default level, adjust as per your application's logic
+      // departmentId might be null initially or set to a default if applicable
+      // For now, not setting departmentId, assuming it can be null or set later
+    };
+
+    const createdUser = await this.userService.create(newUserDto as any); 
+
+    // Create an auth record for the new user.
+    const authDto = {
+      userId: createdUser.id,
+      email: createdUser.email,
+      // For Google authenticated users, traditional password is not set.
+      // The auth record might store this fact or have a placeholder.
+      // Ensure this doesn't conflict with other auth flows.
+      // Setting password to a very long random unguessable string
+      password: cryptoService.generateRandomKey(32), // Generate a random key as placeholder
+      emailVerified: true, // Email is verified by Google
+      // matricNo can be null or handled differently for Google users
+    };
+    await this.authRepository.create(authDto as any); 
+
+    this.logger.log(`New user created and auth record established for googleId: ${googleId}`);
+
+    this.eventEmitter.emit(EVENTS.USER_REGISTERED_WITH_GOOGLE, {
+      email: createdUser.email,
+      firstName: createdUser.firstName,
+      lastName: createdUser.lastName,
+      userId: createdUser.id,
+    });
+
+    return createdUser;
+  }
+
+  async login(user: UserEntity) {
+    // Implementation of login method
   }
 }

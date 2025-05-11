@@ -29,6 +29,7 @@ export const users = pgTable(
     firstName: text('first_name').notNull(),
     lastName: text('last_name').notNull(),
     username: text('username').notNull().unique(),
+    googleId: text('google_id').unique(),
     departmentId: uuid('department_id').references(() => department.id, {
       onDelete: 'set null',
     }),
@@ -39,6 +40,7 @@ export const users = pgTable(
   (table) => ({
     emailIndex: index('users_email_index').on(table.email),
     usernameIndex: index('user_username_index').on(table.username),
+    googleIdIndex: index('user_google_id_index').on(table.googleId),
   }),
 );
 

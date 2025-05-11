@@ -10,6 +10,7 @@ import {
   Query,
   Headers,
   UnauthorizedException,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -22,7 +23,6 @@ import { UserService } from 'src/modules/user/user.service';
 import {
   ResendVerificationDto,
   VerifyEmailDto,
-  VerifyEmailTokenDto,
 } from './dto/verify-email.dto';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from 'src/utils/config/env.enum';
@@ -30,6 +30,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from 'src/modules/auth/dto/password-reset.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -197,5 +198,44 @@ export class AuthController {
       { reset },
     );
     return responseObj;
+  }
+
+  // Google OAuth initiation route
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth(@Req() req: Request) {
+    // Passport strategy will automatically redirect to Google
+    // This function might not even be called if redirect happens before
+    // It's here mainly to apply the guard
+  }
+
+  // Google OAuth callback route
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const user = req.user as UserEntity;
+
+    if (!user) {
+      // This case should ideally be handled by the strategy or guard
+      // If it reaches here, something went wrong with user validation/creation
+      throw new BadRequestException('Google authentication failed: No user profile returned.');
+    }
+
+    // At this point, `user` is the user object returned by GoogleStrategy.validate()
+    // which means user is found or created in our DB.
+
+    const accessToken = await this.authService.generateToken(user.id);
+
+    // Set cookie
+    res.cookie('authorization', accessToken, globalCookieOptions);
+
+    // Redirect to frontend loading page with token in query param
+    const frontendUrl = this.configService.get(ENV.FRONTEND_URL);
+    const redirectUrl = `${frontendUrl}/auth/google/loading?token=${accessToken}`;
+
+    // Perform the redirect
+    // passthrough: true with res.redirect() might not work as expected for status codes other than default.
+    // Using res.status().redirect() for clarity.
+    res.status(HttpStatus.FOUND).redirect(redirectUrl);
   }
 }

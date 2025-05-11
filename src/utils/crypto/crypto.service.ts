@@ -65,6 +65,10 @@ class CryptoService implements CryptoInterface {
     return randomInt(100000, 1000000).toString();
   }
 
+  generateRandomKey(bytes: number): string {
+    return randomBytes(bytes).toString('hex');
+  }
+
   static getInstance(): CryptoService {
     if (!this.instance) {
       this.instance = new CryptoService();

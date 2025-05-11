@@ -37,4 +37,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(UserRoleEnum)
   role?: UserRoleEnum;
+
+  @IsString()
+  @IsOptional()
+  googleId?: string;
 }
