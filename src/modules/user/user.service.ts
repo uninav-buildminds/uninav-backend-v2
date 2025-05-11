@@ -32,27 +32,32 @@ export class UserService {
       throw new BadRequestException('User with this username already exists');
     }
 
-    let department = await this.departmentService.findOne(
-      createUserDto.departmentId,
-    );
-    if (!department) {
-      throw new NotFoundException(
-        `Department with ID ${createUserDto.departmentId} does not exist`,
+    // Only validate department if departmentId is provided
+    if (createUserDto.departmentId) {
+      let department = await this.departmentService.findOne(
+        createUserDto.departmentId,
       );
+      if (!department) {
+        throw new NotFoundException(
+          `Department with ID ${createUserDto.departmentId} does not exist`,
+        );
+      }
     }
 
     try {
       const user = await this.userRepository.create(createUserDto);
 
-      // Fetch and populate user courses
-      const userCourses =
-        await this.coursesRepository.findCoursesByDepartmentAndLevel(
-          createUserDto.departmentId,
-          createUserDto.level,
-        );
+      // Only fetch and populate user courses if departmentId is provided
+      if (createUserDto.departmentId) {
+        const userCourses =
+          await this.coursesRepository.findCoursesByDepartmentAndLevel(
+            createUserDto.departmentId,
+            createUserDto.level,
+          );
 
-      // Create user course relationships
-      await this.coursesRepository.createUserCourses(user.id, userCourses);
+        // Create user course relationships
+        await this.coursesRepository.createUserCourses(user.id, userCourses);
+      }
 
       return user;
     } catch (error) {

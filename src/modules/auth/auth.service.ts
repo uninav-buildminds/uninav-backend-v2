@@ -475,9 +475,10 @@ export class AuthService {
       username,
       googleId,
       role: 'student', // Default role
-      level: 100, // Default level, adjust as per your application's logic
       // departmentId might be null initially or set to a default if applicable
       // For now, not setting departmentId, assuming it can be null or set later
+      level: 100, // Default level
+      departmentId: null, // Allow null department for Google sign-ups
     };
 
     const createdUser = await this.userService.create(newUserDto as any); 

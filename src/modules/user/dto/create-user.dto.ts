@@ -27,8 +27,8 @@ export class CreateUserDto {
   username: string;
 
   @IsString()
-  @IsNotEmpty()
-  departmentId: string;
+  @IsOptional()
+  departmentId?: string;
 
   @IsNumber()
   @IsIn([100, 200, 300, 400, 500, 600])
