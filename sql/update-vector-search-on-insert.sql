@@ -41,3 +41,11 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER material_fts_trigger
 BEFORE INSERT OR UPDATE ON material
 FOR EACH ROW EXECUTE FUNCTION update_material_search_vector();
+
+-- Update existing rows in the material table
+UPDATE material
+SET search_vector = 
+    setweight(to_tsvector('english', COALESCE(label, '')), 'A') ||
+    setweight(to_tsvector('english', COALESCE(description, '')), 'B') ||
+    setweight(to_tsvector('english', COALESCE(array_to_string(tags, ' '), '')), 'C')
+WHERE search_vector IS NULL;
