@@ -4,7 +4,7 @@ import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { DrizzleDB } from 'src/utils/types/db.types';
-import { eq, or, and, inArray, isNull } from 'drizzle-orm';
+import { eq, or, and, inArray, isNull, ilike } from 'drizzle-orm';
 import { userCourses, bookmarks } from 'src/modules/drizzle/schema/user.schema';
 import { AddBookmarkDto } from './dto/bookmark.dto';
 import { sql } from 'drizzle-orm';
@@ -85,8 +85,24 @@ export class UserRepository {
     });
   }
 
-  async findAllWithRelations(limit: number, offset: number) {
+  async findAllWithRelations(limit: number, offset: number, query?: string) {
+    const conditions = [];
+    if (query) {
+      const searchTerm = `%${query}%`;
+      conditions.push(
+        or(
+          ilike(users.firstName, searchTerm),
+          ilike(users.lastName, searchTerm),
+          ilike(users.email, searchTerm),
+          ilike(users.username, searchTerm),
+        ),
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
     return this.db.query.users.findMany({
+      where: whereClause,
       with: {
         department: true,
         auth: {
@@ -106,8 +122,25 @@ export class UserRepository {
     });
   }
 
-  async countAll() {
-    const result = await this.db.select({ count: sql`count(*)` }).from(users);
+  async countAll(query?: string) {
+    const conditions = [];
+    if (query) {
+      const searchTerm = `%${query}%`;
+      conditions.push(
+        or(
+          ilike(users.firstName, searchTerm),
+          ilike(users.lastName, searchTerm),
+          ilike(users.email, searchTerm),
+          ilike(users.username, searchTerm),
+        ),
+      );
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const result = await this.db
+      .select({ count: sql`count(*)` })
+      .from(users)
+      .where(whereClause);
     return parseInt(result[0].count as string, 10);
   }
 

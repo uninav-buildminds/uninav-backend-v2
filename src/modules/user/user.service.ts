@@ -80,13 +80,14 @@ export class UserService {
     limit: number;
   }> {
     try {
-      const { page, limit } = paginationDto;
+      const { page, limit, query } = paginationDto;
       const offset = (page - 1) * limit;
       const users = await this.userRepository.findAllWithRelations(
         limit,
         offset,
+        query,
       );
-      const totalUsers = await this.userRepository.countAll();
+      const totalUsers = await this.userRepository.countAll(query);
       return {
         data: users as any,
         total: totalUsers,
