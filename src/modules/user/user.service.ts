@@ -13,6 +13,8 @@ import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { DepartmentService } from 'src/modules/department/department.service';
 import { CoursesRepository } from '../courses/courses.repository';
 import { AddBookmarkDto } from './dto/bookmark.dto';
+import { PaginationDto } from 'src/utils/globalDto/pagination.dto';
+import { UserEntity } from 'src/utils/types/db.types';
 
 @Injectable()
 export class UserService {
@@ -71,10 +73,26 @@ export class UserService {
     }
   }
 
-  async findAll() {
+  async findAll(paginationDto: PaginationDto): Promise<{
+    data: UserEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     try {
-      const users = await this.userRepository.findAll();
-      return users;
+      const { page, limit } = paginationDto;
+      const offset = (page - 1) * limit;
+      const users = await this.userRepository.findAllWithRelations(
+        limit,
+        offset,
+      );
+      const totalUsers = await this.userRepository.countAll();
+      return {
+        data: users as any,
+        total: totalUsers,
+        page,
+        limit,
+      };
     } catch (error) {
       this.logger.error(
         `Error retrieving users: ${error.message}`,
@@ -480,7 +498,7 @@ export class UserService {
       }
 
       throw new InternalServerErrorException(
-        `Error retrieving bookmark: ${error.message}`,
+        `Error retrieving bookmark ${bookmarkId} for user ${userId}: ${error.message}`,
       );
     }
   }

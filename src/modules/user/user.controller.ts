@@ -13,6 +13,7 @@ import {
   ParseUUIDPipe,
   Headers,
   UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -25,6 +26,9 @@ import { AddCourseDto } from './dto/add-course.dto';
 import { AddBookmarkDto } from './dto/bookmark.dto';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 import { ConfigService } from '@nestjs/config';
+import { Roles } from 'src/utils/decorators/roles.decorator';
+import { UserRoleEnum } from 'src/utils/types/db.types';
+import { PaginationDto } from 'src/utils/globalDto/pagination.dto';
 
 @Controller('user')
 export class UserController {
@@ -182,6 +186,17 @@ export class UserController {
     return ResponseDto.createSuccessResponse(
       'User retrieved successfully',
       user,
+    );
+  }
+
+  @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRoleEnum.ADMIN)
+  async findAll(@Query() paginationDto: PaginationDto) {
+    const result = await this.userService.findAll(paginationDto);
+    return ResponseDto.createSuccessResponse(
+      'Users retrieved successfully',
+      result,
     );
   }
 }

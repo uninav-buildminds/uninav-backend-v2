@@ -7,6 +7,7 @@ import { DrizzleDB } from 'src/utils/types/db.types';
 import { eq, or, and, inArray, isNull } from 'drizzle-orm';
 import { userCourses, bookmarks } from 'src/modules/drizzle/schema/user.schema';
 import { AddBookmarkDto } from './dto/bookmark.dto';
+import { sql } from 'drizzle-orm';
 
 @Injectable()
 export class UserRepository {
@@ -82,6 +83,32 @@ export class UserRepository {
         department: true,
       },
     });
+  }
+
+  async findAllWithRelations(limit: number, offset: number) {
+    return this.db.query.users.findMany({
+      with: {
+        department: true,
+        auth: {
+          columns: {
+            emailVerified: true,
+          },
+        },
+        courses: {
+          with: {
+            course: true,
+          },
+        },
+      },
+      limit: limit,
+      offset: offset,
+      orderBy: (users, { desc }) => [desc(users.createdAt)],
+    });
+  }
+
+  async countAll() {
+    const result = await this.db.select({ count: sql`count(*)` }).from(users);
+    return parseInt(result[0].count as string, 10);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
