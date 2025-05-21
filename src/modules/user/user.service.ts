@@ -26,7 +26,6 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    // * email should be verified from auth
     let userWithUsername = await this.userRepository.findByUsername(
       createUserDto.username,
     );
@@ -34,6 +33,12 @@ export class UserService {
       throw new BadRequestException('User with this username already exists');
     }
 
+    let userWithEmail = await this.userRepository.findByEmail(
+      createUserDto.email,
+    );
+    if (userWithEmail) {
+      throw new BadRequestException('User with this email already exists');
+    }
     // Only validate department if departmentId is provided
     if (createUserDto.departmentId) {
       let department = await this.departmentService.findOne(
