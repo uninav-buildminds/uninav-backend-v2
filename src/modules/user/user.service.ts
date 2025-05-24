@@ -147,9 +147,14 @@ export class UserService {
     }
   }
 
-  async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
+  async generateUniqueUsername(
+    firstName: string,
+    lastName: string,
+  ): Promise<string> {
     // Simple initial username generation
-    const baseUsername = (firstName.toLowerCase() + lastName.toLowerCase()).replace(/\s+/g, '');
+    const baseUsername = (
+      firstName.toLowerCase() + (lastName ? lastName.toLowerCase() : '')
+    ).replace(/\s+/g, '');
     let username = baseUsername;
     let counter = 0;
 
@@ -162,8 +167,12 @@ export class UserService {
       }
       counter++;
       username = `${baseUsername}${counter}`;
-      if (counter > 100) { // Safety break to prevent infinite loops in extreme cases
-        this.logger.error('Could not generate a unique username after 100 attempts for base:', baseUsername);
+      if (counter > 100) {
+        // Safety break to prevent infinite loops in extreme cases
+        this.logger.error(
+          'Could not generate a unique username after 100 attempts for base:',
+          baseUsername,
+        );
         throw new ConflictException('Could not generate a unique username.');
       }
     }
