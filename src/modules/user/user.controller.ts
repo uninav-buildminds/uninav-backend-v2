@@ -55,7 +55,7 @@ export class UserController {
   }
   @Get('user-profile')
   async getProfileCourses(@Query('username') username: string) {
-    const {id, email, ...user} = await this.userService.findByUsername(username);
+    const { email, ...user} = await this.userService.findByUsername(username);
     return ResponseDto.createSuccessResponse(
       'User courses retrieved successfully',
       user,
