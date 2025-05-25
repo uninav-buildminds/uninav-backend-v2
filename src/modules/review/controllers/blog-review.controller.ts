@@ -9,6 +9,7 @@ import {
   Query,
   UnauthorizedException,
   NotFoundException,
+  Delete,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ReviewActionDto } from '../dto/review-action.dto';
@@ -109,7 +110,7 @@ export class BlogReviewController {
     );
   }
 
-  @Post('delete/:id')
+  @Delete(':id')
   async remove(@Param('id') id: string, @Req() req: Request) {
     const reviewer = req.user as UserEntity;
 
