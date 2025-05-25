@@ -66,6 +66,7 @@ export class UserRepository {
         email: true,
         level: true,
         departmentId: true,
+        role: true,
         createdAt: true,
         updatedAt: true,
       },
