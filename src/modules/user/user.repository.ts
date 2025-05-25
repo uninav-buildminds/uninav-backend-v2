@@ -58,6 +58,20 @@ export class UserRepository {
   async findByUsername(username: string) {
     return this.db.query.users.findFirst({
       where: (user, { eq }) => eq(user.username, username),
+      columns: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        email: true,
+        level: true,
+        departmentId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      with: {
+        department: true,
+      },
     });
   }
 

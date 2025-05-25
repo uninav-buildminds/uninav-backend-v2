@@ -162,8 +162,14 @@ export class MaterialController {
   }
 
   @Get('user/:creatorId')
-  async findByCreator(@Param('creatorId') creatorId: string) {
-    const materials = await this.materialService.findByCreator(creatorId);
+  async findByCreator(
+    @Param('creatorId') creatorId: string,
+    @Query('page') page: string = '1',
+  ) {
+    const materials = await this.materialService.findAllPaginated({
+      creatorId,
+      page: +page,
+    });
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,

@@ -53,6 +53,14 @@ export class UserController {
       profile,
     );
   }
+  @Get('user-profile')
+  async getProfileCourses(@Query('username') username: string) {
+    const {id, email, ...user} = await this.userService.findByUsername(username);
+    return ResponseDto.createSuccessResponse(
+      'User courses retrieved successfully',
+      user,
+    );
+  }
 
   @Patch()
   @UseGuards(RolesGuard)
