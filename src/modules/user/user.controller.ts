@@ -18,17 +18,17 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Request } from 'express';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { UserEntity } from 'src/utils/types/db.types';
-import { UpdateUserDto } from 'src/modules/user/dto/update-user.dto';
+import { ResponseDto } from '../../utils/globalDto/response.dto';
+import { RolesGuard } from '../../guards/roles.guard';
+import { UserEntity } from '../../utils/types/db.types';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { AddCourseDto } from './dto/add-course.dto';
 import { AddBookmarkDto } from './dto/bookmark.dto';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 import { ConfigService } from '@nestjs/config';
-import { Roles } from 'src/utils/decorators/roles.decorator';
-import { UserRoleEnum } from 'src/utils/types/db.types';
-import { PaginationDto } from 'src/utils/globalDto/pagination.dto';
+import { Roles } from '../../utils/decorators/roles.decorator';
+import { UserRoleEnum } from '../../utils/types/db.types';
+import { PaginationDto } from '../../utils/globalDto/pagination.dto';
 
 @Controller('user')
 export class UserController {
@@ -55,7 +55,7 @@ export class UserController {
   }
   @Get('user-profile')
   async getProfileCourses(@Query('username') username: string) {
-    const { email, ...user} = await this.userService.findByUsername(username);
+    const { email, ...user } = await this.userService.findByUsername(username);
     return ResponseDto.createSuccessResponse(
       'User courses retrieved successfully',
       user,

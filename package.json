@@ -4,7 +4,14 @@
   "description": "",
   "author": "",
   "private": true,
-  "packageManager": "pnpm@10.2.0",
+  "engines": {
+    "node": "v22.16.0",
+    "pnpm:": "v10.14.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ProsperCoded/uninav-backend.git"
+  },
   "license": "UNLICENSED",
   "main": "dist/src/main.js",
   "scripts": {
@@ -12,7 +19,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:debug": "nest start --debug --watch",
-    "start:dev": "nest start --watch",
+    "dev": "nest start --watch",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:push": "drizzle-kit push --config drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
@@ -98,7 +105,7 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -107,6 +114,13 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleDirectories": [
+      "<rootDir>/../",
+      "node_modules"
+    ],
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/src/$1"
+    }
   }
 }

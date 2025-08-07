@@ -8,12 +8,12 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRepository } from 'src/modules/user/user.repository';
-import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
-import { DepartmentService } from 'src/modules/department/department.service';
+import { UserRepository } from './user.repository';
+import { DataFormatter } from '../../utils/helpers/data-formater.helper';
+import { DepartmentService } from '../department/department.service';
 import { CoursesRepository } from '../courses/courses.repository';
 import { AddBookmarkDto } from './dto/bookmark.dto';
-import { PaginationDto } from 'src/utils/globalDto/pagination.dto';
+import { PaginationDto } from '../../utils/globalDto/pagination.dto';
 import { UserEntity } from 'src/utils/types/db.types';
 
 @Injectable()
