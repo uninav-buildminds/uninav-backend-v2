@@ -11,6 +11,7 @@ import {
   Req,
   NotFoundException,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { ReviewActionDto } from '../dto/review-action.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/utils/decorators/roles.decorator';
@@ -26,6 +27,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EVENTS } from 'src/utils/events/events.enum';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 
+@ApiTags('Reviews')
 @Controller('review/moderators')
 @UseGuards(RolesGuard)
 @Roles(UserRoleEnum.ADMIN)

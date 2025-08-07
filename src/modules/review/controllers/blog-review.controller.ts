@@ -11,6 +11,7 @@ import {
   NotFoundException,
   Delete,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { ReviewActionDto } from '../dto/review-action.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
@@ -26,6 +27,7 @@ import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { EVENTS } from 'src/utils/events/events.enum';
 import { UserService } from 'src/modules/user/user.service';
 
+@ApiTags('BlogReview')
 @Controller('review/blogs')
 @UseGuards(RolesGuard)
 @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)

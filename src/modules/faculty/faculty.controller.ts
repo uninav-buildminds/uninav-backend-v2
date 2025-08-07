@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { FacultyService } from './faculty.service';
 import { CreateFacultyDto } from './dto/create-faculty.dto';
 import { UpdateFacultyDto } from './dto/update-faculty.dto';
@@ -19,6 +20,7 @@ import { UserRoleEnum } from 'src/utils/types/db.types';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
 
+@ApiTags('Faculty')
 @Controller('faculty')
 @UseInterceptors(CacheControlInterceptor)
 export class FacultyController {

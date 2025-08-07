@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CollectionService } from './collection.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
@@ -18,6 +19,7 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { Request } from 'express';
 import { UserEntity } from 'src/utils/types/db.types';
 
+@ApiTags('Collection')
 @Controller('collections')
 export class CollectionController {
   constructor(private readonly collectionService: CollectionService) {}
