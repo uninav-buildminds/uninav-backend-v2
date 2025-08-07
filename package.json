@@ -17,7 +17,7 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start:prod": "nest start",
     "start:debug": "nest start --debug --watch",
     "dev": "nest start --watch",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
