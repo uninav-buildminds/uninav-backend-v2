@@ -39,11 +39,11 @@ export class UserController {
     private readonly configService: ConfigService,
   ) {}
 
-  @Post()
-  async create(@Body() createUserDto: CreateUserDto) {
-    const user = await this.userService.create(createUserDto);
-    return ResponseDto.createSuccessResponse('User created successfully', user);
-  }
+  // @Post()
+  // async create(@Body() createUserDto: CreateUserDto) {
+  //   const user = await this.userService.create(createUserDto);
+  //   return ResponseDto.createSuccessResponse('User created successfully', user);
+  // }
 
   @Get('profile')
   @UseGuards(RolesGuard)

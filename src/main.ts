@@ -83,6 +83,9 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true,
       displayRequestDuration: true,
+      docExpansion: 'none', // Collapse all sections by default
+      defaultModelsExpandDepth: 1,
+      defaultModelExpandDepth: 1,
     },
   });
 

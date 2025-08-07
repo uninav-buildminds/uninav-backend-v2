@@ -30,7 +30,7 @@ export class CreateAuthDto {
 
   @ApiProperty({
     description: 'Student matriculation number',
-    example: 'STU/2023/001',
+    example: '223221',
     minLength: 6,
     required: false,
   })
