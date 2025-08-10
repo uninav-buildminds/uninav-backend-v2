@@ -9,7 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -19,6 +19,7 @@ import { Roles } from 'src/utils/decorators/roles.decorator';
 import { UserRoleEnum } from 'src/utils/types/db.types';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { DepartmentDto } from 'src/utils/swagger/department.dto';
 
 @ApiTags('Department')
 @Controller('department')
@@ -37,6 +38,11 @@ export class DepartmentController {
     );
   }
 
+  @ApiResponse({
+    status: 200,
+    description: 'Departments retrieved successfully',
+    type: [DepartmentDto],
+  })
   @Get()
   @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findAll() {

@@ -9,7 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FacultyService } from './faculty.service';
 import { CreateFacultyDto } from './dto/create-faculty.dto';
 import { UpdateFacultyDto } from './dto/update-faculty.dto';
@@ -19,6 +19,7 @@ import { Roles } from 'src/utils/decorators/roles.decorator';
 import { UserRoleEnum } from 'src/utils/types/db.types';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { FacultyDto } from 'src/utils/swagger/faculty.dto';
 
 @ApiTags('Faculty')
 @Controller('faculty')
@@ -37,6 +38,11 @@ export class FacultyController {
     );
   }
 
+  @ApiResponse({
+    status: 200,
+    description: 'Faculties retrieved successfully',
+    type: [FacultyDto],
+  })
   @Get()
   @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findAll() {
@@ -47,6 +53,11 @@ export class FacultyController {
     );
   }
 
+  @ApiResponse({
+    status: 200,
+    description: 'Faculty retrieved successfully',
+    type: FacultyDto,
+  })
   @Get(':id')
   @CacheControl({ public: true, maxAge: 3600 * 24 }) // Cache for 1 day
   async findOne(@Param('id') id: string) {
