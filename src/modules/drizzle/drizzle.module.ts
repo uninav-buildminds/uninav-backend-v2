@@ -41,7 +41,9 @@ import { ENV } from 'src/utils/config/env.enum';
           await pool.connect();
           logger.log('Connected to database Successfully 😃');
         } catch (error) {
-          logger.error('Failed to connect to database:', error);
+          logger.error('Failed to connect to database:');
+          logger.error(error.message);
+          console.log(error);
         }
 
         return drizzle(pool, { schema }) as DrizzleDB;
