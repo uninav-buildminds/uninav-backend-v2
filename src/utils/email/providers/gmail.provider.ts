@@ -6,10 +6,7 @@ import * as path from 'path';
 import { IEmailService } from '../email.service.interface';
 import { configService } from 'src/utils/config/config.service';
 import SMTPPool from 'nodemailer/lib/smtp-pool';
-import {
-  EmailPaths,
-  EmailSubjects,
-} from 'src/utils/config/constants/email.enum';
+import { EmailPaths, EmailType } from 'src/utils/email/constants/email.enum';
 import { Logger } from '@nestjs/common';
 
 class OAuth2Client extends google.auth.OAuth2 {}
@@ -62,7 +59,7 @@ export default class NodemailerProvider implements IEmailService {
     options,
   }: {
     to: string;
-    subject: EmailSubjects;
+    subject: EmailType;
     options: { template: EmailPaths; data: { [key: string]: any } };
   }): Promise<boolean> {
     (this.transporter as any).accessToken =

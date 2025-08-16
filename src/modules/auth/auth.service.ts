@@ -19,17 +19,14 @@ import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { cryptoService } from 'src/utils/crypto/crypto.service';
 import { VerifyEmailDto, VerifyEmailTokenDto } from './dto/verify-email.dto';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EVENTS } from 'src/utils/events/events.enum';
 import { ConfigService } from '@nestjs/config';
 import { DepartmentService } from 'src/modules/department/department.service';
-import { EmailService } from 'src/utils/email/email.service';
-import {
-  EmailPaths,
-  EmailSubjects,
-} from 'src/utils/config/constants/email.enum';
+import { EmailType } from 'src/utils/email/constants/email.enum';
+import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ModeratorService } from '../moderator/moderator.service';
 import { AdminService } from '../admin/admin.service';
+import { EventsEmitter } from 'src/utils/events/events.emitter';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +36,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly authRepository: AuthRepository,
     private readonly departmentService: DepartmentService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventsEmitter: EventsEmitter,
     @Inject(envConfig.KEY) private readonly config: ConfigType,
     @Inject(JWT_SYMBOL) private jwtService: JwtService,
     private readonly adminService: AdminService,
@@ -110,14 +107,18 @@ export class AuthService {
       createStudentDto.departmentId,
     );
 
-    // Emit event for welcome email
-    this.eventEmitter.emit(EVENTS.USER_REGISTERED, {
-      email: createStudentDto.email,
-      firstName: createStudentDto.firstName,
-      lastName: createStudentDto.lastName,
-      departmentName: department.name,
-      role: createdUser.role,
-    });
+    // Send welcome email
+    const welcomeEmailPayload: EmailPayloadDto = {
+      to: createStudentDto.email,
+      type: EmailType.WELCOME,
+      context: {
+        firstName: createStudentDto.firstName,
+        lastName: createStudentDto.lastName,
+        departmentName: department.name,
+        role: createdUser.role,
+      },
+    };
+    this.eventsEmitter.sendEmail(welcomeEmailPayload);
 
     return createdUser;
   }
@@ -172,14 +173,18 @@ export class AuthService {
     // Create verification URL - don't URL encode here since the frontend will handle it
     const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${token}`;
 
-    // Emit event for email verification
-    this.eventEmitter.emit(EVENTS.EMAIL_VERIFICATION_REQUESTED, {
-      email,
-      firstName,
-      lastName,
-      verificationCode,
-      verificationUrl,
-    });
+    // Send email verification
+    const verificationEmailPayload: EmailPayloadDto = {
+      to: email,
+      type: EmailType.EMAIL_VERIFICATION,
+      context: {
+        firstName,
+        lastName,
+        verificationCode,
+        verificationUrl,
+      },
+    };
+    this.eventsEmitter.sendEmail(verificationEmailPayload);
 
     return true;
   }
@@ -224,12 +229,16 @@ export class AuthService {
           true,
         );
 
-        // Emit event for verification success
-        this.eventEmitter.emit(EVENTS.EMAIL_VERIFICATION_SUCCESS, {
-          email: payload.email,
-          firstName: auth.user.firstName,
-          lastName: auth.user.lastName,
-        });
+        // Send verification success email
+        const successEmailPayload: EmailPayloadDto = {
+          to: payload.email,
+          type: EmailType.EMAIL_VERIFICATION_SUCCESS,
+          context: {
+            firstName: auth.user.firstName,
+            lastName: auth.user.lastName,
+          },
+        };
+        this.eventsEmitter.sendEmail(successEmailPayload);
 
         return true;
       } catch (jwtError) {
@@ -274,12 +283,16 @@ export class AuthService {
         throw new UnauthorizedException('Invalid verification code');
       }
 
-      // Emit event for verification success
-      this.eventEmitter.emit(EVENTS.EMAIL_VERIFICATION_SUCCESS, {
-        email: verifyEmailDto.email,
-        firstName: auth.user.firstName,
-        lastName: auth.user.lastName,
-      });
+      // Send verification success email
+      const verificationSuccessPayload: EmailPayloadDto = {
+        to: verifyEmailDto.email,
+        type: EmailType.EMAIL_VERIFICATION_SUCCESS,
+        context: {
+          firstName: auth.user.firstName,
+          lastName: auth.user.lastName,
+        },
+      };
+      this.eventsEmitter.sendEmail(verificationSuccessPayload);
 
       return true;
     } catch (error) {
@@ -309,14 +322,24 @@ export class AuthService {
       verificationCode,
     );
 
-    // Emit event to resend verification email
-    this.eventEmitter.emit(EVENTS.EMAIL_VERIFICATION_RESEND, {
-      email,
-      firstName: auth.user.firstName,
-      lastName: auth.user.lastName,
-      verificationCode,
-      userId: auth.userId,
-    });
+    // Generate verification token as backup
+    const token = await this.generateVerificationToken(email, verificationCode);
+
+    // Create verification URL
+    const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${encodeURIComponent(token)}`;
+
+    // Send resend verification email
+    const resendEmailPayload: EmailPayloadDto = {
+      to: email,
+      type: EmailType.EMAIL_VERIFICATION,
+      context: {
+        firstName: auth.user.firstName,
+        lastName: auth.user.lastName,
+        verificationCode,
+        verificationUrl,
+      },
+    };
+    this.eventsEmitter.sendEmail(resendEmailPayload);
 
     return true;
   }
@@ -342,13 +365,17 @@ export class AuthService {
     // Create reset URL
     const resetUrl = `${this.config.FRONTEND_URL}/auth/reset-password?token=${encodedToken}`;
 
-    // Emit event for password reset email
-    this.eventEmitter.emit(EVENTS.PASSWORD_RESET_REQUESTED, {
-      email,
-      firstName: auth.user.firstName,
-      lastName: auth.user.lastName,
-      resetUrl,
-    });
+    // Send password reset email
+    const passwordResetPayload: EmailPayloadDto = {
+      to: email,
+      type: EmailType.PASSWORD_RESET,
+      context: {
+        firstName: auth.user.firstName,
+        lastName: auth.user.lastName,
+        resetUrl,
+      },
+    };
+    this.eventsEmitter.sendEmail(passwordResetPayload);
 
     return true;
   }
@@ -413,9 +440,8 @@ export class AuthService {
     emailOrMatricNo: string,
     password: string,
   ): Promise<UserEntity | null> {
-    const auth = await this.authRepository.findByEmailOrMatricNo(
-      emailOrMatricNo,
-    );
+    const auth =
+      await this.authRepository.findByEmailOrMatricNo(emailOrMatricNo);
 
     if (auth && (await this.comparePassword(password, auth.password))) {
       return auth.user; // Assuming relation 'user' is loaded or use userService
@@ -429,7 +455,9 @@ export class AuthService {
     lastName: string,
     googleId: string,
   ): Promise<UserEntity> {
-    this.logger.log(`Attempting Google validation for email: ${email}, googleId: ${googleId}`);
+    this.logger.log(
+      `Attempting Google validation for email: ${email}, googleId: ${googleId}`,
+    );
 
     // 1. Check if user exists by googleId
     let user = await this.userService.findByGoogleId(googleId);
@@ -443,30 +471,41 @@ export class AuthService {
     try {
       user = await this.userService.findByEmail(email);
       if (user) {
-        this.logger.log(`User found by email: ${email}. Linking googleId: ${googleId}`);
+        this.logger.log(
+          `User found by email: ${email}. Linking googleId: ${googleId}`,
+        );
         // User exists, link their Google ID
         await this.userService.update(user.id, { googleId });
         // Re-fetch to get potentially updated relations or ensure data consistency
         const updatedUser = await this.userService.findOne(user.id);
         if (!updatedUser) {
-          throw new NotFoundException('Failed to retrieve user after linking Google ID.');
+          throw new NotFoundException(
+            'Failed to retrieve user after linking Google ID.',
+          );
         }
         return updatedUser;
       }
     } catch (error) {
       if (error instanceof NotFoundException) {
         // User not found by email, continue to create new user
-        this.logger.log(`No existing user found. Creating new user for email: ${email}, googleId: ${googleId}`);
+        this.logger.log(
+          `No existing user found. Creating new user for email: ${email}, googleId: ${googleId}`,
+        );
       } else {
         throw error;
       }
     }
 
     // 3. If no user exists by email or googleId, create a new user
-    this.logger.log(`No existing user found. Creating new user for email: ${email}, googleId: ${googleId}`);
-    
+    this.logger.log(
+      `No existing user found. Creating new user for email: ${email}, googleId: ${googleId}`,
+    );
+
     // Ensure userService.generateUniqueUsername exists and works as expected
-    const username = await this.userService.generateUniqueUsername(firstName, lastName); 
+    const username = await this.userService.generateUniqueUsername(
+      firstName,
+      lastName,
+    );
 
     const newUserDto = {
       email,
@@ -481,7 +520,7 @@ export class AuthService {
       departmentId: null, // Allow null department for Google sign-ups
     };
 
-    const createdUser = await this.userService.create(newUserDto as any); 
+    const createdUser = await this.userService.create(newUserDto as any);
 
     // Create an auth record for the new user.
     const authDto = {
@@ -495,15 +534,20 @@ export class AuthService {
       emailVerified: true, // Email is verified by Google
       // matricNo can be null or handled differently for Google users
     };
-    await this.authRepository.create(authDto as any); 
+    await this.authRepository.create(authDto as any);
 
-    this.logger.log(`New user created and auth record established for googleId: ${googleId}`);
+    this.logger.log(
+      `New user created and auth record established for googleId: ${googleId}`,
+    );
 
-    this.eventEmitter.emit(EVENTS.USER_REGISTERED_WITH_GOOGLE, {
-      email: createdUser.email,
-      firstName: createdUser.firstName,
-      lastName: createdUser.lastName,
-      userId: createdUser.id,
+    this.eventsEmitter.sendEmail({
+      to: createdUser.email,
+      type: EmailType.WELCOME,
+      context: {
+        firstName: createdUser.firstName,
+        lastName: createdUser.lastName,
+        role: createdUser.role,
+      },
     });
 
     return createdUser;

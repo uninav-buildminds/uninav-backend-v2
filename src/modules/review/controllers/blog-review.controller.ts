@@ -22,9 +22,10 @@ import {
   UserEntity,
 } from 'src/utils/types/db.types';
 import { BlogService } from 'src/modules/blog/blog.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { EVENTS } from 'src/utils/events/events.enum';
+import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { EmailType } from 'src/utils/email/constants/email.enum';
+import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';
 
 @ApiTags('BlogReview')

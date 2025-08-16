@@ -22,15 +22,17 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CacheControlInterceptor } from './interceptors/cache-control.interceptor';
 import { AdvertModule } from 'src/modules/advert/advert.module';
 import { ReviewModule } from './modules/review/review.module';
+import { GlobalModule } from './modules/global/global.module';
 
 @Module({
   imports: [
     DrizzleModule,
+    GlobalModule,
     UserModule,
     AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [ '.env.local', '.env'],
+      envFilePath: ['.env.local', '.env'],
       cache: false,
       expandVariables: true,
       load: [envConfig],

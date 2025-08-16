@@ -1,3 +1,4 @@
-import NodemailerProvider from "./nodemailer.provider";
+import NodemailerProvider from './gmail.provider';
+import BrevoProvider from './brevo.provider';
 
-export { NodemailerProvider };
+export { NodemailerProvider, BrevoProvider };

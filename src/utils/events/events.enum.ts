@@ -1,4 +1,7 @@
 export enum EVENTS {
+  // Email Events
+  NOTIFICATION_EMAIL = 'notification.email',
+
   // Auth & User Events
   USER_REGISTERED = 'user.registered',
   USER_REGISTERED_WITH_GOOGLE = 'user.registered.google',
