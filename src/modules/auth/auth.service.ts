@@ -110,7 +110,7 @@ export class AuthService {
     // Send welcome email
     const welcomeEmailPayload: EmailPayloadDto = {
       to: createStudentDto.email,
-      type: EmailType.WELCOME,
+      type: EmailType.WELCOME_STUDENT,
       context: {
         firstName: createStudentDto.firstName,
         lastName: createStudentDto.lastName,
@@ -542,7 +542,7 @@ export class AuthService {
 
     this.eventsEmitter.sendEmail({
       to: createdUser.email,
-      type: EmailType.WELCOME,
+      type: EmailType.WELCOME_STUDENT,
       context: {
         firstName: createdUser.firstName,
         lastName: createdUser.lastName,

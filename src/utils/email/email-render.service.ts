@@ -25,12 +25,6 @@ export class EmailRenderService {
     try {
       // Get subject from configuration
       const subject = EmailSubjects[emailPayload.type];
-      if (!subject) {
-        throw new Error(
-          `No subject configured for email type: ${emailPayload.type}`,
-        );
-      }
-
       emailPayload.context = {
         ...emailPayload.context,
         ...EmailBaseConfig,
@@ -38,25 +32,7 @@ export class EmailRenderService {
       // Get template path from configuration
       let templateFile = EmailTemplates[emailPayload.type];
 
-      // Handle dynamic template selection for welcome emails based on user role
-      if (
-        emailPayload.type === EmailType.WELCOME &&
-        emailPayload.context.role
-      ) {
-        const role = emailPayload.context.role;
-        switch (role) {
-          case UserRoleEnum.ADMIN:
-            templateFile = 'welcome-admin.ejs';
-            break;
-          case UserRoleEnum.MODERATOR:
-            templateFile = 'welcome-moderator.ejs';
-            break;
-          case 'student':
-          default:
-            templateFile = 'welcome-student.ejs';
-            break;
-        }
-      }
+      // No dynamic template selection needed - templates are now role-specific
 
       if (!templateFile) {
         throw new Error(

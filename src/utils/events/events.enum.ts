@@ -1,4 +1,4 @@
 export enum EVENTS {
-  // Email Events
+  // Notification Email Events
   NOTIFICATION_EMAIL = 'notification.email',
 }
