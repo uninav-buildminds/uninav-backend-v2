@@ -22,9 +22,10 @@ import {
   UserEntity,
 } from 'src/utils/types/db.types';
 import { MaterialService } from 'src/modules/material/material.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { EVENTS } from 'src/utils/events/events.enum';
+import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { EmailType } from 'src/utils/email/constants/email.enum';
+import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';
 
 @ApiTags('MaterialReview')
@@ -35,7 +36,7 @@ export class MaterialReviewController {
   constructor(
     private readonly materialService: MaterialService,
     private readonly userService: UserService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventsEmitter: EventsEmitter,
   ) {}
 
   @Get()
@@ -100,20 +101,16 @@ export class MaterialReviewController {
 
     // Send notification based on review status
     if (reviewActionDto.action === ApprovalStatus.REJECTED) {
-      this.eventEmitter.emit(EVENTS.MATERIAL_REJECTED, {
-        materialId: id,
-        creatorEmail: creator.email,
-        creatorName: `${creator.firstName} ${creator.lastName}`,
-        materialLabel: material.label,
-        comment: reviewActionDto.comment || 'No specific reason provided',
-      });
-    } else if (reviewActionDto.action === ApprovalStatus.APPROVED) {
-      this.eventEmitter.emit(EVENTS.MATERIAL_APPROVED, {
-        materialId: id,
-        creatorEmail: creator.email,
-        creatorName: `${creator.firstName} ${creator.lastName}`,
-        materialLabel: material.label,
-      });
+      const emailPayload: EmailPayloadDto = {
+        to: creator.email,
+        type: EmailType.MATERIAL_REJECTION,
+        context: {
+          userName: `${creator.firstName} ${creator.lastName}`,
+          materialLabel: material.label,
+          comment: reviewActionDto.comment || 'No specific reason provided',
+        },
+      };
+      this.eventsEmitter.sendEmail(emailPayload);
     }
 
     return ResponseDto.createSuccessResponse(
@@ -136,12 +133,7 @@ export class MaterialReviewController {
     // Delete the material
     await this.materialService.remove(id, admin.id);
 
-    // Notify creator about deletion
-    this.eventEmitter.emit(EVENTS.MATERIAL_DELETED, {
-      creatorEmail: creator.email,
-      creatorName: `${creator.firstName} ${creator.lastName}`,
-      materialLabel: material.label,
-    });
+    // Note: No email notification for deletion as per current pattern
 
     return ResponseDto.createSuccessResponse('Material deleted successfully', {
       id,

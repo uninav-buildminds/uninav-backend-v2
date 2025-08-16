@@ -36,7 +36,7 @@ export class BlogReviewController {
   constructor(
     private readonly blogService: BlogService,
     private readonly userService: UserService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventsEmitter: EventsEmitter,
   ) {}
 
   @Get()
@@ -91,20 +91,16 @@ export class BlogReviewController {
 
     // Send notification based on review status
     if (reviewActionDto.action === ApprovalStatus.REJECTED) {
-      this.eventEmitter.emit(EVENTS.BLOG_REJECTED, {
-        blogId: id,
-        creatorEmail: creator.email,
-        creatorName: `${creator.firstName} ${creator.lastName}`,
-        blogTitle: blog.title,
-        comment: reviewActionDto.comment || 'No specific reason provided',
-      });
-    } else if (reviewActionDto.action === ApprovalStatus.APPROVED) {
-      this.eventEmitter.emit(EVENTS.BLOG_APPROVED, {
-        blogId: id,
-        creatorEmail: creator.email,
-        creatorName: `${creator.firstName} ${creator.lastName}`,
-        blogTitle: blog.title,
-      });
+      const emailPayload: EmailPayloadDto = {
+        to: creator.email,
+        type: EmailType.BLOG_REJECTION,
+        context: {
+          userName: `${creator.firstName} ${creator.lastName}`,
+          blogTitle: blog.title,
+          comment: reviewActionDto.comment || 'No specific reason provided',
+        },
+      };
+      this.eventsEmitter.sendEmail(emailPayload);
     }
 
     return ResponseDto.createSuccessResponse(
@@ -127,13 +123,7 @@ export class BlogReviewController {
     // Get blog creator details for notification
     const creator = await this.userService.findOne(blog.creatorId);
 
-    this.eventEmitter.emit(EVENTS.BLOG_DELETED, {
-      blogId: id,
-      creatorEmail: creator.email,
-      creatorName: `${creator.firstName} ${creator.lastName}`,
-      blogTitle: blog.title,
-      reviewerId: reviewer.id,
-    });
+    // Note: No email notification for deletion as per current pattern
 
     return ResponseDto.createSuccessResponse('Blog deleted successfully', {
       id,

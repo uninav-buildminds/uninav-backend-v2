@@ -23,8 +23,9 @@ import {
 import { UserService } from 'src/modules/user/user.service';
 import { ModeratorService } from 'src/modules/moderator/moderator.service';
 import { Request } from 'express';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EVENTS } from 'src/utils/events/events.enum';
+import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { EmailType } from 'src/utils/email/constants/email.enum';
+import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 
 @ApiTags('Reviews')
@@ -35,7 +36,7 @@ export class ModeratorReviewController {
   constructor(
     private readonly userService: UserService,
     private readonly moderatorService: ModeratorService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventsEmitter: EventsEmitter,
   ) {}
 
   @Get()
@@ -82,19 +83,23 @@ export class ModeratorReviewController {
     if (reviewActionDto.action === ApprovalStatus.REJECTED) {
       await this.userService.update(id, { role: UserRoleEnum.STUDENT });
       await this.moderatorService.delete(id);
-      // Emit event for rejection notification
-      this.eventEmitter.emit(EVENTS.MODERATOR_REQUEST_REJECTED, {
-        userId: id,
-        comment: reviewActionDto.comment,
-      });
+      
+      // Get user details for email notification
+      const user = await this.userService.findOne(id);
+      if (user) {
+        const emailPayload: EmailPayloadDto = {
+          to: user.email,
+          type: EmailType.MODERATOR_REJECTION,
+          context: {
+            comment: reviewActionDto.comment || 'No specific reason provided',
+          },
+        };
+        this.eventsEmitter.sendEmail(emailPayload);
+      }
     } else if (reviewActionDto.action === ApprovalStatus.APPROVED) {
       // Update the user's role to moderator if approved
       await this.userService.update(id, { role: UserRoleEnum.MODERATOR });
-
-      // Emit event for approval notification
-      this.eventEmitter.emit(EVENTS.MODERATOR_REQUEST_APPROVED, {
-        userId: id,
-      });
+      // Note: No email notification for approval as per current pattern
     }
 
     return ResponseDto.createSuccessResponse(

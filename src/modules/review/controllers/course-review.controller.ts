@@ -22,8 +22,9 @@ import {
 } from 'src/utils/types/db.types';
 import { CoursesService } from 'src/modules/courses/courses.service';
 import { Request } from 'express';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EVENTS } from 'src/utils/events/events.enum';
+import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { EmailType } from 'src/utils/email/constants/email.enum';
+import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 
@@ -35,7 +36,7 @@ export class CourseReviewController {
   constructor(
     private readonly coursesService: CoursesService,
     private readonly userService: UserService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventsEmitter: EventsEmitter,
   ) {}
 
   @Get()
@@ -96,20 +97,16 @@ export class CourseReviewController {
 
     // Send notification based on review status
     if (reviewActionDto.action === ApprovalStatus.REJECTED) {
-      this.eventEmitter.emit(EVENTS.COURSE_REJECTED, {
-        courseId: id,
-        creatorEmail: creator.email,
-        creatorName: `${creator.firstName} ${creator.lastName}`,
-        courseName: course.courseName,
-        comment: reviewActionDto.comment || 'No specific reason provided',
-      });
-    } else if (reviewActionDto.action === ApprovalStatus.APPROVED) {
-      this.eventEmitter.emit(EVENTS.COURSE_APPROVED, {
-        courseId: id,
-        creatorEmail: creator.email,
-        creatorName: `${creator.firstName} ${creator.lastName}`,
-        courseName: course.courseName,
-      });
+      const emailPayload: EmailPayloadDto = {
+        to: creator.email,
+        type: EmailType.COURSE_REJECTION,
+        context: {
+          userName: `${creator.firstName} ${creator.lastName}`,
+          courseName: course.courseName,
+          comment: reviewActionDto.comment || 'No specific reason provided',
+        },
+      };
+      this.eventsEmitter.sendEmail(emailPayload);
     }
 
     return ResponseDto.createSuccessResponse(
@@ -132,13 +129,7 @@ export class CourseReviewController {
 
     await this.coursesService.remove(id, reviewer.id);
 
-    this.eventEmitter.emit(EVENTS.COURSE_DELETED, {
-      courseId: id,
-      creatorEmail: creator.email,
-      creatorName: `${creator.firstName} ${creator.lastName}`,
-      courseName: course.courseName,
-      reviewerId: reviewer.id,
-    });
+    // Note: No email notification for deletion as per current pattern
 
     return ResponseDto.createSuccessResponse('Course deleted successfully', {
       id,

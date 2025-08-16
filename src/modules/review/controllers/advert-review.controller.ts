@@ -22,8 +22,9 @@ import {
 import { UserService } from 'src/modules/user/user.service';
 import { AdvertService } from 'src/modules/advert/advert.service';
 import { Request } from 'express';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EVENTS } from 'src/utils/events/events.enum';
+import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { EmailType } from 'src/utils/email/constants/email.enum';
+import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 
 @ApiTags('AdvertReview')
@@ -34,7 +35,7 @@ export class AdvertReviewController {
   constructor(
     private readonly advertService: AdvertService,
     private readonly userService: UserService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventsEmitter: EventsEmitter,
   ) {}
 
   @Get()
@@ -88,20 +89,16 @@ export class AdvertReviewController {
 
     // Send notification based on review status
     if (reviewActionDto.action === ApprovalStatus.REJECTED) {
-      this.eventEmitter.emit(EVENTS.ADVERT_REJECTED, {
-        advertId: id,
-        creatorEmail: creator.email,
-        creatorName: `${creator.firstName} ${creator.lastName}`,
-        advertLabel: advert.label,
-        comment: reviewActionDto.comment || 'No specific reason provided',
-      });
-    } else if (reviewActionDto.action === ApprovalStatus.APPROVED) {
-      this.eventEmitter.emit(EVENTS.ADVERT_APPROVED, {
-        advertId: id,
-        creatorEmail: creator.email,
-        creatorName: `${creator.firstName} ${creator.lastName}`,
-        advertLabel: advert.label,
-      });
+      const emailPayload: EmailPayloadDto = {
+        to: creator.email,
+        type: EmailType.ADVERT_REJECTION,
+        context: {
+          userName: `${creator.firstName} ${creator.lastName}`,
+          advertLabel: advert.label,
+          comment: reviewActionDto.comment || 'No specific reason provided',
+        },
+      };
+      this.eventsEmitter.sendEmail(emailPayload);
     }
 
     return ResponseDto.createSuccessResponse(

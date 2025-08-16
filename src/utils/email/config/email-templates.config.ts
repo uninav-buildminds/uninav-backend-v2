@@ -12,4 +12,5 @@ export const EmailTemplates: Record<EmailType, string> = {
   [EmailType.EMAIL_VERIFICATION_SUCCESS]: 'user-verification-success.ejs',
   [EmailType.CONTACT_US]: 'contact-us.ejs',
   [EmailType.MODERATOR_REJECTION]: 'moderator-rejection.ejs',
+  [EmailType.ADVERT_REJECTION]: 'advert-rejection.ejs',
 } as const;

@@ -11,4 +11,5 @@ export const EmailSubjects: Record<EmailType, string> = {
   [EmailType.EMAIL_VERIFICATION_SUCCESS]: 'Email Verification Successful',
   [EmailType.CONTACT_US]: 'Contact Us',
   [EmailType.MODERATOR_REJECTION]: 'Moderator Request Result - Rejected',
+  [EmailType.ADVERT_REJECTION]: 'Advertisement Review Result - Rejected',
 } as const;
