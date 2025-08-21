@@ -1,17 +1,16 @@
 import { google } from 'googleapis';
 import { createTransport, Transporter } from 'nodemailer';
-import { ENV } from 'src/utils/config/env.enum';
-import * as ejs from 'ejs';
-import * as path from 'path';
-import { IEmailService } from '../email.service.interface';
-import { configService } from 'src/utils/config/config.service';
 import SMTPPool from 'nodemailer/lib/smtp-pool';
-import { EmailPaths, EmailType } from 'src/utils/email/constants/email.enum';
 import { Logger } from '@nestjs/common';
+import { EmailSenderProvider } from './email-sender.interface';
+import { RenderedEmailDto } from '../dto/rendered-email.dto';
+import { configService } from 'src/utils/config/config.service';
+import { ENV } from 'src/utils/config/env.enum';
+import { EmailService } from 'src/utils/email/email.service';
 
 class OAuth2Client extends google.auth.OAuth2 {}
 
-export default class NodemailerProvider implements IEmailService {
+export default class NodemailerProvider implements EmailSenderProvider {
   private readonly OAuth2Client: OAuth2Client;
   private readonly transporter: Transporter;
   private logger: Logger;
@@ -53,49 +52,38 @@ export default class NodemailerProvider implements IEmailService {
     } as unknown as SMTPPool);
   }
 
-  public sendMail({
-    to,
-    subject,
-    options,
-  }: {
-    to: string;
-    subject: EmailType;
-    options: { template: EmailPaths; data: { [key: string]: any } };
-  }): Promise<boolean> {
-    (this.transporter as any).accessToken =
-      this.OAuth2Client.getAccessToken() as any;
+  public async sendMail(renderedEmail: RenderedEmailDto): Promise<boolean> {
+    try {
+      (this.transporter as any).accessToken =
+        this.OAuth2Client.getAccessToken() as any;
 
-    return new Promise<boolean>((resolve, reject) => {
-      const template = path.resolve('view/emails', options.template);
-      console.log('template-data', template, options.data);
-
-      ejs.renderFile(template, options.data, (error, html) => {
-        if (error) {
-          this.logger.error('Error rendering email template', error);
-          reject(error);
-          return;
-        }
+      await new Promise<void>((resolve, reject) => {
         this.transporter.sendMail(
           {
             from: {
               name: NodemailerProvider.COMPANY_NAME,
               address: NodemailerProvider.COMPANY_EMAIL,
             },
-            to,
-            subject,
-            html,
+            to: renderedEmail.to,
+            subject: renderedEmail.subject,
+            html: renderedEmail.htmlContent,
           },
-          (err, info) => {
+          (err) => {
             if (err) {
-              this.logger.error('Error sending email', err, info);
+              this.logger.error('Error sending email via Gmail', err);
               reject(err);
               return;
             }
-            this.logger.log('Email sent successfully');
-            resolve(true);
+            resolve();
           },
         );
       });
-    });
+
+      this.logger.log('Email sent successfully via Gmail');
+      return true;
+    } catch (error) {
+      this.logger.error('Error sending email via Gmail:', error);
+      throw error;
+    }
   }
 }

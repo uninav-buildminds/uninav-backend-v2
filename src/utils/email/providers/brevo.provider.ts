@@ -1,32 +1,25 @@
 import { Logger } from '@nestjs/common';
-import { IEmailService } from '../email.service.interface';
-import { EmailPayloadDto } from '../dto/email-payload.dto';
-import { EmailRenderService } from '../email-render.service';
+import { EmailSenderProvider } from './email-sender.interface';
+import { RenderedEmailDto } from '../dto/rendered-email.dto';
 import { configService } from 'src/utils/config/config.service';
 import { ENV } from 'src/utils/config/env.enum';
 
-export default class BrevoProvider implements IEmailService {
+export default class BrevoProvider implements EmailSenderProvider {
   private readonly logger: Logger;
   private readonly apiKey: string;
   private readonly senderEmail: string;
   private readonly companyName: string;
   private readonly apiUrl: string = 'https://api.brevo.com/v3/smtp/email';
-  private readonly emailRenderService: EmailRenderService;
 
   constructor(logger: Logger) {
     this.logger = logger;
     this.apiKey = configService.get(ENV.BREVO_API_KEY);
     this.senderEmail = configService.get(ENV.BREVO_SENDER_EMAIL);
     this.companyName = configService.get(ENV.COMPANY_NAME);
-    this.emailRenderService = new EmailRenderService();
   }
 
-  public async sendMail(emailPayload: EmailPayloadDto): Promise<boolean> {
+  public async sendMail(renderedEmail: RenderedEmailDto): Promise<boolean> {
     try {
-      // Render the email using the render service
-      const renderedEmail =
-        await this.emailRenderService.renderEmail(emailPayload);
-
       // Prepare the email payload for Brevo API
       const brevoPayload = {
         sender: {
