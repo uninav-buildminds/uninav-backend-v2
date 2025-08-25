@@ -67,6 +67,7 @@ export const collectionRelations = relations(collection, ({ one, many }) => ({
   creator: one(users, {
     fields: [collection.creatorId],
     references: [users.id],
+    relationName: 'collection_creator',
   }),
   // Explicitly define the relationship using collectionId
   content: many(collectionContent, {

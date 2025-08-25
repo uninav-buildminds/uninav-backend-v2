@@ -44,7 +44,17 @@ export const departmentLevelCourses = pgTable(
   },
 );
 
-export const courseRelations = relations(courses, ({ many }) => ({
+export const courseRelations = relations(courses, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [courses.creatorId],
+    references: [users.id],
+    relationName: 'course_creator',
+  }),
+  reviewedBy: one(users, {
+    fields: [courses.reviewedById],
+    references: [users.id],
+    relationName: 'course_reviewer',
+  }),
   departments: many(departmentLevelCourses),
   userCourses: many(userCourses),
 }));

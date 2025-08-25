@@ -19,6 +19,7 @@ import { comments } from './comments.schema';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { TABLES } from '../tables.constants';
+import { advert } from './advert.schema';
 
 // Table Definition with Index on email
 export const users = pgTable(
@@ -111,12 +112,19 @@ export const userRelations = relations(users, ({ one, many }) => ({
   moderator: one(moderator, {
     fields: [users.id],
     references: [moderator.userId],
+    relationName: 'moderator_user',
   }),
-  materials: many(material),
+  createdMaterials: many(material, { relationName: 'material_creator' }),
+  reviewedMaterials: many(material, { relationName: 'material_reviewer' }),
+  createdAdverts: many(advert, { relationName: 'advert_creator' }),
+  reviewedAdverts: many(advert, { relationName: 'advert_reviewer' }),
+  createdBlogs: many(blogs, { relationName: 'blog_creator' }),
+  reviewedBlogs: many(blogs, { relationName: 'blog_reviewer' }),
+  createdCourses: many(courses, { relationName: 'course_creator' }),
+  reviewedCourses: many(courses, { relationName: 'course_reviewer' }),
   collections: many(collection),
   bookmarks: many(bookmarks),
   comments: many(comments),
-  blogs: many(blogs),
   auth: one(auth, {
     fields: [users.id],
     references: [auth.userId],

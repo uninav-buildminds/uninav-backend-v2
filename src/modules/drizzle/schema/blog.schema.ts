@@ -40,11 +40,13 @@ export const blogRelations = relations(blogs, ({ one, many }) => ({
   creator: one(users, {
     fields: [blogs.creatorId],
     references: [users.id],
+    relationName: 'blog_creator',
   }),
   likes: many(blogLikes),
 
   reviewedBy: one(users, {
     fields: [blogs.reviewedById],
     references: [users.id],
+    relationName: 'blog_reviewer',
   }),
 }));

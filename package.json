@@ -25,6 +25,7 @@
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
     "db:drop": "drizzle-kit drop --config drizzle.config.ts",
     "db:seed": "tsx src/scripts/seed.ts",
+    "db:studio": "drizzle-kit studio --config drizzle.config.ts",
     "update-course-codes": "tsx src/scripts/updateCourseCode.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",

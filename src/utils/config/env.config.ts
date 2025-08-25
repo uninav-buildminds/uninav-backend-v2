@@ -33,4 +33,8 @@ export default registerAs('config', (): { [key in ENV]: string } => ({
   GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
   BREVO_API_KEY: process.env.BREVO_API_KEY,
   BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL,
+  MAILSEND_API_KEY: process.env.MAILSEND_API_KEY,
+  MAILSEND_SENDER_EMAIL: process.env.MAILSEND_SENDER_EMAIL,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  RESEND_SENDER_EMAIL: process.env.RESEND_SENDER_EMAIL,
 }));

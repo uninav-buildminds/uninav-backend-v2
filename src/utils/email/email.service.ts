@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IEmailService } from './email.service.interface';
-import { BrevoProvider } from './providers';
+import { BrevoProvider, MailerSendProvider, ResendProvider } from './providers';
 import NodemailerProvider from './providers/gmail.provider';
 import { EmailPayloadDto } from './dto/email-payload.dto';
 import { RenderedEmailDto } from './dto/rendered-email.dto';
@@ -24,8 +24,10 @@ export class EmailService implements IEmailService {
 
   constructor() {
     this.providers = [
-      new BrevoProvider(this.logger),
+      new ResendProvider(this.logger),
       new NodemailerProvider(this.logger),
+      new MailerSendProvider(this.logger),
+      new BrevoProvider(this.logger),
     ];
   }
 

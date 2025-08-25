@@ -47,9 +47,11 @@ export const advertRelations = relations(advert, ({ one }) => ({
   creator: one(users, {
     fields: [advert.creatorId],
     references: [users.id],
+    relationName: 'advert_creator',
   }),
   reviewedBy: one(users, {
     fields: [advert.reviewedById],
     references: [users.id],
+    relationName: 'advert_reviewer',
   }),
 }));
