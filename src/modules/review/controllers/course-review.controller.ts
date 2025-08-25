@@ -11,7 +11,6 @@ import {
   Req,
   NotFoundException,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
 import { ReviewActionDto } from '../dto/review-action.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/utils/decorators/roles.decorator';
@@ -27,8 +26,6 @@ import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
-
-@ApiTags('CourseReview')
 @Controller('review/courses')
 @UseGuards(RolesGuard)
 @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)

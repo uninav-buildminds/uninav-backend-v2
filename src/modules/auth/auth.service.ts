@@ -313,22 +313,17 @@ export class AuthService {
       throw new BadRequestException('Email is already verified');
     }
 
-    // Generate a new verification code
     const verificationCode = await this.generateVerificationCode();
 
-    // Save the new verification code
     await this.authRepository.saveVerificationCode(
       auth.userId,
       verificationCode,
     );
 
-    // Generate verification token as backup
     const token = await this.generateVerificationToken(email, verificationCode);
 
-    // Create verification URL
     const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${encodeURIComponent(token)}`;
 
-    // Send resend verification email
     const resendEmailPayload: EmailPayloadDto = {
       to: email,
       type: EmailType.EMAIL_VERIFICATION,

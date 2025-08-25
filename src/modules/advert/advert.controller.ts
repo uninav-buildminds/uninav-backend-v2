@@ -12,7 +12,6 @@ import {
   Patch,
   Delete,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
 import { AdvertService } from './advert.service';
 import {
   CreateFreeAdvertDto,
@@ -24,8 +23,6 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { MulterFile } from 'src/utils/types';
 import { Request } from 'express';
 import { AdvertTypeEnum, UserEntity } from 'src/utils/types/db.types';
-
-@ApiTags('Advert')
 @Controller('adverts')
 export class AdvertController {
   constructor(private readonly advertService: AdvertService) {}

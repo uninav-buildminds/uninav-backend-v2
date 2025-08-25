@@ -11,7 +11,6 @@ import {
   NotFoundException,
   Delete,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { ReviewActionDto } from '../dto/review-action.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
@@ -27,8 +26,6 @@ import { EventsEmitter } from 'src/utils/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';
-
-@ApiTags('MaterialReview')
 @Controller('review/materials')
 @UseGuards(RolesGuard)
 @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
