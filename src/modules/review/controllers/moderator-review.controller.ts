@@ -11,7 +11,6 @@ import {
   Req,
   NotFoundException,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
 import { ReviewActionDto } from '../dto/review-action.dto';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/utils/decorators/roles.decorator';
@@ -27,8 +26,6 @@ import { EventsEmitter } from 'src/utils/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
-
-@ApiTags('Reviews')
 @Controller('review/moderators')
 @UseGuards(RolesGuard)
 @Roles(UserRoleEnum.ADMIN)
@@ -83,7 +80,7 @@ export class ModeratorReviewController {
     if (reviewActionDto.action === ApprovalStatus.REJECTED) {
       await this.userService.update(id, { role: UserRoleEnum.STUDENT });
       await this.moderatorService.delete(id);
-      
+
       // Get user details for email notification
       const user = await this.userService.findOne(id);
       if (user) {

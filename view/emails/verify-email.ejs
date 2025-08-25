@@ -69,20 +69,6 @@
         margin: 30px 0;
       }
 
-      .verification-code {
-        font-size: 32px;
-        font-weight: 700;
-        letter-spacing: 8px;
-        text-align: center;
-        padding: 25px;
-        margin: 25px 0;
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        border: 2px solid #3b82f6;
-        border-radius: 12px;
-        color: #1e40af;
-        font-family: 'Courier New', monospace;
-      }
-
       .cta-button {
         display: inline-block;
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -195,12 +181,6 @@
           font-size: 24px;
         }
 
-        .verification-code {
-          font-size: 24px;
-          letter-spacing: 4px;
-          padding: 20px;
-        }
-
         .cta-button {
           display: block;
           margin: 20px 0;
@@ -233,17 +213,10 @@
               >Verify Email Address</a
             >
           </center>
-
-          <p class="alternative-text">
-            Alternatively, you can enter this verification code on the
-            verification page:
-          </p>
-
-          <div class="verification-code"><%= verificationCode %></div>
         </div>
 
         <div class="expiry-notice">
-          <p>⏰ This verification link and code will expire in 15 minutes.</p>
+          <p>⏰ This verification link will expire in 15 minutes.</p>
         </div>
 
         <div class="support-section">

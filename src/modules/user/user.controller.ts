@@ -29,9 +29,7 @@ import { ConfigService } from '@nestjs/config';
 import { Roles } from '../../utils/decorators/roles.decorator';
 import { UserRoleEnum } from '../../utils/types/db.types';
 import { PaginationDto } from '../../utils/globalDto/pagination.dto';
-import { ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Users')
 @Controller('user')
 export class UserController {
   constructor(

@@ -15,20 +15,6 @@ import {
   HttpStatus,
   Req,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiConsumes,
-  ApiBody,
-  ApiOkResponse,
-  ApiCreatedResponse,
-  ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
-  ApiForbiddenResponse,
-  ApiNotFoundResponse,
-  ApiQuery,
-  ApiParam,
-} from '@nestjs/swagger';
 import { BlogService } from './blog.service';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
@@ -44,34 +30,11 @@ import { Request } from 'express';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { MulterFile } from 'src/utils/types';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import {
-  BlogResponseDto,
-  PaginatedBlogsResponseDto,
-  BlogDetailsResponseDto,
-  CommentResponseDto,
-} from 'src/utils/swagger/blog-advert.dto';
-
-@ApiTags('Blogs')
 @Controller('blogs')
 export class BlogController {
   constructor(private readonly blogService: BlogService) {}
 
   @Post()
-  @ApiOperation({
-    summary: 'Create new blog post',
-    description: 'Create a new blog post with optional heading image.',
-  })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    description: 'Blog post data with optional image upload',
-    type: CreateBlogDto,
-  })
-  @ApiCreatedResponse({
-    description: 'Blog post created successfully',
-    type: BlogResponseDto,
-  })
-  @ApiBadRequestResponse({ description: 'Invalid input data or image format' })
-  @ApiUnauthorizedResponse({ description: 'Authentication required' })
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('headingImage'))
   async create(

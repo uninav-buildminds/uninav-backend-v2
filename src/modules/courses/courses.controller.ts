@@ -11,7 +11,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
@@ -27,8 +26,6 @@ import { Request } from 'express';
 import { LinkCourseDto } from './dto/link-course.dto';
 import { Roles } from 'src/utils/decorators/roles.decorator';
 import { UpdateCourseDto } from 'src/modules/courses/dto/update-course.dto';
-
-@ApiTags('Courses')
 @Controller('courses')
 @UseInterceptors(CacheControlInterceptor)
 export class CoursesController {

@@ -64,38 +64,6 @@ export class AuthRepository {
     return updatedAuth[0];
   }
 
-  async saveVerificationCode(userId: string, verificationCode: string) {
-    const updatedAuth = await this.db
-      .update(auth)
-      .set({ verificationCode } as any)
-      .where(eq(auth.userId, userId))
-      .returning();
-
-    return updatedAuth[0];
-  }
-
-  async verifyCode(email: string, code: string) {
-    const authRecord = await this.db.query.auth.findFirst({
-      where: (auth, { eq }) => eq(auth.email, email),
-    });
-
-    if (!authRecord || authRecord.verificationCode !== code) {
-      return false;
-    }
-
-    // Clear the verification code and set email as verified
-    await this.db
-      .update(auth)
-      .set({
-        verificationCode: null,
-        emailVerified: true,
-      } as any)
-      .where(eq(auth.email, email))
-      .returning();
-
-    return true;
-  }
-
   async updateEmailVerificationStatus(
     userId: string,
     verified: boolean = true,
@@ -104,7 +72,6 @@ export class AuthRepository {
       .update(auth)
       .set({
         emailVerified: verified,
-        verificationCode: null, // Clear verification code when email is verified
       } as any)
       .where(eq(auth.userId, userId))
       .returning();

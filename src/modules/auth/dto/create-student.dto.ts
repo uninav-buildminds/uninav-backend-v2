@@ -3,19 +3,12 @@ import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UserRoleEnum } from 'src/utils/types/db.types';
 // import { IntersectionType } from '@nestjs/mapped-types';
 import { IsEnum, IsOptional } from 'class-validator';
-import { ApiProperty, IntersectionType } from '@nestjs/swagger';
+import { IntersectionType } from '@nestjs/mapped-types';
 
 export class CreateStudentDto extends IntersectionType(
   CreateAuthDto,
   CreateUserDto,
 ) {
-  @ApiProperty({
-    description: 'User role in the system',
-    enum: UserRoleEnum,
-    example: UserRoleEnum.STUDENT,
-    required: false,
-    default: UserRoleEnum.STUDENT,
-  })
   @IsOptional()
   @IsEnum(UserRoleEnum)
   role?: UserRoleEnum;
