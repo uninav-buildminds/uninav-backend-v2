@@ -18,7 +18,7 @@ import { UserEntity, AuthEntity } from 'src/utils/types/db.types';
 import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { cryptoService } from 'src/utils/crypto/crypto.service';
-import { VerifyEmailDto, VerifyEmailTokenDto } from './dto/verify-email.dto';
+import { VerifyEmailTokenDto } from './dto/verify-email.dto';
 import { EVENTS } from 'src/utils/events/events.enum';
 import { ConfigService } from '@nestjs/config';
 import { DepartmentService } from 'src/modules/department/department.service';
@@ -123,17 +123,9 @@ export class AuthService {
     return createdUser;
   }
 
-  // Generate a 6-digit verification code
-  async generateVerificationCode(): Promise<string> {
-    return cryptoService.randomInt().toString().padStart(6, '0');
-  }
-
-  // Generate verification token with JWT (now only used as a secondary method)
-  async generateVerificationToken(
-    email: string,
-    code: string,
-  ): Promise<string> {
-    const payload = { email, code, type: 'email_verification' };
+  // Generate verification token with JWT for email verification
+  async generateVerificationToken(email: string): Promise<string> {
+    const payload = { email, type: 'email_verification' };
     const token = await this.jwtService.signAsync(payload, {
       expiresIn: '15m',
     });
@@ -158,19 +150,10 @@ export class AuthService {
       throw new BadRequestException('Email is already verified');
     }
 
-    // Generate verification code
-    const verificationCode = await this.generateVerificationCode();
+    // Generate verification token
+    const token = await this.generateVerificationToken(email);
 
-    // Save verification code in the database
-    await this.authRepository.saveVerificationCode(
-      auth.userId,
-      verificationCode,
-    );
-
-    // Generate verification token as a backup method
-    const token = await this.generateVerificationToken(email, verificationCode);
-
-    // Create verification URL - don't URL encode here since the frontend will handle it
+    // Create verification URL
     const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${token}`;
 
     // Send email verification
@@ -180,7 +163,6 @@ export class AuthService {
       context: {
         firstName,
         lastName,
-        verificationCode,
         verificationUrl,
       },
     };
@@ -189,15 +171,12 @@ export class AuthService {
     return true;
   }
 
-  // Verify email with token (backup method)
+  // Verify email with token (primary method)
   async verifyEmailWithToken(token: string): Promise<boolean> {
     try {
-      // Decode the URL-encoded token first
-      // const decodedToken = decodeURIComponent(token);
-      const decodedToken = token;
-      console.log('decoded token', decodedToken);
       // Decrypt token
-      const decryptedToken = cryptoService.decrypt(decodedToken);
+      const decryptedToken = cryptoService.decrypt(token);
+
       // Verify JWT and handle expiration
       try {
         const payload = await this.jwtService.verifyAsync(decryptedToken);
@@ -216,11 +195,6 @@ export class AuthService {
         // Check if already verified
         if (auth.emailVerified) {
           return true;
-        }
-
-        // Validate stored verification code matches token code
-        if (auth.verificationCode !== payload.code) {
-          throw new UnauthorizedException('Invalid verification code');
         }
 
         // Update email verification status
@@ -259,47 +233,6 @@ export class AuthService {
     }
   }
 
-  // Verify email with code (primary method)
-  async verifyEmail(verifyEmailDto: VerifyEmailDto): Promise<boolean> {
-    // Find user by email
-    const auth = await this.authRepository.findByEmail(verifyEmailDto.email);
-    if (!auth || !auth.user) {
-      throw new NotFoundException('User not found');
-    }
-
-    // Check if email is already verified
-    if (auth.emailVerified) {
-      return true; // Already verified
-    }
-
-    try {
-      // Verify the code against the database
-      const isVerified = await this.authRepository.verifyCode(
-        verifyEmailDto.email,
-        verifyEmailDto.code,
-      );
-
-      if (!isVerified) {
-        throw new UnauthorizedException('Invalid verification code');
-      }
-
-      // Send verification success email
-      const verificationSuccessPayload: EmailPayloadDto = {
-        to: verifyEmailDto.email,
-        type: EmailType.EMAIL_VERIFICATION_SUCCESS,
-        context: {
-          firstName: auth.user.firstName,
-          lastName: auth.user.lastName,
-        },
-      };
-      this.eventsEmitter.sendEmail(verificationSuccessPayload);
-
-      return true;
-    } catch (error) {
-      throw new UnauthorizedException('Verification failed. Please try again.');
-    }
-  }
-
   // Resend verification email
   async resendVerificationEmail(email: string): Promise<boolean> {
     // Find user by email
@@ -313,16 +246,11 @@ export class AuthService {
       throw new BadRequestException('Email is already verified');
     }
 
-    const verificationCode = await this.generateVerificationCode();
+    // Generate verification token
+    const token = await this.generateVerificationToken(email);
 
-    await this.authRepository.saveVerificationCode(
-      auth.userId,
-      verificationCode,
-    );
-
-    const token = await this.generateVerificationToken(email, verificationCode);
-
-    const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${encodeURIComponent(token)}`;
+    // Create verification URL
+    const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${token}`;
 
     const resendEmailPayload: EmailPayloadDto = {
       to: email,
@@ -330,7 +258,6 @@ export class AuthService {
       context: {
         firstName: auth.user.firstName,
         lastName: auth.user.lastName,
-        verificationCode,
         verificationUrl,
       },
     };

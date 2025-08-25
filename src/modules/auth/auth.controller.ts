@@ -20,7 +20,7 @@ import { Request, Response } from 'express';
 import { UserEntity, UserRoleEnum, AuthEntity } from 'src/utils/types/db.types';
 import { globalCookieOptions } from 'src/utils/config/constants.config';
 import { UserService } from 'src/modules/user/user.service';
-import { ResendVerificationDto, VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/verify-email.dto';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from 'src/utils/config/env.enum';
 import {
@@ -72,20 +72,6 @@ export class AuthController {
     );
     return responseObj;
   }
-
-  // @Post('verify-email')
-  // async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-  //   const verified = await this.authService.verifyEmail(verifyEmailDto);
-  //   if (!verified) {
-  //     throw new BadRequestException('Email verification failed');
-  //   }
-
-  //   const responseObj = ResponseDto.createSuccessResponse(
-  //     'Email verified successfully',
-  //     { verified },
-  //   );
-  //   return responseObj;
-  // }
 
   @Get('verify-email/token')
   async verifyEmailWithToken(@Query('token') token: string) {
