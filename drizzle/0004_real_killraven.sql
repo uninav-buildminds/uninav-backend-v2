@@ -1,0 +1,1 @@
+ALTER TABLE "auth" DROP COLUMN "verification_code";

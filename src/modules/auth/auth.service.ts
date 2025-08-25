@@ -5,7 +5,6 @@ import {
   Logger,
   NotFoundException,
   UnauthorizedException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { CreateStudentDto } from 'src/modules/auth/dto/create-student.dto';
 import { UserService } from 'src/modules/user/user.service';
@@ -18,9 +17,6 @@ import { UserEntity, AuthEntity } from 'src/utils/types/db.types';
 import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { cryptoService } from 'src/utils/crypto/crypto.service';
-import { VerifyEmailTokenDto } from './dto/verify-email.dto';
-import { EVENTS } from 'src/utils/events/events.enum';
-import { ConfigService } from '@nestjs/config';
 import { DepartmentService } from 'src/modules/department/department.service';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
@@ -66,7 +62,6 @@ export class AuthService {
       }
     }
 
-    // Create user first
     const userDto = {
       email: createStudentDto.email,
       firstName: createStudentDto.firstName,
@@ -79,7 +74,6 @@ export class AuthService {
 
     const createdUser = await this.userService.create(userDto);
 
-    // Then create auth record with hashed password
     const hashedPassword = await this.hashPassword(createStudentDto.password);
     const authDto = {
       email: createStudentDto.email,
