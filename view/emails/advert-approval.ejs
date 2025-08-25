@@ -2,22 +2,117 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Advertisement Approval</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advertisement Approved - <%= companyName %></title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.6;
+        color: #1e293b;
+        background-color: #f8fafc;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        color: #fff;
+        padding: 30px;
+        text-align: center;
+      }
+      .header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+      }
+      .content {
+        padding: 30px;
+      }
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 20px;
+      }
+      .intro-text {
+        font-size: 16px;
+        color: #475569;
+        margin-bottom: 20px;
+        line-height: 1.7;
+      }
+      .success-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #10b981;
+        border-radius: 0 8px 8px 0;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      .success-box h3 {
+        color: #059669;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .signature {
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+      }
+      .footer {
+        background: #f1f5f9;
+        padding: 20px;
+        text-align: center;
+        font-size: 14px;
+        color: #64748b;
+      }
+      .footer a {
+        color: #3b82f6;
+        text-decoration: none;
+      }
+    </style>
   </head>
   <body>
-    <h2>Advertisement Approved!</h2>
-    <p>Dear <%= creatorName %>,</p>
-    <p>
-      Good news! Your advertisement "<%= advertLabel %>" has been reviewed and
-      approved.
-    </p>
-    <p>
-      Your advertisement is now live and will be displayed to users according to
-      its type and settings.
-    </p>
-    <p>
-      You can monitor your advertisement's performance through your dashboard.
-    </p>
-    <p>Best regards,<br />UniNav Team</p>
+    <div class="container">
+      <div class="header">
+        <h1>✅ Advertisement Approved!</h1>
+      </div>
+      <div class="content">
+        <div class="greeting">Dear <%= creatorName %>, 👋</div>
+        <div class="intro-text">
+          Good news! Your advertisement "<strong><%= advertLabel %></strong>"
+          has been reviewed and approved.
+        </div>
+        <div class="success-box">
+          <h3>🎉 Your ad is now live!</h3>
+          <p>
+            Your advertisement is now visible to our academic community. You can
+            monitor its performance through your dashboard.
+          </p>
+        </div>
+        <div class="intro-text">
+          Thank you for using our advertising platform to connect with students
+          and educators.
+        </div>
+        <div class="signature">
+          <p><strong>Best regards,</strong></p>
+          <p>The <%= companyName %> Team</p>
+        </div>
+      </div>
+      <div class="footer">
+        <p>© <%= currentYear %> <%= companyName %>. All rights reserved.</p>
+        <p>
+          Need help? Contact us at
+          <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>
+        </p>
+      </div>
+    </div>
   </body>
 </html>

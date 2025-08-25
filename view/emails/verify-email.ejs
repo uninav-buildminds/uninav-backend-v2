@@ -1,105 +1,278 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verify Your UniNav Email</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      line-height: 1.6;
-      color: #333333; /* --text-color-dark approximation */
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f0f8ff; /* --bg-main */
-    }
-    .header {
-      background-color: #003666; /* --bg-dark */
-      color: #f0f8ff; /* --text-color-light-two */
-      padding: 20px;
-      text-align: center;
-      border-radius: 8px 8px 0 0;
-    }
-    .content {
-      background-color: #ffffff;
-      padding: 25px;
-      border-radius: 0 0 8px 8px;
-      border: 1px solid #ccebff; /* Lighter shade derived from --border-color */
-      border-top: none;
-    }
-    .footer {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 12px;
-      color: #6b7280; /* --muted-foreground approximation */
-    }
-    .verification-code {
-      font-size: 28px;
-      font-weight: bold;
-      letter-spacing: 5px;
-      text-align: center;
-      padding: 15px;
-      margin: 20px 0;
-      background-color: #e6f2ff; /* Lighter shade of --bg-main */
-      border-radius: 8px;
-      color: #003666; /* --bg-dark */
-    }
-    .button {
-      display: block;
-      background-color: #003666; /* --bg-dark */
-      color: #f0f8ff !important; /* --text-color-light-two, !important */
-      text-decoration: none;
-      padding: 12px 20px;
-      border-radius: 5px;
-      margin: 20px auto;
-      font-weight: bold;
-      text-align: center;
-      width: 200px;
-      border: none;
-    }
-     .button:hover {
-       background-color: #002a50; /* Slightly darker shade of --bg-dark for hover */
-    }
-    .expiry {
-      color: #ef4444; /* --destructive approximation */
-      font-size: 14px;
-      text-align: center;
-      margin: 15px 0;
-    }
-     a { /* Standard link color */
-        color: #003666; /* --bg-dark */
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Your <%= companyName %> Email</title>
+    <style>
+      /* Modern Light Blue Email Template */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', sans-serif;
+        line-height: 1.6;
+        color: #1e293b;
+        background-color: #f8fafc;
+        margin: 0;
+        padding: 0;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 40px auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+        color: #ffffff;
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .content {
+        padding: 40px 30px;
+        background-color: #ffffff;
+      }
+
+      .greeting {
+        font-size: 18px;
+        color: #1e293b;
+        margin-bottom: 20px;
+      }
+
+      .intro-text {
+        font-size: 16px;
+        color: #475569;
+        margin-bottom: 30px;
+        line-height: 1.7;
+      }
+
+      .verification-section {
+        text-align: center;
+        margin: 30px 0;
+      }
+
+      .verification-code {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        text-align: center;
+        padding: 25px;
+        margin: 25px 0;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 2px solid #3b82f6;
+        border-radius: 12px;
+        color: #1e40af;
+        font-family: 'Courier New', monospace;
+      }
+
+      .cta-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        padding: 16px 32px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        text-align: center;
+        box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        transition: all 0.3s ease;
+        margin: 20px 0;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.4);
+      }
+
+      .expiry-notice {
+        background-color: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 20px 0;
+        text-align: center;
+      }
+
+      .expiry-notice p {
+        color: #dc2626;
+        font-size: 14px;
+        margin: 0;
+        font-weight: 500;
+      }
+
+      .alternative-text {
+        font-size: 16px;
+        color: #475569;
+        margin: 25px 0;
+        text-align: center;
+      }
+
+      .support-section {
+        background-color: #f8fafc;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 25px 0;
+        text-align: center;
+      }
+
+      .support-section p {
+        color: #64748b;
+        margin-bottom: 10px;
+      }
+
+      .support-link {
+        color: #3b82f6 !important;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .support-link:hover {
         text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>Verify Your Email Address</h1>
-  </div>
-  <div class="content">
-    <p>Hi <%= firstName %> <%= lastName %>,</p>
+      }
 
-    <p>Thank you for registering with UniNav. To complete your registration and gain full access to our academic resource platform, please verify your email address.</p>
+      .signature {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+      }
 
-    <p>You can verify your email by clicking the button below:</p>
+      .signature p {
+        color: #475569;
+        margin: 5px 0;
+      }
 
-    <a href="<%= verificationUrl %>" class="button" style="color: #f0f8ff !important;">Verify Email Address</a>
+      .footer {
+        background-color: #f1f5f9;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e2e8f0;
+      }
 
-    <p>Alternatively, you can enter this verification code on the verification page:</p>
+      .footer p {
+        color: #64748b;
+        font-size: 14px;
+        margin: 8px 0;
+      }
 
-    <div class="verification-code"><%= verificationCode %></div>
+      .footer a {
+        color: #3b82f6;
+        text-decoration: none;
+      }
 
-    <p class="expiry">This verification link and code will expire in 15 minutes.</p>
+      /* Responsive Design */
+      @media (max-width: 640px) {
+        .email-container {
+          margin: 20px auto;
+          border-radius: 0;
+        }
 
-    <p>If you didn't create an account with UniNav, you can safely ignore this email.</p>
+        .header,
+        .content,
+        .footer {
+          padding: 25px 20px;
+        }
 
-    <p>Welcome to our academic community!</p>
-    <p>The UniNav Team</p>
-  </div>
-  <div class="footer">
-    <p>© <%= new Date().getFullYear() %> UniNav. All rights reserved.</p>
-    <p>This email was sent to verify your account. If you have any questions, please contact our support team at <a href="mailto:support@uninav.com" style="color: #003666;">support@uninav.com</a></p>
-  </div>
-</body>
+        .header h1 {
+          font-size: 24px;
+        }
+
+        .verification-code {
+          font-size: 24px;
+          letter-spacing: 4px;
+          padding: 20px;
+        }
+
+        .cta-button {
+          display: block;
+          margin: 20px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h1>Verify Your Email Address</h1>
+      </div>
+
+      <div class="content">
+        <div class="greeting">Hi <%= firstName %> <%= lastName %>, 👋</div>
+
+        <div class="intro-text">
+          Thank you for registering with <strong><%= companyName %></strong>! To
+          complete your registration and gain full access to our academic
+          resource platform, we need to verify your email address.
+        </div>
+
+        <div class="verification-section">
+          <p class="alternative-text">
+            Click the button below to verify your email:
+          </p>
+
+          <center>
+            <a href="<%= verificationUrl %>" class="cta-button"
+              >Verify Email Address</a
+            >
+          </center>
+
+          <p class="alternative-text">
+            Alternatively, you can enter this verification code on the
+            verification page:
+          </p>
+
+          <div class="verification-code"><%= verificationCode %></div>
+        </div>
+
+        <div class="expiry-notice">
+          <p>⏰ This verification link and code will expire in 15 minutes.</p>
+        </div>
+
+        <div class="support-section">
+          <p>
+            If you didn't create an account with <%= companyName %>, you can
+            safely ignore this email.
+          </p>
+          <p>
+            Having trouble? Contact our support team at
+            <a href="mailto:<%= supportEmail %>" class="support-link"
+              ><%= supportEmail %></a
+            >
+          </p>
+        </div>
+
+        <div class="signature">
+          <p><strong>Welcome to our academic community!</strong></p>
+          <p>The <%= companyName %> Team</p>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>© <%= currentYear %> <%= companyName %>. All rights reserved.</p>
+        <p>This email was sent to verify your account registration.</p>
+        <p>
+          If you have any questions, contact us at
+          <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>
+        </p>
+      </div>
+    </div>
+  </body>
 </html>
