@@ -14,3 +14,4 @@ export * from './enums.schema';
 export * from './resource.schema';
 export * from './material-likes.schema';
 export * from './blog-likes.schema';
+export * from './admin.schema';

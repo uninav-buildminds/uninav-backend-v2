@@ -8,26 +8,42 @@ import {
   UseGuards,
   Req,
   Patch,
+  HttpCode,
+  HttpStatus,
+  ParseUUIDPipe,
+  Headers,
+  UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Request } from 'express';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { UserEntity } from 'src/utils/types/db.types';
-import { AuthService } from 'src/modules/auth/auth.service';
-import { UpdateUserDto } from 'src/modules/user/dto/update-user.dto';
+import { ResponseDto } from '../../utils/globalDto/response.dto';
+import { RolesGuard } from '../../guards/roles.guard';
+import { UserEntity } from '../../utils/types/db.types';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { AddCourseDto } from './dto/add-course.dto';
+import { AddBookmarkDto } from './dto/bookmark.dto';
+import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { ConfigService } from '@nestjs/config';
+import { Roles } from '../../utils/decorators/roles.decorator';
+import { UserRoleEnum } from '../../utils/types/db.types';
+import { PaginationDto } from '../../utils/globalDto/pagination.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Users')
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly configService: ConfigService,
+  ) {}
 
-  @Post()
-  async create(@Body() createUserDto: CreateUserDto) {
-    const user = await this.userService.createStudent(createUserDto);
-    return ResponseDto.createSuccessResponse('User created successfully', user);
-  }
+  // @Post()
+  // async create(@Body() createUserDto: CreateUserDto) {
+  //   const user = await this.userService.create(createUserDto);
+  //   return ResponseDto.createSuccessResponse('User created successfully', user);
+  // }
 
   @Get('profile')
   @UseGuards(RolesGuard)
@@ -39,11 +55,31 @@ export class UserController {
       profile,
     );
   }
+  @Get('user-profile')
+  async getProfileCourses(@Query('username') username: string) {
+    const { email, ...user } = await this.userService.findByUsername(username);
+    return ResponseDto.createSuccessResponse(
+      'User courses retrieved successfully',
+      user,
+    );
+  }
 
   @Patch()
   @UseGuards(RolesGuard)
-  async update(@Req() req: Request, @Body() updateUserDto: UpdateUserDto) {
+  async update(
+    @Req() req: Request,
+    @Body() updateUserDto: UpdateUserDto,
+    @Headers('root-api-key') rootApiKey?: string,
+  ) {
     const user = req.user as UserEntity;
+
+    // Check if role update is requested and validate API key
+    if (updateUserDto.role) {
+      if (rootApiKey !== this.configService.get('ROOT_API_KEY')) {
+        throw new UnauthorizedException('Invalid or missing root API key');
+      }
+    }
+
     const updatedUser = await this.userService.update(user.id, updateUserDto);
     return ResponseDto.createSuccessResponse(
       'User updated successfully',
@@ -91,12 +127,86 @@ export class UserController {
     );
   }
 
+  @Post('bookmarks')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async addBookmark(
+    @Body() addBookmarkDto: AddBookmarkDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const bookmark = await this.userService.addBookmark(
+      user.id,
+      addBookmarkDto,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Bookmark added successfully',
+      bookmark,
+    );
+  }
+
+  @Delete('bookmarks/:bookmarkId')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async removeBookmark(
+    @Param('bookmarkId', ParseUUIDPipe) bookmarkId: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const bookmark = await this.userService.removeBookmark(user.id, bookmarkId);
+    return ResponseDto.createSuccessResponse(
+      'Bookmark removed successfully',
+      bookmark,
+    );
+  }
+
+  @Get('bookmarks/:bookmarkId')
+  @UseGuards(RolesGuard)
+  @CacheControl({ maxAge: 300, private: true }) // Cache for 5 minutes
+  async getBookmark(
+    @Param('bookmarkId', ParseUUIDPipe) bookmarkId: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const bookmark = await this.userService.getBookmarkById(
+      user.id,
+      bookmarkId,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Bookmark retrieved successfully',
+      bookmark,
+    );
+  }
+
+  @Get('bookmarks')
+  @UseGuards(RolesGuard)
+  @CacheControl({ maxAge: 300, private: true }) // Cache for 5 minutes
+  async getUserBookmarks(@Req() req: Request) {
+    const user = req.user as UserEntity;
+    const bookmarks = await this.userService.getUserBookmarks(user.id);
+    return ResponseDto.createSuccessResponse(
+      'Bookmarks retrieved successfully',
+      bookmarks,
+    );
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const user = await this.userService.findOne(id);
     return ResponseDto.createSuccessResponse(
       'User retrieved successfully',
       user,
+    );
+  }
+
+  @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRoleEnum.ADMIN)
+  async findAll(@Query() paginationDto: PaginationDto) {
+    const result = await this.userService.findAll(paginationDto);
+    return ResponseDto.createSuccessResponse(
+      'Users retrieved successfully',
+      result,
     );
   }
 }

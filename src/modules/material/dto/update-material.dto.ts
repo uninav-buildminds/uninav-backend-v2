@@ -1,4 +1,4 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { PartialType } from '@nestjs/swagger';
 import { CreateMaterialDto, ResourceDto } from './create-material.dto';
 
 export class UpdateResourceDto extends PartialType(ResourceDto) {}

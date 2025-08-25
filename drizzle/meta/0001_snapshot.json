@@ -1,9 +1,161 @@
 {
-  "id": "9fd8207b-1ba7-4cc4-9268-5a25f5e32c78",
-  "prevId": "8e58828d-e9fd-4da3-a32f-2d0537cd252a",
+  "id": "bbec25db-e785-4aff-8688-b6ccf5b6a2bd",
+  "prevId": "59f900d8-f3c7-4860-886f-08a49d3c1056",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.bookmarks": {
+      "name": "bookmarks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "material_id": {
+          "name": "material_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "collection_id": {
+          "name": "collection_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "bookmarks_user_id_users_id_fk": {
+          "name": "bookmarks_user_id_users_id_fk",
+          "tableFrom": "bookmarks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "bookmarks_material_id_material_id_fk": {
+          "name": "bookmarks_material_id_material_id_fk",
+          "tableFrom": "bookmarks",
+          "tableTo": "material",
+          "columnsFrom": [
+            "material_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "bookmarks_collection_id_collection_id_fk": {
+          "name": "bookmarks_collection_id_collection_id_fk",
+          "tableFrom": "bookmarks",
+          "tableTo": "collection",
+          "columnsFrom": [
+            "collection_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users_courses": {
+      "name": "users_courses",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "users_courses_user_id_users_id_fk": {
+          "name": "users_courses_user_id_users_id_fk",
+          "tableFrom": "users_courses",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "users_courses_course_id_courses_id_fk": {
+          "name": "users_courses_course_id_courses_id_fk",
+          "tableFrom": "users_courses",
+          "tableTo": "courses",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "users_courses_user_id_course_id_pk": {
+          "name": "users_courses_user_id_course_id_pk",
+          "columns": [
+            "user_id",
+            "course_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.users": {
       "name": "users",
       "schema": "",
@@ -21,14 +173,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "firstName": {
-          "name": "firstName",
+        "first_name": {
+          "name": "first_name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "lastName": {
-          "name": "lastName",
+        "last_name": {
+          "name": "last_name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -39,8 +191,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "department": {
-          "name": "department",
+        "department_id": {
+          "name": "department_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -107,12 +259,12 @@
         }
       },
       "foreignKeys": {
-        "users_department_department_id_fk": {
-          "name": "users_department_department_id_fk",
+        "users_department_id_department_id_fk": {
+          "name": "users_department_id_department_id_fk",
           "tableFrom": "users",
           "tableTo": "department",
           "columnsFrom": [
-            "department"
+            "department_id"
           ],
           "columnsTo": [
             "id"
@@ -142,66 +294,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.users_courses": {
-      "name": "users_courses",
-      "schema": "",
-      "columns": {
-        "userId": {
-          "name": "userId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "courseId": {
-          "name": "courseId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "users_courses_userId_users_id_fk": {
-          "name": "users_courses_userId_users_id_fk",
-          "tableFrom": "users_courses",
-          "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "users_courses_courseId_courses_id_fk": {
-          "name": "users_courses_courseId_courses_id_fk",
-          "tableFrom": "users_courses",
-          "tableTo": "courses",
-          "columnsFrom": [
-            "courseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "users_courses_userId_courseId_pk": {
-          "name": "users_courses_userId_courseId_pk",
-          "columns": [
-            "userId",
-            "courseId"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.auth": {
       "name": "auth",
       "schema": "",
@@ -217,6 +309,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "verification_code": {
+          "name": "verification_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "email_verified": {
           "name": "email_verified",
@@ -234,6 +332,18 @@
         "matric_no": {
           "name": "matric_no",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password_reset_token": {
+          "name": "password_reset_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password_reset_expires": {
+          "name": "password_reset_expires",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
@@ -336,14 +446,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "department": {
-          "name": "department",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "faculty": {
-          "name": "faculty",
+        "department_id": {
+          "name": "department_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -355,6 +459,26 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'pending'"
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -372,12 +496,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "moderator_department_department_id_fk": {
-          "name": "moderator_department_department_id_fk",
+        "moderator_department_id_department_id_fk": {
+          "name": "moderator_department_id_department_id_fk",
           "tableFrom": "moderator",
           "tableTo": "department",
           "columnsFrom": [
-            "department"
+            "department_id"
           ],
           "columnsTo": [
             "id"
@@ -385,12 +509,12 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "moderator_faculty_faculty_id_fk": {
-          "name": "moderator_faculty_faculty_id_fk",
+        "moderator_reviewed_by_users_id_fk": {
+          "name": "moderator_reviewed_by_users_id_fk",
           "tableFrom": "moderator",
-          "tableTo": "faculty",
+          "tableTo": "users",
           "columnsFrom": [
-            "faculty"
+            "reviewed_by"
           ],
           "columnsTo": [
             "id"
@@ -516,14 +640,14 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "courseName": {
-          "name": "courseName",
+        "course_name": {
+          "name": "course_name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "courseCode": {
-          "name": "courseCode",
+        "course_code": {
+          "name": "course_code",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -534,6 +658,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "review_status": {
           "name": "review_status",
           "type": "approval_status",
@@ -542,8 +672,8 @@
           "notNull": false,
           "default": "'pending'"
         },
-        "reviewedBy": {
-          "name": "reviewedBy",
+        "reviewed_by": {
+          "name": "reviewed_by",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -565,15 +695,28 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "courses_reviewedBy_moderator_userId_fk": {
-          "name": "courses_reviewedBy_moderator_userId_fk",
+        "courses_creator_id_users_id_fk": {
+          "name": "courses_creator_id_users_id_fk",
           "tableFrom": "courses",
-          "tableTo": "moderator",
+          "tableTo": "users",
           "columnsFrom": [
-            "reviewedBy"
+            "creator_id"
           ],
           "columnsTo": [
-            "userId"
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "courses_reviewed_by_users_id_fk": {
+          "name": "courses_reviewed_by_users_id_fk",
+          "tableFrom": "courses",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "columnsTo": [
+            "id"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
@@ -581,11 +724,11 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "courses_courseCode_unique": {
-          "name": "courses_courseCode_unique",
+        "courses_course_code_unique": {
+          "name": "courses_course_code_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "courseCode"
+            "course_code"
           ]
         }
       },
@@ -597,14 +740,14 @@
       "name": "department_level_courses",
       "schema": "",
       "columns": {
-        "departmentId": {
-          "name": "departmentId",
+        "department_id": {
+          "name": "department_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "courseId": {
-          "name": "courseId",
+        "course_id": {
+          "name": "course_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -623,8 +766,8 @@
           "notNull": false,
           "default": "'pending'"
         },
-        "reviewedBy": {
-          "name": "reviewedBy",
+        "reviewed_by": {
+          "name": "reviewed_by",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -632,12 +775,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "department_level_courses_departmentId_department_id_fk": {
-          "name": "department_level_courses_departmentId_department_id_fk",
+        "department_level_courses_department_id_department_id_fk": {
+          "name": "department_level_courses_department_id_department_id_fk",
           "tableFrom": "department_level_courses",
           "tableTo": "department",
           "columnsFrom": [
-            "departmentId"
+            "department_id"
           ],
           "columnsTo": [
             "id"
@@ -645,12 +788,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "department_level_courses_courseId_courses_id_fk": {
-          "name": "department_level_courses_courseId_courses_id_fk",
+        "department_level_courses_course_id_courses_id_fk": {
+          "name": "department_level_courses_course_id_courses_id_fk",
           "tableFrom": "department_level_courses",
           "tableTo": "courses",
           "columnsFrom": [
-            "courseId"
+            "course_id"
           ],
           "columnsTo": [
             "id"
@@ -658,86 +801,26 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "department_level_courses_reviewedBy_moderator_userId_fk": {
-          "name": "department_level_courses_reviewedBy_moderator_userId_fk",
+        "department_level_courses_reviewed_by_users_id_fk": {
+          "name": "department_level_courses_reviewed_by_users_id_fk",
           "tableFrom": "department_level_courses",
-          "tableTo": "moderator",
+          "tableTo": "users",
           "columnsFrom": [
-            "reviewedBy"
+            "reviewed_by"
           ],
           "columnsTo": [
-            "userId"
+            "id"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "department_level_courses_departmentId_courseId_pk": {
-          "name": "department_level_courses_departmentId_courseId_pk",
+        "department_level_courses_department_id_course_id_pk": {
+          "name": "department_level_courses_department_id_course_id_pk",
           "columns": [
-            "departmentId",
-            "courseId"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.student_courses": {
-      "name": "student_courses",
-      "schema": "",
-      "columns": {
-        "userId": {
-          "name": "userId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "courseId": {
-          "name": "courseId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "student_courses_userId_users_id_fk": {
-          "name": "student_courses_userId_users_id_fk",
-          "tableFrom": "student_courses",
-          "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "student_courses_courseId_courses_id_fk": {
-          "name": "student_courses_courseId_courses_id_fk",
-          "tableFrom": "student_courses",
-          "tableTo": "courses",
-          "columnsFrom": [
-            "courseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "student_courses_userId_courseId_pk": {
-          "name": "student_courses_userId_courseId_pk",
-          "columns": [
-            "userId",
-            "courseId"
+            "department_id",
+            "course_id"
           ]
         }
       },
@@ -770,22 +853,15 @@
           "primaryKey": false,
           "notNull": false
         },
-        "click_count": {
-          "name": "click_count",
+        "views": {
+          "name": "views",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "default": 0
         },
-        "view_count": {
-          "name": "view_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "download_count": {
-          "name": "download_count",
+        "downloads": {
+          "name": "downloads",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -798,8 +874,8 @@
           "notNull": false,
           "default": 0
         },
-        "creator": {
-          "name": "creator",
+        "creator_id": {
+          "name": "creator_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -846,15 +922,15 @@
           "notNull": false,
           "default": "'pending'"
         },
-        "reviewedBy": {
-          "name": "reviewedBy",
+        "reviewed_by": {
+          "name": "reviewed_by",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
         "search_vector": {
           "name": "search_vector",
-          "type": "text",
+          "type": "tsvector",
           "primaryKey": false,
           "notNull": false
         },
@@ -891,12 +967,12 @@
         }
       },
       "foreignKeys": {
-        "material_creator_users_id_fk": {
-          "name": "material_creator_users_id_fk",
+        "material_creator_id_users_id_fk": {
+          "name": "material_creator_id_users_id_fk",
           "tableFrom": "material",
           "tableTo": "users",
           "columnsFrom": [
-            "creator"
+            "creator_id"
           ],
           "columnsTo": [
             "id"
@@ -917,101 +993,21 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "material_reviewedBy_moderator_userId_fk": {
-          "name": "material_reviewedBy_moderator_userId_fk",
+        "material_reviewed_by_users_id_fk": {
+          "name": "material_reviewed_by_users_id_fk",
           "tableFrom": "material",
-          "tableTo": "moderator",
+          "tableTo": "users",
           "columnsFrom": [
-            "reviewedBy"
+            "reviewed_by"
           ],
           "columnsTo": [
-            "userId"
+            "id"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.bookmarks": {
-      "name": "bookmarks",
-      "schema": "",
-      "columns": {
-        "userId": {
-          "name": "userId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "materialId": {
-          "name": "materialId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "collectionId": {
-          "name": "collectionId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "bookmarks_userId_users_id_fk": {
-          "name": "bookmarks_userId_users_id_fk",
-          "tableFrom": "bookmarks",
-          "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "bookmarks_materialId_material_id_fk": {
-          "name": "bookmarks_materialId_material_id_fk",
-          "tableFrom": "bookmarks",
-          "tableTo": "material",
-          "columnsFrom": [
-            "materialId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "bookmarks_collectionId_collection_id_fk": {
-          "name": "bookmarks_collectionId_collection_id_fk",
-          "tableFrom": "bookmarks",
-          "tableTo": "collection",
-          "columnsFrom": [
-            "collectionId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "bookmarks_userId_materialId_collectionId_pk": {
-          "name": "bookmarks_userId_materialId_collectionId_pk",
-          "columns": [
-            "userId",
-            "materialId",
-            "collectionId"
-          ]
-        }
-      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -1028,8 +1024,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "creator": {
-          "name": "creator",
+        "creator_id": {
+          "name": "creator_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -1053,16 +1049,30 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'public'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "collection_creator_users_id_fk": {
-          "name": "collection_creator_users_id_fk",
+        "collection_creator_id_users_id_fk": {
+          "name": "collection_creator_id_users_id_fk",
           "tableFrom": "collection",
           "tableTo": "users",
           "columnsFrom": [
-            "creator"
+            "creator_id"
           ],
           "columnsTo": [
             "id"
@@ -1081,14 +1091,14 @@
       "name": "collection_material",
       "schema": "",
       "columns": {
-        "collectionId": {
-          "name": "collectionId",
+        "collection_id": {
+          "name": "collection_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "materialId": {
-          "name": "materialId",
+        "material_id": {
+          "name": "material_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -1096,12 +1106,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "collection_material_collectionId_collection_id_fk": {
-          "name": "collection_material_collectionId_collection_id_fk",
+        "collection_material_collection_id_collection_id_fk": {
+          "name": "collection_material_collection_id_collection_id_fk",
           "tableFrom": "collection_material",
           "tableTo": "collection",
           "columnsFrom": [
-            "collectionId"
+            "collection_id"
           ],
           "columnsTo": [
             "id"
@@ -1109,12 +1119,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "collection_material_materialId_material_id_fk": {
-          "name": "collection_material_materialId_material_id_fk",
+        "collection_material_material_id_material_id_fk": {
+          "name": "collection_material_material_id_material_id_fk",
           "tableFrom": "collection_material",
           "tableTo": "material",
           "columnsFrom": [
-            "materialId"
+            "material_id"
           ],
           "columnsTo": [
             "id"
@@ -1124,11 +1134,11 @@
         }
       },
       "compositePrimaryKeys": {
-        "collection_material_collectionId_materialId_pk": {
-          "name": "collection_material_collectionId_materialId_pk",
+        "collection_material_collection_id_material_id_pk": {
+          "name": "collection_material_collection_id_material_id_pk",
           "columns": [
-            "collectionId",
-            "materialId"
+            "collection_id",
+            "material_id"
           ]
         }
       },
@@ -1173,11 +1183,29 @@
           "primaryKey": false,
           "notNull": true
         },
-        "body": {
-          "name": "body",
+        "headingAddress": {
+          "name": "headingAddress",
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "bodyAddress": {
+          "name": "bodyAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "headingImageKey": {
+          "name": "headingImageKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bodyKey": {
+          "name": "bodyKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "likes": {
           "name": "likes",
@@ -1186,12 +1214,32 @@
           "notNull": false,
           "default": 0
         },
-        "clicks": {
-          "name": "clicks",
+        "views": {
+          "name": "views",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "default": 0
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "review_status": {
+          "name": "review_status",
+          "type": "approval_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -1221,6 +1269,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "blogs_reviewed_by_users_id_fk": {
+          "name": "blogs_reviewed_by_users_id_fk",
+          "tableFrom": "blogs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1331,7 +1392,14 @@
           "name": "amount",
           "type": "numeric",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": "'0'"
+        },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         },
         "material_id": {
           "name": "material_id",
@@ -1345,8 +1413,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "imageUrl": {
-          "name": "imageUrl",
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_key": {
+          "name": "file_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -1370,8 +1444,8 @@
           "notNull": false,
           "default": 0
         },
-        "impressions": {
-          "name": "impressions",
+        "views": {
+          "name": "views",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1384,6 +1458,12 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'pending'"
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -1402,6 +1482,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "advert_creator_id_users_id_fk": {
+          "name": "advert_creator_id_users_id_fk",
+          "tableFrom": "advert",
+          "tableTo": "users",
+          "columnsFrom": [
+            "creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "advert_material_id_material_id_fk": {
           "name": "advert_material_id_material_id_fk",
           "tableFrom": "advert",
@@ -1426,6 +1519,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "advert_reviewed_by_users_id_fk": {
+          "name": "advert_reviewed_by_users_id_fk",
+          "tableFrom": "advert",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1493,6 +1599,187 @@
           "tableTo": "material",
           "columnsFrom": [
             "materialId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.material_likes": {
+      "name": "material_likes",
+      "schema": "",
+      "columns": {
+        "material_id": {
+          "name": "material_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "material_likes_material_id_material_id_fk": {
+          "name": "material_likes_material_id_material_id_fk",
+          "tableFrom": "material_likes",
+          "tableTo": "material",
+          "columnsFrom": [
+            "material_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "material_likes_user_id_users_id_fk": {
+          "name": "material_likes_user_id_users_id_fk",
+          "tableFrom": "material_likes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "material_likes_material_id_user_id_pk": {
+          "name": "material_likes_material_id_user_id_pk",
+          "columns": [
+            "material_id",
+            "user_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.blog_likes": {
+      "name": "blog_likes",
+      "schema": "",
+      "columns": {
+        "blogId": {
+          "name": "blogId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "blog_likes_blogId_blogs_id_fk": {
+          "name": "blog_likes_blogId_blogs_id_fk",
+          "tableFrom": "blog_likes",
+          "tableTo": "blogs",
+          "columnsFrom": [
+            "blogId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "blog_likes_userId_users_id_fk": {
+          "name": "blog_likes_userId_users_id_fk",
+          "tableFrom": "blog_likes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "blog_likes_blogId_userId_pk": {
+          "name": "blog_likes_blogId_userId_pk",
+          "columns": [
+            "blogId",
+            "userId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.admin": {
+      "name": "admin",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "admin_userId_users_id_fk": {
+          "name": "admin_userId_users_id_fk",
+          "tableFrom": "admin",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
           ],
           "columnsTo": [
             "id"

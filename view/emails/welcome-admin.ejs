@@ -8,54 +8,70 @@
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       line-height: 1.6;
-      color: #333;
+      color: #333333; /* --text-color-dark approximation */
       max-width: 600px;
       margin: 0 auto;
       padding: 20px;
+      background-color: #f0f8ff; /* --bg-main */
     }
     .header {
-      background-color: #7c3aed;
-      color: white;
+      background-color: #7c3aed; /* Admin specific color */
+      color: #ffffff; /* White text for contrast */
       padding: 20px;
       text-align: center;
       border-radius: 8px 8px 0 0;
     }
     .content {
-      background-color: #f9fafb;
+      background-color: #ffffff;
       padding: 25px;
       border-radius: 0 0 8px 8px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #ccebff; /* Lighter shade derived from --border-color */
       border-top: none;
     }
     .footer {
       text-align: center;
       margin-top: 20px;
       font-size: 12px;
-      color: #6b7280;
+      color: #6b7280; /* --muted-foreground approximation */
     }
     .button {
       display: inline-block;
-      background-color: #7c3aed;
-      color: white;
+      background-color: #7c3aed; /* Admin specific color */
+      color: #ffffff !important; /* White text, !important */
       text-decoration: none;
-      padding: 10px 20px;
+      padding: 12px 20px;
       border-radius: 5px;
       margin: 15px 0;
       font-weight: bold;
+      border: none;
+      text-align: center;
     }
-    h1, h2 {
-      color: #7c3aed;
+     .button:hover {
+       background-color: #6d28d9; /* Darker shade for hover */
+    }
+    h1, h2, h3 {
+      color: #7c3aed; /* Admin specific color */
     }
     .admin-power {
       margin-bottom: 15px;
       padding-left: 20px;
-      border-left: 3px solid #7c3aed;
+      border-left: 3px solid #7c3aed; /* Admin specific color */
     }
     .next-steps {
-      background-color: #f3f4f6;
+      background-color: #e6f2ff; /* Lighter shade of --bg-main */
       padding: 15px;
       border-radius: 8px;
       margin: 20px 0;
+    }
+     ul, ol {
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 5px;
+    }
+    a {
+        color: #7c3aed; /* Admin specific color for links */
+        text-decoration: underline;
     }
   </style>
 </head>
@@ -65,12 +81,12 @@
   </div>
   <div class="content">
     <p>Hi <%= firstName %> <%= lastName %>!</p>
-    
+
     <p>We're delighted to welcome you as an <strong>Administrator</strong> on UniNav! You now have comprehensive oversight of our academic resource platform.</p>
-    
+
     <h2>About UniNav</h2>
     <p>UniNav connects students with essential academic resources in a structured, searchable format. As an administrator, you'll shape the platform's growth and ensure its integrity across all departments, including <%= departmentName %>.</p>
-    
+
     <div class="admin-power">
       <h3>⚙️ Your Administrative Powers:</h3>
       <ul>
@@ -82,24 +98,24 @@
         <li>Oversee monetization and promotional content</li>
       </ul>
     </div>
-    
+
     <div class="next-steps">
       <h3>🚀 Getting Started:</h3>
       <ol>
-        <li><strong>Verify your email</strong> to activate your administrator account</li>
-        <li><strong>Access the admin dashboard</strong> for a platform overview</li>
-        <li><strong>Review pending moderator applications</strong> if available</li>
-        <li><strong>Familiarize yourself with the admin controls</strong> and settings</li>
-        <li><strong>Set up your security preferences</strong> including 2FA (recommended)</li>
+        <li><strong>Verify your email</strong> to activate your administrator account (if not already done).</li>
+        <li><strong>Access the admin dashboard</strong> for a platform overview.</li>
+        <li><strong>Review pending moderator applications</strong> if available.</li>
+        <li><strong>Familiarize yourself with the admin controls</strong> and settings.</li>
+        <li><strong>Set up your security preferences</strong> including 2FA (recommended).</li>
       </ol>
     </div>
-    
-    <a href="https://uninav.com/admin/dashboard" class="button">Access Admin Dashboard</a>
-    
-    <p>For security purposes, please review our <a href="https://uninav.com/admin/security-guide">Admin Security Guidelines</a> to help protect the platform and user data.</p>
-    
-    <p>If you have any questions about your administrative role, please contact our technical team at <a href="mailto:tech@uninav.com">tech@uninav.com</a>.</p>
-    
+
+    <a href="https://uninav.com/admin/dashboard" class="button" style="color: #ffffff !important;">Access Admin Dashboard</a>
+
+    <p>For security purposes, please review our <a href="https://uninav.com/admin/security-guide" style="color: #7c3aed;">Admin Security Guidelines</a> to help protect the platform and user data.</p>
+
+    <p>If you have any questions about your administrative role, please contact our technical team at <a href="mailto:tech@uninav.com" style="color: #7c3aed;">tech@uninav.com</a>.</p>
+
     <p>Thank you for your leadership in making UniNav an invaluable resource for academic success!</p>
     <p>The UniNav Team</p>
   </div>

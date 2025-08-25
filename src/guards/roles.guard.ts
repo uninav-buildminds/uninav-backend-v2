@@ -76,14 +76,16 @@ export class RolesGuard implements CanActivate {
     }
 
     if (!token) {
-      throw new UnauthorizedException('JWT token is missing');
+      throw new UnauthorizedException('User not logged in');
     }
 
     try {
       const decoded = this.jwtService.verify(token);
       return { id: decoded.sub };
     } catch (error) {
-      throw new UnauthorizedException('Invalid JWT token');
+      throw new UnauthorizedException(
+        'Invalid JWT token (Please signin to perform this operation)',
+      );
     }
   }
 }

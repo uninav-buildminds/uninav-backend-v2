@@ -5,23 +5,24 @@ import {
   integer,
   timestamp,
   index,
+  customType,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   visibilityEnum,
   restrictionEnum,
   materialTypeEnum,
   approvalStatusEnum,
 } from './enums.schema';
-import { users } from './user.schema';
-import { moderator } from './moderator.schema';
-import { collectionMaterial } from './collection.schema';
+import { bookmarks, users } from './user.schema';
+import { collectionContent } from './collection.schema';
 import { advert } from './advert.schema';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { courses } from 'src/modules/drizzle/schema/course.schema';
 import { TABLES } from '../tables.constants';
 import { materialLikes } from './material-likes.schema';
+import { tsvector } from 'src/modules/drizzle/schema/custom-type';
 
 export const material = pgTable(
   TABLES.MATERIALS,
@@ -30,9 +31,8 @@ export const material = pgTable(
     type: materialTypeEnum('type').notNull(),
     tags: text('tags').array(),
     // statistics
-    clickCount: integer('click_count').default(0),
-    viewCount: integer('view_count').default(0),
-    downloadCount: integer('download_count').default(0),
+    views: integer('views').default(0),
+    downloads: integer('downloads').default(0),
     likes: integer('likes').default(0),
 
     creatorId: uuid('creator_id').references(() => users.id, {
@@ -43,15 +43,15 @@ export const material = pgTable(
     visibility: visibilityEnum('visibility').default('public'),
     restriction: restrictionEnum('restriction').default('readonly'),
 
-    targetCourse: uuid('target_course').references(() => courses.id, {
+    targetCourseId: uuid('target_course').references(() => courses.id, {
       onDelete: 'set null',
     }),
     reviewStatus: approvalStatusEnum('review_status').default('pending'),
-    reviewedBy: uuid('reviewed_by').references(() => moderator.userId, {
+    reviewedById: uuid('reviewed_by').references(() => users.id, {
       onDelete: 'set null',
     }),
 
-    searchVector: text('search_vector'),
+    searchVector: tsvector('search_vector'),
     ...timestamps,
   },
   (table) => {
@@ -67,20 +67,22 @@ export const materialRelations = relations(material, ({ one, many }) => ({
   creator: one(users, {
     fields: [material.creatorId],
     references: [users.id],
+    relationName: 'material_creator',
   }),
-  reviewer: one(moderator, {
-    fields: [material.reviewedBy],
-    references: [moderator.userId],
-    relationName: 'reviewer',
+  reviewedBy: one(users, {
+    fields: [material.reviewedById],
+    references: [users.id],
+    relationName: 'material_reviewer',
   }),
   resource: one(resource, {
     fields: [material.id],
     references: [resource.materialId],
   }),
-  collections: many(collectionMaterial),
+  bookmarks: many(bookmarks),
+  collections: many(collectionContent),
   adverts: many(advert),
   targetCourse: one(courses, {
-    fields: [material.targetCourse],
+    fields: [material.targetCourseId],
     references: [courses.id],
   }),
   likes: many(materialLikes),

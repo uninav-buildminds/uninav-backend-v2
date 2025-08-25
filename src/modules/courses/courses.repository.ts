@@ -1,13 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { CourseEntity, DrizzleDB } from 'src/utils/types/db.types';
+import {
+  ApprovalStatus,
+  CourseEntity,
+  DrizzleDB,
+} from 'src/utils/types/db.types';
 import { userCourses } from 'src/modules/drizzle/schema/user.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq, or, sql, desc, ilike } from 'drizzle-orm';
 import {
   courses,
   departmentLevelCourses,
 } from '../drizzle/schema/course.schema';
+import { department } from 'src/modules/drizzle/schema/department.schema';
 
 @Injectable()
 export class CoursesRepository {
@@ -16,13 +21,11 @@ export class CoursesRepository {
   async findExistingDepartmentLevelCourse(
     courseId: string,
     departmentId: string,
-    level: number,
   ) {
     return await this.db.query.departmentLevelCourses.findFirst({
       where: and(
         eq(departmentLevelCourses.courseId, courseId),
         eq(departmentLevelCourses.departmentId, departmentId),
-        eq(departmentLevelCourses.level, level),
       ),
     });
   }
@@ -31,6 +34,8 @@ export class CoursesRepository {
     courseId: string,
     departmentId: string,
     level: number,
+    reviewStatus: ApprovalStatus = ApprovalStatus.PENDING,
+    reviewedById: string | null = null,
   ) {
     return await this.db
       .insert(departmentLevelCourses)
@@ -38,6 +43,8 @@ export class CoursesRepository {
         departmentId,
         courseId,
         level,
+        reviewStatus,
+        reviewedById,
       } as any)
       .returning();
   }
@@ -90,23 +97,60 @@ export class CoursesRepository {
     });
   }
 
-  async findAllByFilter(filters?: { departmentId?: string; level?: number }) {
-    // Base query to get all courses with department info but without deep nesting
-    const query = this.db
-      .select({
-        id: courses.id,
-        courseName: courses.courseName,
-        courseCode: courses.courseCode,
-        description: courses.description,
-        reviewStatus: courses.reviewStatus,
-        departmentId: departmentLevelCourses.departmentId,
-        level: departmentLevelCourses.level,
-      })
-      .from(courses)
-      .leftJoin(
-        departmentLevelCourses,
-        eq(courses.id, departmentLevelCourses.courseId),
-      );
+  async findAll(filters?: {
+    departmentId?: string;
+    level?: number;
+    reviewStatus?: ApprovalStatus;
+    query?: string;
+    allowDepartments?: boolean;
+  }) {
+    if (filters?.departmentId || filters?.level) {
+      filters.allowDepartments = true;
+    }
+
+    let baseQuery;
+    if (filters?.allowDepartments) {
+      // Query with department info grouped by course
+      baseQuery = this.db
+        .select({
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          reviewStatus: courses.reviewStatus,
+          createdAt: courses.createdAt,
+          departments: sql<{ departmentId: string; level: number }[]>`
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'departmentId', ${departmentLevelCourses.departmentId},
+                  'level', ${departmentLevelCourses.level}
+                )
+              ) FILTER (WHERE ${departmentLevelCourses.departmentId} IS NOT NULL),
+              '[]'
+            )
+          `,
+        })
+        .from(courses)
+        .leftJoin(
+          departmentLevelCourses,
+          eq(courses.id, departmentLevelCourses.courseId),
+        )
+        .groupBy(courses.id);
+    } else {
+      // Original query without department info
+      baseQuery = this.db
+        .select({
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          reviewStatus: courses.reviewStatus,
+          createdAt: courses.createdAt,
+        })
+        .from(courses);
+    }
+
     let conditions = [];
 
     // Apply filters if provided
@@ -118,13 +162,145 @@ export class CoursesRepository {
     if (filters?.level) {
       conditions.push(eq(departmentLevelCourses.level, filters.level));
     }
-
-    if (conditions.length > 0) {
-      // query.where(and(...conditions, eq(courses.reviewStatus, 'approved')));
-      // !Testing
-      query.where(and(...conditions));
+    if (filters?.reviewStatus) {
+      conditions.push(eq(courses.reviewStatus, filters.reviewStatus));
     }
-    return await query;
+    if (filters?.query && filters.query.trim() !== '') {
+      const searchTerm = `%${filters.query}%`;
+      const searchCondition = or(
+        ilike(courses.courseName, searchTerm),
+        ilike(courses.courseCode, searchTerm),
+        ilike(courses.description, searchTerm),
+      );
+      conditions.push(searchCondition);
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get data with filters
+    return await baseQuery.where(whereClause).orderBy(desc(courses.createdAt));
+  }
+
+  async findAllPaginated(filters?: {
+    departmentId?: string;
+    level?: number;
+    reviewStatus?: ApprovalStatus;
+    page?: number;
+    query?: string;
+    allowDepartments?: boolean;
+  }) {
+    const limit = 10;
+    const page = filters?.page || 1;
+    const offset = (page - 1) * limit;
+
+    if (filters?.departmentId || filters?.level) {
+      filters.allowDepartments = true;
+    }
+
+    let baseQuery;
+    if (filters?.allowDepartments) {
+      // Query with department info grouped by course
+      baseQuery = this.db
+        .select({
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          reviewStatus: courses.reviewStatus,
+          createdAt: courses.createdAt,
+          departments: sql<{ departmentId: string; level: number }[]>`
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'departmentId', ${departmentLevelCourses.departmentId},
+                  'level', ${departmentLevelCourses.level}
+                )
+              ) FILTER (WHERE ${departmentLevelCourses.departmentId} IS NOT NULL),
+              '[]'
+            )
+          `,
+        })
+        .from(courses)
+        .leftJoin(
+          departmentLevelCourses,
+          eq(courses.id, departmentLevelCourses.courseId),
+        )
+        .groupBy(courses.id);
+    } else {
+      // Original query without department info
+      baseQuery = this.db
+        .select({
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          reviewStatus: courses.reviewStatus,
+          createdAt: courses.createdAt,
+        })
+        .from(courses);
+    }
+
+    let conditions = [];
+
+    // Apply filters if provided
+    if (filters?.departmentId) {
+      conditions.push(
+        eq(departmentLevelCourses.departmentId, filters.departmentId),
+      );
+    }
+    if (filters?.level) {
+      conditions.push(eq(departmentLevelCourses.level, filters.level));
+    }
+    if (filters?.reviewStatus) {
+      conditions.push(eq(courses.reviewStatus, filters.reviewStatus));
+    }
+
+    // Add text search if query parameter is provided
+    if (filters?.query && filters.query.trim() !== '') {
+      const searchTerm = `%${filters.query}%`;
+      const searchCondition = or(
+        ilike(courses.courseName, searchTerm),
+        ilike(courses.courseCode, searchTerm),
+        ilike(courses.description, searchTerm),
+      );
+      conditions.push(searchCondition);
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count for pagination
+    const countQuery = this.db
+      .select({
+        count: sql<number>`cast(count(DISTINCT ${courses.id}) as integer)`,
+      })
+      .from(courses)
+      .leftJoin(
+        departmentLevelCourses,
+        eq(courses.id, departmentLevelCourses.courseId),
+      )
+      .where(whereClause);
+
+    const countResult = await countQuery;
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Get paginated data
+    const data = await baseQuery
+      .where(whereClause)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(courses.createdAt));
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 
   async findById(id: string) {
@@ -132,7 +308,7 @@ export class CoursesRepository {
     return this.db.query.courses.findFirst({
       where: eq(courses.id, id),
       with: {
-        departmentCourses: {
+        departments: {
           with: {
             department: {
               with: {
@@ -149,7 +325,7 @@ export class CoursesRepository {
     return this.db.query.courses.findFirst({
       where: eq(courses.courseCode, courseCode),
       with: {
-        departmentCourses: {
+        departments: {
           with: {
             department: {
               with: {
@@ -196,5 +372,280 @@ export class CoursesRepository {
         courseId: course.courseId,
       })),
     );
+  }
+
+  async update(id: string, updateData: Partial<CourseEntity>) {
+    const result = await this.db
+      .update(courses)
+      .set({ ...updateData, updatedAt: new Date() } as any)
+      .where(eq(courses.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async delete(id: string) {
+    const [result] = await this.db
+      .delete(courses)
+      .where(eq(courses.id, id))
+      .returning();
+    return result;
+  }
+  async reviewDepartmentLevelCourse(
+    departmentId: string,
+    courseId: string,
+    reviewData: {
+      reviewStatus: ApprovalStatus;
+      reviewedById: string;
+    },
+  ) {
+    const [result] = await this.db
+      .update(departmentLevelCourses)
+      .set({
+        reviewStatus: reviewData.reviewStatus,
+        reviewedById: reviewData.reviewedById,
+      } as any)
+      .where(
+        and(
+          eq(departmentLevelCourses.departmentId, departmentId),
+          eq(departmentLevelCourses.courseId, courseId),
+        ),
+      )
+      .returning();
+    return result;
+  }
+
+  async deleteDepartmentLevelCourse(departmentId: string, courseId: string) {
+    const [result] = await this.db
+      .delete(departmentLevelCourses)
+      .where(
+        and(
+          eq(departmentLevelCourses.departmentId, departmentId),
+          eq(departmentLevelCourses.courseId, courseId),
+        ),
+      )
+      .returning();
+    return result;
+  }
+
+  async findDepartmentLevelCoursesPaginated(filters?: {
+    departmentId?: string;
+    courseId?: string;
+    reviewStatus?: ApprovalStatus;
+    page?: number;
+    query?: string;
+  }) {
+    const limit = 10;
+    const page = filters?.page || 1;
+    const offset = (page - 1) * limit;
+
+    const baseQuery = this.db
+      .select({
+        departmentId: departmentLevelCourses.departmentId,
+        courseId: departmentLevelCourses.courseId,
+        level: departmentLevelCourses.level,
+        reviewStatus: departmentLevelCourses.reviewStatus,
+        reviewedById: departmentLevelCourses.reviewedById,
+        course: {
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+          description: courses.description,
+          creatorId: courses.creatorId,
+        },
+        department: {
+          id: department.id,
+          name: department.name,
+          facultyId: department.facultyId,
+        },
+      })
+      .from(departmentLevelCourses)
+      .innerJoin(courses, eq(departmentLevelCourses.courseId, courses.id))
+      .innerJoin(
+        department,
+        eq(departmentLevelCourses.departmentId, department.id),
+      );
+
+    let conditions = [];
+
+    if (filters?.departmentId) {
+      conditions.push(
+        eq(departmentLevelCourses.departmentId, filters.departmentId),
+      );
+    }
+    if (filters?.courseId) {
+      conditions.push(eq(departmentLevelCourses.courseId, filters.courseId));
+    }
+    if (filters?.reviewStatus) {
+      conditions.push(
+        eq(departmentLevelCourses.reviewStatus, filters.reviewStatus),
+      );
+    }
+
+    // Add text search if query parameter is provided
+    if (filters?.query && filters.query.trim() !== '') {
+      const searchTerm = `%${filters.query}%`;
+      const searchCondition = or(
+        ilike(courses.courseName, searchTerm),
+        ilike(courses.courseCode, searchTerm),
+        ilike(courses.description, searchTerm),
+        ilike(department.name, searchTerm),
+      );
+      conditions.push(searchCondition);
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count for pagination
+    const countResult = await this.db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(departmentLevelCourses)
+      .innerJoin(courses, eq(departmentLevelCourses.courseId, courses.id))
+      .innerJoin(
+        department,
+        eq(departmentLevelCourses.departmentId, department.id),
+      )
+      .where(whereClause);
+
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Get paginated data
+    const data = await baseQuery
+      .where(whereClause)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(courses.createdAt));
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  async countByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(courses)
+        .where(
+          and(
+            eq(courses.reviewStatus, ApprovalStatus.PENDING),
+            departmentId
+              ? sql`${courses.id} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(courses)
+        .where(
+          and(
+            eq(courses.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId
+              ? sql`${courses.id} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(courses)
+        .where(
+          and(
+            eq(courses.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId
+              ? sql`${courses.id} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
+    return result;
+  }
+
+  async countDepartmentLevelCoursesByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(departmentLevelCourses)
+        .where(
+          and(
+            eq(departmentLevelCourses.reviewStatus, ApprovalStatus.PENDING),
+            departmentId
+              ? eq(departmentLevelCourses.departmentId, departmentId)
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(departmentLevelCourses)
+        .where(
+          and(
+            eq(departmentLevelCourses.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId
+              ? eq(departmentLevelCourses.departmentId, departmentId)
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(departmentLevelCourses)
+        .where(
+          and(
+            eq(departmentLevelCourses.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId
+              ? eq(departmentLevelCourses.departmentId, departmentId)
+              : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
+    return result;
   }
 }

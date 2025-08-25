@@ -1,0 +1,89 @@
+import { google } from 'googleapis';
+import { createTransport, Transporter } from 'nodemailer';
+import SMTPPool from 'nodemailer/lib/smtp-pool';
+import { Logger } from '@nestjs/common';
+import { EmailSenderProvider } from './email-sender.interface';
+import { RenderedEmailDto } from '../dto/rendered-email.dto';
+import { configService } from 'src/utils/config/config.service';
+import { ENV } from 'src/utils/config/env.enum';
+import { EmailService } from 'src/utils/email/email.service';
+
+class OAuth2Client extends google.auth.OAuth2 {}
+
+export default class NodemailerProvider implements EmailSenderProvider {
+  private readonly OAuth2Client: OAuth2Client;
+  private readonly transporter: Transporter;
+  private logger: Logger;
+
+  private static GMAIL_CLIENT_ID: string = configService.get(
+    ENV.GMAIL_CLIENT_ID,
+  );
+  private static GMAIL_CLIENT_SECRET: string = configService.get(
+    ENV.GMAIL_CLIENT_SECRET,
+  );
+  private static GMAIL_REFRESH_TOKEN: string = configService.get(
+    ENV.GMAIL_REFRESH_TOKEN,
+  );
+  private static COMPANY_EMAIL: string = configService.get(ENV.COMPANY_EMAIL);
+  private static GMAIL_REDIRECT_URI: string =
+    'https://developers.google.com/oauthplayground'; //or your redirect URI
+
+  private static COMPANY_NAME: string = configService.get(ENV.COMPANY_NAME);
+
+  constructor(logger: Logger) {
+    this.logger = logger;
+    this.OAuth2Client = new google.auth.OAuth2(
+      NodemailerProvider.GMAIL_CLIENT_ID,
+      NodemailerProvider.GMAIL_CLIENT_SECRET,
+      NodemailerProvider.GMAIL_REDIRECT_URI,
+    );
+    this.OAuth2Client.setCredentials({
+      refresh_token: NodemailerProvider.GMAIL_REFRESH_TOKEN,
+    });
+    this.transporter = createTransport({
+      service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: NodemailerProvider.COMPANY_EMAIL,
+        clientId: NodemailerProvider.GMAIL_CLIENT_ID,
+        clientSecret: NodemailerProvider.GMAIL_CLIENT_SECRET,
+        refreshToken: NodemailerProvider.GMAIL_REFRESH_TOKEN,
+      },
+    } as unknown as SMTPPool);
+  }
+
+  public async sendMail(renderedEmail: RenderedEmailDto): Promise<boolean> {
+    try {
+      (this.transporter as any).accessToken =
+        this.OAuth2Client.getAccessToken() as any;
+
+      await new Promise<void>((resolve, reject) => {
+        this.transporter.sendMail(
+          {
+            from: {
+              name: NodemailerProvider.COMPANY_NAME,
+              address: NodemailerProvider.COMPANY_EMAIL,
+            },
+            to: renderedEmail.to,
+            subject: renderedEmail.subject,
+            html: renderedEmail.htmlContent,
+          },
+          (err) => {
+            if (err) {
+              this.logger.error('Error sending email via Gmail', err);
+              reject(err);
+              return;
+            }
+            resolve();
+          },
+        );
+      });
+
+      this.logger.log('Email sent successfully via Gmail');
+      return true;
+    } catch (error) {
+      this.logger.error('Error sending email via Gmail:', error);
+      throw error;
+    }
+  }
+}

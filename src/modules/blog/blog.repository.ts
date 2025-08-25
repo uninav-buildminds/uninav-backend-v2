@@ -1,11 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { BlogEntity, BlogTypeEnum, DrizzleDB } from 'src/utils/types/db.types';
+import {
+  ApprovalStatus,
+  BlogEntity,
+  BlogTypeEnum,
+  DrizzleDB,
+} from 'src/utils/types/db.types';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { comments } from 'src/modules/drizzle/schema/comments.schema';
 import { blogLikes } from 'src/modules/drizzle/schema/blog-likes.schema';
-import { eq, desc, and, sql, like, or, ilike } from 'drizzle-orm';
+import { eq, desc, and, sql, like, or, ilike, asc } from 'drizzle-orm';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { users } from 'src/modules/drizzle/schema/user.schema';
 
 @Injectable()
 export class BlogRepository {
@@ -16,10 +22,16 @@ export class BlogRepository {
     return result[0];
   }
 
-  async findAll(
-    page: number = 1,
-    limit: number = 10,
-    type?: BlogTypeEnum,
+  async findAllPaginated(
+    options: {
+      query?: string;
+      page?: number;
+      limit?: number;
+      userId?: string;
+      reviewStatus?: ApprovalStatus;
+      type?: BlogTypeEnum;
+    },
+    includeReviewer?: boolean,
   ): Promise<{
     data: Partial<BlogEntity>[];
     pagination: {
@@ -31,10 +43,39 @@ export class BlogRepository {
       hasPrev: boolean;
     };
   }> {
-    const offset = page ? (page - 1) * limit : 0;
+    const { query, page = 1, limit = 10, userId, reviewStatus, type } = options;
 
-    // Apply type filter if provided
-    const whereClause = type ? eq(blogs.type, type) : undefined;
+    const offset = (page - 1) * limit;
+
+    // Build where conditions
+    let whereConditions = [];
+
+    if (type) {
+      whereConditions.push(eq(blogs.type, type));
+    }
+
+    if (userId) {
+      whereConditions.push(eq(blogs.creatorId, userId));
+    }
+
+    if (reviewStatus) {
+      whereConditions.push(eq(blogs.reviewStatus, reviewStatus));
+    }
+
+    // Handle search query
+    if (query && query.trim() !== '') {
+      const searchTerm = `%${query}%`;
+      const searchCondition = or(
+        ilike(blogs.title, searchTerm),
+        ilike(blogs.description, searchTerm),
+        sql`${query} = ANY(${blogs.tags})`,
+      );
+      whereConditions.push(searchCondition);
+    }
+
+    // Combine all conditions with AND
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
     // Get total count for pagination
     const countResult = await this.db
@@ -46,9 +87,11 @@ export class BlogRepository {
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
+    // Generate order by clause
+
     const data = await this.db.query.blogs.findMany({
       where: whereClause,
-      orderBy: [desc(blogs.createdAt)],
+      orderBy: [desc(blogs.likes), desc(blogs.createdAt), desc(blogs.views)],
       with: {
         creator: {
           columns: {
@@ -58,6 +101,18 @@ export class BlogRepository {
             username: true,
           },
         },
+        ...(includeReviewer
+          ? {
+              reviewedBy: {
+                columns: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  username: true,
+                },
+              },
+            }
+          : {}),
       },
       columns: {
         bodyAddress: false,
@@ -311,15 +366,6 @@ export class BlogRepository {
       .where(eq(blogs.id, id));
   }
 
-  async incrementClicks(id: string): Promise<void> {
-    await this.db
-      .update(blogs)
-      .set({
-        clicks: sql`${blogs.clicks} + 1`,
-      } as any)
-      .where(eq(blogs.id, id));
-  }
-
   // Comment operations
   async createComment(commentData: CreateCommentDto): Promise<any> {
     const result = await this.db
@@ -393,5 +439,56 @@ export class BlogRepository {
       .returning({ id: comments.id });
 
     return result.length > 0;
+  }
+
+  async countByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(blogs)
+        .leftJoin(users, eq(blogs.creatorId, users.id))
+        .where(
+          and(
+            eq(blogs.reviewStatus, ApprovalStatus.PENDING),
+            departmentId ? eq(users.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(blogs)
+        .leftJoin(users, eq(blogs.creatorId, users.id))
+        .where(
+          and(
+            eq(blogs.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId ? eq(users.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(blogs)
+        .leftJoin(users, eq(blogs.creatorId, users.id))
+        .where(
+          and(
+            eq(blogs.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId ? eq(users.departmentId, departmentId) : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
+    return result;
   }
 }

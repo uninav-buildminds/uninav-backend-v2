@@ -25,7 +25,8 @@ export const auth = pgTable(
     emailVerified: boolean('email_verified').default(false),
     password: text('password').notNull(),
     matricNo: text('matric_no').unique(),
-
+    passwordResetToken: text('password_reset_token'),
+    passwordResetExpires: timestamp('password_reset_expires'),
     userIdType: userIdTypeEnum('user_id_type'),
     userIdImage: text('user_id_image'), // URL to the ID image
     userIdVerified: boolean('user_id_verified').default(false),

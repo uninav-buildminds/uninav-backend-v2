@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CollectionService } from './collection.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
@@ -18,6 +19,7 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { Request } from 'express';
 import { UserEntity } from 'src/utils/types/db.types';
 
+@ApiTags('Collection')
 @Controller('collections')
 export class CollectionController {
   constructor(private readonly collectionService: CollectionService) {}
@@ -32,9 +34,7 @@ export class CollectionController {
     const user = req['user'] as UserEntity;
 
     // Set creatorId if not provided in the DTO
-    if (!createCollectionDto.creatorId && user) {
-      createCollectionDto.creatorId = user.id;
-    }
+    createCollectionDto.creatorId = user.id;
 
     const collection = await this.collectionService.create(createCollectionDto);
     return ResponseDto.createSuccessResponse(
@@ -44,8 +44,10 @@ export class CollectionController {
   }
 
   @Get()
-  async findAll() {
-    const collections = await this.collectionService.findAll();
+  @UseGuards(RolesGuard)
+  async findAll(@Req() req: Request) {
+    const user = req['user'] as UserEntity;
+    const collections = await this.collectionService.findAll(user.id);
     return ResponseDto.createSuccessResponse(
       'Collections retrieved successfully',
       collections,
@@ -53,6 +55,7 @@ export class CollectionController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
   async findOne(@Param('id') id: string) {
     const collection = await this.collectionService.findOne(id);
     return ResponseDto.createSuccessResponse(
@@ -75,10 +78,13 @@ export class CollectionController {
   async update(
     @Param('id') id: string,
     @Body() updateCollectionDto: UpdateCollectionDto,
+    @Req() req: Request,
   ) {
+    const user = req['user'] as UserEntity;
     const collection = await this.collectionService.update(
       id,
       updateCollectionDto,
+      user.id,
     );
     return ResponseDto.createSuccessResponse(
       'Collection updated successfully',
@@ -88,8 +94,9 @@ export class CollectionController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  async remove(@Param('id') id: string) {
-    const collection = await this.collectionService.remove(id);
+  async remove(@Param('id') id: string, @Req() req: Request) {
+    const user = req['user'] as UserEntity;
+    const collection = await this.collectionService.remove(id, user.id);
     return ResponseDto.createSuccessResponse(
       'Collection deleted successfully',
       collection,
@@ -102,10 +109,13 @@ export class CollectionController {
   async addMaterial(
     @Param('id') id: string,
     @Body() addMaterialDto: AddMaterialToCollectionDto,
+    @Req() req: Request,
   ) {
+    const user = req['user'] as UserEntity;
     const result = await this.collectionService.addMaterialToCollection(
       id,
       addMaterialDto,
+      user.id,
     );
     return ResponseDto.createSuccessResponse(
       'Material added to collection successfully',
@@ -118,13 +128,55 @@ export class CollectionController {
   async removeMaterial(
     @Param('id') id: string,
     @Param('materialId') materialId: string,
+    @Req() req: Request,
   ) {
+    const user = req['user'] as UserEntity;
     const result = await this.collectionService.removeMaterialFromCollection(
       id,
       materialId,
+      user.id,
     );
     return ResponseDto.createSuccessResponse(
       'Material removed from collection successfully',
+      result,
+    );
+  }
+
+  // Nested collection management
+  @Post(':id/collections')
+  @UseGuards(RolesGuard)
+  async addNestedCollection(
+    @Param('id') id: string,
+    @Body() addCollectionDto: { collectionId: string },
+    @Req() req: Request,
+  ) {
+    const user = req['user'] as UserEntity;
+    const result = await this.collectionService.addNestedCollection(
+      id,
+      addCollectionDto.collectionId,
+      user.id,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Collection nested successfully',
+      result,
+    );
+  }
+
+  @Delete(':id/collections/:collectionId')
+  @UseGuards(RolesGuard)
+  async removeNestedCollection(
+    @Param('id') id: string,
+    @Param('collectionId') collectionId: string,
+    @Req() req: Request,
+  ) {
+    const user = req['user'] as UserEntity;
+    const result = await this.collectionService.removeNestedCollection(
+      id,
+      collectionId,
+      user.id,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Nested collection removed successfully',
       result,
     );
   }

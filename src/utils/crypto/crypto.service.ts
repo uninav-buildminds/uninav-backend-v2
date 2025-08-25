@@ -12,11 +12,11 @@ import { ENV } from 'src/utils/config/env.enum';
 
 class CryptoService implements CryptoInterface {
   protected static readonly key: Buffer = createHash('sha256')
-    .update(String(configService.get(ENV.CRYPTO_KEY)))
+    .update(configService.get(ENV.CRYPTO_KEY))
     .digest()
     .slice(0, 32);
   protected static readonly iv: Buffer = createHash('sha256')
-    .update(String(configService.get(ENV.CRYPTO_IV)))
+    .update(configService.get(ENV.CRYPTO_IV))
     .digest()
     .slice(0, 16);
   private readonly encryptionAlgorithm: string;
@@ -40,7 +40,9 @@ class CryptoService implements CryptoInterface {
     );
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return Buffer.from(encrypted, 'hex').toString('base64');
+    let encryptedText = Buffer.from(encrypted, 'hex').toString('base64');
+    console.log('encryptedText', encryptedText);
+    return encryptedText;
   }
 
   decrypt(text: string) {
@@ -61,6 +63,10 @@ class CryptoService implements CryptoInterface {
 
   randomInt(): string {
     return randomInt(100000, 1000000).toString();
+  }
+
+  generateRandomKey(bytes: number): string {
+    return randomBytes(bytes).toString('hex');
   }
 
   static getInstance(): CryptoService {

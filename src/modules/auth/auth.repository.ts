@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { auth } from 'src/modules/drizzle/schema/auth.schema';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { DrizzleDB } from 'src/utils/types/db.types';
+import { DrizzleDB, AuthEntity } from 'src/utils/types/db.types';
 import { eq, or } from 'drizzle-orm';
 import { CreateAuthDto } from './dto/create-auth.dto';
 
@@ -116,5 +116,31 @@ export class AuthRepository {
     await this.db.delete(auth).where(eq(auth.userId, userId));
 
     return { success: true };
+  }
+
+  async savePasswordResetToken(userId: string, token: string, expires: Date) {
+    const updatedAuth = await this.db
+      .update(auth)
+      .set({
+        passwordResetToken: token,
+        passwordResetExpires: expires,
+      } as any)
+      .where(eq(auth.userId, userId))
+      .returning();
+
+    return updatedAuth[0];
+  }
+
+  async clearPasswordResetToken(userId: string) {
+    const updatedAuth = await this.db
+      .update(auth)
+      .set({
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      } as any)
+      .where(eq(auth.userId, userId))
+      .returning();
+
+    return updatedAuth[0];
   }
 }

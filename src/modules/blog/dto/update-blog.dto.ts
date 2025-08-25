@@ -6,10 +6,10 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { blogTypeEnum } from 'src/modules/drizzle/schema/enums.schema';
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateBlogDto } from './create-blog.dto';
 import { BlogTypeEnum } from 'src/utils/types/db.types';
+import { TransformStringToArray } from 'src/transformers/TransformStringToArray';
 
 export class UpdateBlogDto extends PartialType(CreateBlogDto) {
   @IsString()
@@ -20,7 +20,7 @@ export class UpdateBlogDto extends PartialType(CreateBlogDto) {
   @IsOptional()
   description?: string;
 
-  @IsEnum(blogTypeEnum)
+  @IsEnum(BlogTypeEnum)
   @IsOptional()
   type?: BlogTypeEnum;
 
@@ -28,7 +28,9 @@ export class UpdateBlogDto extends PartialType(CreateBlogDto) {
   @IsOptional()
   body?: string; // This will be stored in B2 storage, not directly in DB
 
-  @IsArray()
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @TransformStringToArray()
   tags?: string[];
 }

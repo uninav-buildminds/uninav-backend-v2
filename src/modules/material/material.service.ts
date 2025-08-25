@@ -10,10 +10,12 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { StorageService } from 'src/storage/storage.service';
 import {
+  ApprovalStatus,
   MaterialEntity,
   MaterialTypeEnum,
   ResourceType,
   UserEntity,
+  UserRoleEnum,
 } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
@@ -22,6 +24,7 @@ import {
   RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS,
 } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
+import { UserService } from 'src/modules/user/user.service';
 ('updateMaterialDto');
 
 @Injectable()
@@ -29,12 +32,28 @@ export class MaterialService {
   constructor(
     private readonly materialRepository: MaterialRepository,
     private readonly storageService: StorageService,
+    private readonly userService: UserService,
   ) {}
+
+  async countMaterialsByStatus(departmentId?: string) {
+    return this.materialRepository.countByStatus(departmentId);
+  }
 
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
     try {
-      const { resourceType, resourceAddress, metaData, ...materialData } =
-        createMaterialDto;
+      const { resourceAddress, metaData, ...materialData } = createMaterialDto;
+
+      // Check if creator is admin/moderator and auto-approve if so
+      const creator = await this.userService.findOne(
+        createMaterialDto.creatorId,
+      );
+      if (
+        creator.role === UserRoleEnum.ADMIN ||
+        creator.role === UserRoleEnum.MODERATOR
+      ) {
+        materialData.reviewStatus = ApprovalStatus.APPROVED;
+        materialData.reviewedById = creator.id;
+      }
 
       // Create material first
       const material = await this.createMaterial(materialData);
@@ -43,7 +62,6 @@ export class MaterialService {
       await this.createResource(
         material.id,
         {
-          resourceType,
           resourceAddress,
           metaData,
         },
@@ -66,7 +84,6 @@ export class MaterialService {
   private async createResource(
     materialId: string,
     resourceDto: {
-      resourceType: ResourceType;
       resourceAddress?: string;
       metaData?: string[];
       fileKey?: string;
@@ -74,35 +91,38 @@ export class MaterialService {
     file?: MulterFile,
   ) {
     try {
-      // Validate resource data based on resourceType
-      if (resourceDto.resourceType === ResourceType.UPLOAD) {
-        if (!file) {
-          throw new BadRequestException(
-            'File is required for uploaded resources',
-          );
-        }
-        const { publicUrl, fileKey } = await this.storageService.uploadFile(
-          file,
-          false,
-        );
-        const signedUrl = await this.storageService.getSignedUrl(
+      let resourceType: ResourceType;
+      let resourceAddress = resourceDto.resourceAddress;
+      let fileKey = resourceDto.fileKey;
+
+      // Infer resource type based on input
+      if (file) {
+        resourceType = ResourceType.UPLOAD;
+        const uploadResult = await this.storageService.uploadFile(file, false);
+        fileKey = uploadResult.fileKey;
+        resourceAddress = await this.storageService.getSignedUrl(
           fileKey,
-          3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS, // 7 days expiration
+          3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
         );
-        resourceDto.resourceAddress = signedUrl;
-        resourceDto.fileKey = fileKey;
-      } else if (!resourceDto.resourceAddress) {
+      } else if (resourceAddress) {
+        // Check if it's a Google Drive link
+        if (resourceAddress.includes('drive.google.com')) {
+          resourceType = ResourceType.GDRIVE;
+        } else {
+          resourceType = ResourceType.URL;
+        }
+      } else {
         throw new BadRequestException(
-          'Resource address is required for URL and GDrive resources',
+          'Either a file or resource address must be provided',
         );
       }
 
       const resourceData = {
         materialId,
-        resourceAddress: resourceDto.resourceAddress,
-        resourceType: resourceDto.resourceType,
+        resourceAddress,
+        resourceType,
         metaData: resourceDto.metaData || [],
-        fileKey: resourceDto.fileKey,
+        fileKey,
       };
 
       return await this.materialRepository.createResource(resourceData);
@@ -124,10 +144,6 @@ export class MaterialService {
       logger.error(`Failed to create material: ${error.message}`);
       throw new InternalServerErrorException('Failed to create material');
     }
-  }
-
-  async findAll() {
-    return this.materialRepository.findAll();
   }
 
   async findOne(id: string) {
@@ -173,11 +189,11 @@ export class MaterialService {
         this.materialRepository.updateResource(id, {
           resourceAddress: signedUrl,
         });
-        this.materialRepository.incrementClickCount(id);
 
         material.resource.resourceAddress = signedUrl; // Update the resource address in the material
       }
     }
+    this.materialRepository.incrementViews(id);
 
     return material;
   }
@@ -203,6 +219,14 @@ export class MaterialService {
       );
       return signedUrl;
     }
+
+    // For other resource types (URL, GDRIVE), just return the resource address
+    return materialResource.resourceAddress;
+  }
+
+  async incrementDownloads(id: string) {
+    await this.findOne(id); // Verify material exists
+    return this.materialRepository.incrementDownloads(id);
   }
 
   /**
@@ -211,18 +235,14 @@ export class MaterialService {
    * @param userId User ID to verify against
    * @throws ForbiddenException if user is not the creator
    */
-  async ensureOwnership(
-    material: MaterialEntity,
-    userId: string,
-  ): Promise<void> {
-    const isOwner = material.creatorId === userId;
-    if (!isOwner) {
-      logger.warn(
-        `User ${userId} attempted to modify material ${material.id} without ownership`,
-      );
-      throw new ForbiddenException(
-        'You do not have permission to modify this material',
-      );
+  async isAuthorized(material: Partial<MaterialEntity>, userId: string) {
+    if (material.creatorId !== userId) {
+      let user = await this.userService.findOne(userId);
+      if (user.role !== UserRoleEnum.ADMIN) {
+        throw new ForbiddenException(
+          'You are not authorized to perform this action',
+        );
+      }
     }
   }
 
@@ -233,53 +253,32 @@ export class MaterialService {
     file?: MulterFile,
   ) {
     try {
-      const material = await this.findOne(id); // Check if exists
+      const material = await this.findOne(id);
+      await this.isAuthorized(material, userId);
 
-      // Ensure user is the creator of the material
-      await this.ensureOwnership(material, userId);
-
-      // Extract and separate resource data from material data
-      const { resourceType, resourceAddress, metaData, ...materialData } =
-        updateMaterialDto;
+      const { resourceAddress, metaData, ...materialData } = updateMaterialDto;
 
       // Handle resource updates if resource data is provided
-      if (
-        resourceType !== undefined ||
-        resourceAddress !== undefined ||
-        metaData !== undefined
-      ) {
+      if (resourceAddress !== undefined || metaData !== undefined || file) {
         const currentResource =
           await this.materialRepository.findMaterialResource(id);
+        let resourceType = currentResource?.resourceType;
+        let fileKey = currentResource?.fileKey;
 
-        // Prepare resource update data
-        let resourceDto = {
-          resourceType: resourceType || currentResource?.resourceType,
-          resourceAddress: resourceAddress,
-          metaData: metaData || currentResource?.metaData,
-          fileKey: currentResource?.fileKey,
-        };
-
-        // Handle file uploads for ResourceType.UPLOAD
-        if (resourceType === ResourceType.UPLOAD) {
-          if (!file) {
-            throw new BadRequestException(
-              'File upload is required for uploaded resources',
-            );
-          }
-
-          // Upload the new file
-          const { publicUrl, fileKey } = await this.storageService.uploadFile(
+        // Infer resource type and handle file/url
+        if (file) {
+          resourceType = ResourceType.UPLOAD;
+          const uploadResult = await this.storageService.uploadFile(
             file,
             false,
           );
+          fileKey = uploadResult.fileKey;
           const signedUrl = await this.storageService.getSignedUrl(
             fileKey,
             3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
           );
-          resourceDto.resourceAddress = signedUrl;
-          resourceDto.fileKey = fileKey;
 
-          // Delete the old file if it exists and is an uploaded file
+          // Delete old file if it exists and is an uploaded file
           if (
             currentResource?.resourceType === ResourceType.UPLOAD &&
             currentResource?.fileKey
@@ -290,25 +289,40 @@ export class MaterialService {
               logger.error(
                 `Failed to delete old file when updating material: ${error.message}`,
               );
-              // Continue with update even if file deletion fails
             }
           }
-        } else if (resourceType && !resourceAddress) {
-          // If changing resource type but no address provided
-          throw new BadRequestException(
-            'Resource address is required when changing resource type',
-          );
-        }
 
-        // Update the resource
-        await this.materialRepository.updateResource(id, resourceDto);
+          await this.materialRepository.updateResource(id, {
+            resourceAddress: signedUrl,
+            resourceType,
+            metaData: metaData || currentResource?.metaData,
+            fileKey,
+          });
+        } else if (resourceAddress) {
+          // Infer type from resource address
+          resourceType = resourceAddress.includes('drive.google.com')
+            ? ResourceType.GDRIVE
+            : ResourceType.URL;
+
+          await this.materialRepository.updateResource(id, {
+            resourceAddress,
+            resourceType,
+            metaData: metaData || currentResource?.metaData,
+          });
+        } else if (metaData) {
+          // Only updating metadata
+          await this.materialRepository.updateResource(id, {
+            metaData,
+          });
+        }
       }
 
-      if (Object.values(materialData).length !== 0) {
+      // Update material data if provided
+      if (Object.keys(materialData).length > 0) {
         await this.materialRepository.update(id, materialData);
       }
 
-      // Return the updated material with its resource
+      // Return updated material with resource
       return this.materialRepository.findOne(id);
     } catch (error) {
       if (
@@ -316,7 +330,7 @@ export class MaterialService {
         error instanceof NotFoundException ||
         error instanceof ForbiddenException
       ) {
-        throw error; // Re-throw specific exceptions
+        throw error;
       }
 
       logger.error(`Failed to update material: ${error.message}`);
@@ -329,7 +343,7 @@ export class MaterialService {
     const material = await this.findOne(id);
 
     // Ensure user is the creator of the material
-    await this.ensureOwnership(material, userId);
+    await this.isAuthorized(material, userId);
 
     // Handle resource deletion if needed
     if (
@@ -403,43 +417,46 @@ export class MaterialService {
     return this.materialRepository.findByCreator(creatorId);
   }
 
-  async findByType(type: string) {
-    return this.materialRepository.findByType(type as MaterialTypeEnum);
+  async searchMaterials(
+    filters: {
+      query?: string;
+      creatorId?: string;
+      courseId?: string;
+      type?: any;
+      tag?: string;
+      advancedSearch?: boolean;
+    },
+    user: UserEntity,
+    page: number = 1,
+    includeReviewer = false,
+  ) {
+    return this.materialRepository.searchMaterials(
+      filters,
+      user,
+      page,
+      includeReviewer,
+    );
   }
 
-  async searchMaterials(
-    query: string,
+  async findAllPaginated(
     filters: {
       creatorId?: string;
       courseId?: string;
       type?: any;
       tag?: string;
+      reviewStatus?: ApprovalStatus;
+      query?: string;
+      page?: number;
+      advancedSearch?: boolean;
     },
-    user: UserEntity,
-    page: number = 1,
+    includeReviewer = false,
   ) {
-    if (!query || query.trim().length === 0) {
-      throw new BadRequestException('Search query cannot be empty');
-    }
-
-    return this.materialRepository.searchMaterials(query, filters, user, page);
-  }
-
-  async findWithFilters(
-    filters: {
-      creatorId?: string;
-      courseId?: string;
-      type?: string;
-      tag?: string;
-    },
-    page: number = 1,
-  ) {
-    return this.materialRepository.findWithFilters(
+    return this.materialRepository.findAllPaginated(
       {
         ...filters,
         type: filters.type as MaterialTypeEnum,
       },
-      page,
+      includeReviewer,
     );
   }
 
@@ -451,5 +468,24 @@ export class MaterialService {
     }
 
     return this.materialRepository.getRecommendations(user, page);
+  }
+
+  async review(
+    materialId: string,
+    reviewData: {
+      reviewStatus: ApprovalStatus;
+      reviewedById: string;
+      comment?: string;
+    },
+  ) {
+    const material = await this.materialRepository.findOne(materialId);
+    if (!material) {
+      throw new NotFoundException('Material not found');
+    }
+
+    return this.materialRepository.update(materialId, {
+      reviewStatus: reviewData.reviewStatus,
+      reviewedById: reviewData.reviewedById,
+    });
   }
 }

@@ -4,13 +4,17 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRepository } from 'src/modules/user/user.repository';
-import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
-import { DepartmentService } from 'src/modules/department/department.service';
+import { UserRepository } from './user.repository';
+import { DataFormatter } from '../../utils/helpers/data-formater.helper';
+import { DepartmentService } from '../department/department.service';
 import { CoursesRepository } from '../courses/courses.repository';
+import { AddBookmarkDto } from './dto/bookmark.dto';
+import { PaginationDto } from '../../utils/globalDto/pagination.dto';
+import { UserEntity } from 'src/utils/types/db.types';
 
 @Injectable()
 export class UserService {
@@ -21,8 +25,7 @@ export class UserService {
     private readonly coursesRepository: CoursesRepository,
   ) {}
 
-  async createStudent(createUserDto: CreateUserDto) {
-    // * email should be verified from auth
+  async create(createUserDto: CreateUserDto) {
     let userWithUsername = await this.userRepository.findByUsername(
       createUserDto.username,
     );
@@ -30,27 +33,38 @@ export class UserService {
       throw new BadRequestException('User with this username already exists');
     }
 
-    let department = await this.departmentService.findOne(
-      createUserDto.departmentId,
+    let userWithEmail = await this.userRepository.findByEmail(
+      createUserDto.email,
     );
-    if (!department) {
-      throw new NotFoundException(
-        `Department with ID ${createUserDto.departmentId} does not exist`,
+    if (userWithEmail) {
+      throw new BadRequestException('User with this email already exists');
+    }
+    // Only validate department if departmentId is provided
+    if (createUserDto.departmentId) {
+      let department = await this.departmentService.findOne(
+        createUserDto.departmentId,
       );
+      if (!department) {
+        throw new NotFoundException(
+          `Department with ID ${createUserDto.departmentId} does not exist`,
+        );
+      }
     }
 
     try {
       const user = await this.userRepository.create(createUserDto);
 
-      // Fetch and populate user courses
-      const userCourses =
-        await this.coursesRepository.findCoursesByDepartmentAndLevel(
-          createUserDto.departmentId,
-          createUserDto.level,
-        );
+      // Only fetch and populate user courses if departmentId is provided
+      if (createUserDto.departmentId) {
+        const userCourses =
+          await this.coursesRepository.findCoursesByDepartmentAndLevel(
+            createUserDto.departmentId,
+            createUserDto.level,
+          );
 
-      // Create user course relationships
-      await this.coursesRepository.createUserCourses(user.id, userCourses);
+        // Create user course relationships
+        await this.coursesRepository.createUserCourses(user.id, userCourses);
+      }
 
       return user;
     } catch (error) {
@@ -64,10 +78,27 @@ export class UserService {
     }
   }
 
-  async findAll() {
+  async findAll(paginationDto: PaginationDto): Promise<{
+    data: UserEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     try {
-      const users = await this.userRepository.findAll();
-      return users;
+      const { page, limit, query } = paginationDto;
+      const offset = (page - 1) * limit;
+      const users = await this.userRepository.findAllWithRelations(
+        limit,
+        offset,
+        query,
+      );
+      const totalUsers = await this.userRepository.countAll(query);
+      return {
+        data: users as any,
+        total: totalUsers,
+        page,
+        limit,
+      };
     } catch (error) {
       this.logger.error(
         `Error retrieving users: ${error.message}`,
@@ -99,6 +130,54 @@ export class UserService {
       );
     }
   }
+
+  async findByGoogleId(googleId: string) {
+    try {
+      // userRepository will need findByGoogleId
+      const user = await this.userRepository.findByGoogleId(googleId);
+      return user; // Can be null if not found, handled by AuthService
+    } catch (error) {
+      this.logger.error(
+        `Error retrieving user by googleId ${googleId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error retrieving user by googleId: ${error.message}`,
+      );
+    }
+  }
+
+  async generateUniqueUsername(
+    firstName: string,
+    lastName: string,
+  ): Promise<string> {
+    // Simple initial username generation
+    const baseUsername = (
+      firstName.toLowerCase() + (lastName ? lastName.toLowerCase() : '')
+    ).replace(/\s+/g, '');
+    let username = baseUsername;
+    let counter = 0;
+
+    // Loop to find a unique username
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const existingUser = await this.userRepository.findByUsername(username);
+      if (!existingUser) {
+        return username; // Username is unique
+      }
+      counter++;
+      username = `${baseUsername}${counter}`;
+      if (counter > 100) {
+        // Safety break to prevent infinite loops in extreme cases
+        this.logger.error(
+          'Could not generate a unique username after 100 attempts for base:',
+          baseUsername,
+        );
+        throw new ConflictException('Could not generate a unique username.');
+      }
+    }
+  }
+
   async getProfile(id: string) {
     let user = await this.userRepository.getProfile(id);
     DataFormatter.formatObject(user.auth, ['password']);
@@ -149,9 +228,11 @@ export class UserService {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     try {
-      // Check if user exists
-      await this.findOne(id);
+      // Get current user to compare level
+      const currentUser = await this.findOne(id);
+
       // Check department if it's being updated
+      let departmentId = currentUser.departmentId;
       if (updateUserDto.departmentId) {
         const department = await this.departmentService.findOne(
           updateUserDto.departmentId,
@@ -161,6 +242,7 @@ export class UserService {
             `Department with ID ${updateUserDto.departmentId} does not exist`,
           );
         }
+        departmentId = updateUserDto.departmentId;
       }
 
       // Check username uniqueness if updating username
@@ -169,6 +251,24 @@ export class UserService {
           await this.userRepository.findByUsername(updateUserDto.username);
         if (existingUserWithUsername && existingUserWithUsername.id !== id) {
           throw new BadRequestException('Username already in use');
+        }
+      }
+
+      // Handle course reassignment if level is changed
+      if (updateUserDto.level && updateUserDto.level !== currentUser.level) {
+        // Delete all existing user courses
+        await this.userRepository.deleteAllUserCourses(id);
+
+        // Fetch and assign new courses based on department and new level
+        const userCourses =
+          await this.coursesRepository.findCoursesByDepartmentAndLevel(
+            departmentId,
+            updateUserDto.level,
+          );
+
+        // Create new user course relationships
+        if (userCourses.length > 0) {
+          await this.coursesRepository.createUserCourses(id, userCourses);
         }
       }
 
@@ -271,6 +371,149 @@ export class UserService {
       );
       throw new InternalServerErrorException(
         `Error getting user courses: ${error.message}`,
+      );
+    }
+  }
+
+  async addBookmark(userId: string, addBookmarkDto: AddBookmarkDto) {
+    // Validate bookmark data
+    if (!addBookmarkDto.materialId && !addBookmarkDto.collectionId) {
+      throw new BadRequestException(
+        'Either materialId or collectionId must be provided',
+      );
+    }
+
+    try {
+      // Check if bookmark already exists for material
+      if (addBookmarkDto.materialId) {
+        const existingBookmark =
+          await this.userRepository.findBookmarkByMaterial(
+            userId,
+            addBookmarkDto.materialId,
+          );
+        if (existingBookmark) {
+          throw new ConflictException(
+            'Bookmark already exists for this material',
+          );
+        }
+      }
+
+      // Check if bookmark already exists for collection
+      if (addBookmarkDto.collectionId) {
+        const existingBookmark =
+          await this.userRepository.findBookmarkByCollection(
+            userId,
+            addBookmarkDto.collectionId,
+          );
+        if (existingBookmark) {
+          throw new ConflictException(
+            'Bookmark already exists for this collection',
+          );
+        }
+      }
+
+      return this.userRepository.addBookmark(userId, addBookmarkDto);
+    } catch (error) {
+      this.logger.error(
+        `Error adding bookmark for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        `Error adding bookmark: ${error.message}`,
+      );
+    }
+  }
+
+  async removeBookmark(userId: string, bookmarkId: string) {
+    try {
+      // Check if bookmark exists and belongs to the user
+      const bookmark = await this.userRepository.findBookmarkById(bookmarkId);
+
+      if (!bookmark) {
+        throw new NotFoundException('Bookmark not found');
+      }
+
+      if (bookmark.userId !== userId) {
+        throw new BadRequestException(
+          'You do not have permission to delete this bookmark',
+        );
+      }
+
+      return this.userRepository.removeBookmark(bookmarkId);
+    } catch (error) {
+      this.logger.error(
+        `Error removing bookmark for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        `Error removing bookmark: ${error.message}`,
+      );
+    }
+  }
+
+  async getUserBookmarks(userId: string) {
+    try {
+      return this.userRepository.getUserBookmarks(userId);
+    } catch (error) {
+      this.logger.error(
+        `Error getting bookmarks for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      throw new InternalServerErrorException(
+        `Error getting bookmarks: ${error.message}`,
+      );
+    }
+  }
+
+  async getBookmarkById(userId: string, bookmarkId: string) {
+    try {
+      // Find the bookmark
+      const bookmark = await this.userRepository.findBookmarkById(bookmarkId);
+
+      if (!bookmark) {
+        throw new NotFoundException(`Bookmark with ID ${bookmarkId} not found`);
+      }
+
+      // Check if the bookmark belongs to the user
+      if (bookmark.userId !== userId) {
+        throw new BadRequestException(
+          'You do not have access to this bookmark',
+        );
+      }
+
+      return bookmark;
+    } catch (error) {
+      this.logger.error(
+        `Error retrieving bookmark ${bookmarkId} for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        `Error retrieving bookmark ${bookmarkId} for user ${userId}: ${error.message}`,
       );
     }
   }

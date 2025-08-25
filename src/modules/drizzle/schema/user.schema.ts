@@ -5,6 +5,7 @@ import {
   integer,
   index,
   primaryKey,
+  timestamp,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { userRoleEnum } from './enums.schema';
@@ -13,12 +14,12 @@ import { auth } from './auth.schema';
 import { moderator } from './moderator.schema';
 import { material } from './material.schema';
 import { collection } from './collection.schema';
-import { courses, studentCourses } from './course.schema';
-import { bookmarks } from './collection.schema';
+import { courses } from './course.schema';
 import { comments } from './comments.schema';
 import { blogs } from 'src/modules/drizzle/schema/blog.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { TABLES } from '../tables.constants';
+import { advert } from './advert.schema';
 
 // Table Definition with Index on email
 export const users = pgTable(
@@ -29,6 +30,7 @@ export const users = pgTable(
     firstName: text('first_name').notNull(),
     lastName: text('last_name').notNull(),
     username: text('username').notNull().unique(),
+    googleId: text('google_id').unique(),
     departmentId: uuid('department_id').references(() => department.id, {
       onDelete: 'set null',
     }),
@@ -39,6 +41,7 @@ export const users = pgTable(
   (table) => ({
     emailIndex: index('users_email_index').on(table.email),
     usernameIndex: index('user_username_index').on(table.username),
+    googleIdIndex: index('user_google_id_index').on(table.googleId),
   }),
 );
 
@@ -58,6 +61,35 @@ export const userCourses = pgTable(
     pk: primaryKey(table.userId, table.courseId),
   }),
 );
+
+export const bookmarks = pgTable(TABLES.BOOKMARKS, {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  materialId: uuid('material_id').references(() => material.id, {
+    onDelete: 'cascade',
+  }),
+  collectionId: uuid('collection_id').references(() => collection.id, {
+    onDelete: 'cascade',
+  }),
+  ...timestamps,
+});
+
+export const bookmarkRelations = relations(bookmarks, ({ one }) => ({
+  user: one(users, {
+    fields: [bookmarks.userId],
+    references: [users.id],
+  }),
+  material: one(material, {
+    fields: [bookmarks.materialId],
+    references: [material.id],
+  }),
+  collection: one(collection, {
+    fields: [bookmarks.collectionId],
+    references: [collection.id],
+  }),
+}));
 
 export const userCoursesRelations = relations(userCourses, ({ one }) => ({
   user: one(users, {
@@ -80,13 +112,19 @@ export const userRelations = relations(users, ({ one, many }) => ({
   moderator: one(moderator, {
     fields: [users.id],
     references: [moderator.userId],
+    relationName: 'moderator_user',
   }),
-  materials: many(material),
+  createdMaterials: many(material, { relationName: 'material_creator' }),
+  reviewedMaterials: many(material, { relationName: 'material_reviewer' }),
+  createdAdverts: many(advert, { relationName: 'advert_creator' }),
+  reviewedAdverts: many(advert, { relationName: 'advert_reviewer' }),
+  createdBlogs: many(blogs, { relationName: 'blog_creator' }),
+  reviewedBlogs: many(blogs, { relationName: 'blog_reviewer' }),
+  createdCourses: many(courses, { relationName: 'course_creator' }),
+  reviewedCourses: many(courses, { relationName: 'course_reviewer' }),
   collections: many(collection),
-  studentCourses: many(studentCourses),
   bookmarks: many(bookmarks),
   comments: many(comments),
-  blogs: many(blogs),
   auth: one(auth, {
     fields: [users.id],
     references: [auth.userId],

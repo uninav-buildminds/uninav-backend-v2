@@ -2,4 +2,5 @@
 
 export * from './faculty.data';
 export * from './department.data';
-export * from './courses.data';
+// Remove the line below
+// export * from './courses.data';

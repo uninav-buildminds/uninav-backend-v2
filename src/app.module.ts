@@ -20,16 +20,20 @@ import { getJwtConfig } from 'src/utils/config/jwt.config';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CacheControlInterceptor } from './interceptors/cache-control.interceptor';
+import { AdvertModule } from 'src/modules/advert/advert.module';
+import { ReviewModule } from './modules/review/review.module';
+import { GlobalModule } from './modules/global/global.module';
 
 @Module({
   imports: [
     DrizzleModule,
+    GlobalModule,
     UserModule,
     AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env'],
-      cache: true,
+      envFilePath: ['.env.local', '.env'],
+      cache: false,
       expandVariables: true,
       load: [envConfig],
     }),
@@ -40,8 +44,12 @@ import { CacheControlInterceptor } from './interceptors/cache-control.intercepto
     BlogModule,
     CoursesModule,
     EventEmitterModule.forRoot({
-      global: true,
       wildcard: true,
+      global: true,
+      delimiter: '.',
+      maxListeners: 20,
+      verboseMemoryLeak: true,
+      ignoreErrors: false,
     }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -49,6 +57,8 @@ import { CacheControlInterceptor } from './interceptors/cache-control.intercepto
       inject: [ConfigService],
       global: true,
     }),
+    AdvertModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [

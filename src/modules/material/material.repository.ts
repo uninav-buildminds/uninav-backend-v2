@@ -1,12 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import {
+  ApprovalStatus,
   DrizzleDB,
   MaterialEntity,
   MaterialTypeEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
-import { eq, and, desc, getTableColumns, inArray } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  desc,
+  getTableColumns,
+  inArray,
+  ilike,
+  or,
+} from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { material } from 'src/modules/drizzle/schema/material.schema';
 import { materialLikes } from 'src/modules/drizzle/schema/material-likes.schema';
@@ -23,7 +32,9 @@ import {
 import {
   courses,
   departmentLevelCourses as dlc,
+  departmentLevelCourses,
 } from 'src/modules/drizzle/schema/course.schema';
+import { extractCourseCode } from 'src/utils/util';
 
 @Injectable()
 export class MaterialRepository {
@@ -73,7 +84,26 @@ export class MaterialRepository {
             level: true,
           },
         },
+        targetCourse: true,
         resource: true,
+        adverts: true,
+        collections: {
+          with: {
+            collection: {
+              with: {
+                creator: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                  },
+                },
+                content: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -84,21 +114,21 @@ export class MaterialRepository {
     });
   }
 
-  async incrementDownloadCount(id: string) {
+  async incrementDownloads(id: string) {
     const result = await this.db
       .update(material)
       .set({
-        downloadCount: sql`${material.downloadCount} + 1`,
+        downloads: sql`${material.downloads} + 1`,
       } as any)
       .where(eq(material.id, id))
       .returning();
   }
 
-  async incrementClickCount(id: string) {
+  async incrementViews(id: string) {
     await this.db
       .update(material)
       .set({
-        clickCount: sql`${material.clickCount} + 1`,
+        views: sql`${material.views} + 1`,
       } as any)
       .where(eq(material.id, id));
   }
@@ -130,7 +160,7 @@ export class MaterialRepository {
     updateMaterialDto: Omit<
       UpdateMaterialDto,
       'resourceType' | 'resourceAddress' | 'metaData'
-    > & { reviewStatus?: string },
+    > & { reviewStatus?: string; reviewedById?: string },
   ): Promise<MaterialEntity> {
     materialLogger.log('updateMaterialDto', updateMaterialDto);
     console.log('updateMaterialDto', updateMaterialDto);
@@ -169,6 +199,7 @@ export class MaterialRepository {
       resourceAddress?: string;
       resourceType?: string;
       metaData?: string[];
+      fileKey?: string;
     },
   ) {
     const result = await this.db
@@ -185,23 +216,18 @@ export class MaterialRepository {
     });
   }
 
-  async findByType(type: MaterialTypeEnum): Promise<MaterialEntity[]> {
-    return this.db.query.material.findMany({
-      where: eq(material.type, type),
-      with: {
-        resource: true,
-      },
-    });
-  }
-
-  async findWithFilters(
-    filters: {
+  async findAllPaginated(
+    options: {
       creatorId?: string;
       courseId?: string;
       type?: MaterialTypeEnum;
       tag?: string;
+      reviewStatus?: ApprovalStatus;
+      page?: number;
+      query?: string;
+      advancedSearch?: boolean;
     },
-    page: number = 1,
+    includeReviewer?: boolean,
   ): Promise<{
     data: Partial<MaterialEntity>[];
     pagination: {
@@ -213,6 +239,7 @@ export class MaterialRepository {
       hasPrev: boolean;
     };
   }> {
+    let { page = 1, query, advancedSearch, ...filters } = options;
     let conditions = [];
     const limit = 10;
     const offset = (page - 1) * limit;
@@ -221,7 +248,7 @@ export class MaterialRepository {
       conditions.push(eq(material.creatorId, filters.creatorId));
     }
     if (filters.courseId) {
-      conditions.push(eq(material.targetCourse, filters.courseId));
+      conditions.push(eq(material.targetCourseId, filters.courseId));
     }
     if (filters.type) {
       conditions.push(eq(material.type, filters.type));
@@ -229,6 +256,38 @@ export class MaterialRepository {
     if (filters.tag) {
       conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
     }
+    if (filters.reviewStatus) {
+      conditions.push(eq(material.reviewStatus, filters.reviewStatus));
+    }
+
+    // Add text search if query is provided - using the full-text search index
+    if (query && query.trim() !== '') {
+      const courseCodeIfExists = extractCourseCode(query)?.toLowerCase();
+      if (advancedSearch) {
+        const searchCondition = or(
+          ilike(material.label, `%${query}%`),
+          ilike(material.description, `%${query}%`),
+          sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
+          sql`EXISTS (
+            SELECT 1 FROM course c 
+            WHERE c.id = ${material.targetCourseId} 
+            AND (
+              ${courseCodeIfExists ? sql`ilike(c.course_code, ${`%${courseCodeIfExists}%`}) OR` : sql`FALSE OR`}
+              ilike(c.course_name, ${`%${query}%`}) OR 
+              ilike(c.course_description, ${`%${query}%`})
+            )
+          )`,
+        );
+        conditions.push(searchCondition);
+      } else {
+        conditions.push(
+          or(
+            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+            sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
+            courseCodeIfExists ? sql`${courseCodeIfExists} = ANY(${material.tags})` : sql`FALSE`,
+          ),
+        );
+      }}
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -242,14 +301,26 @@ export class MaterialRepository {
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
+    // Define order by
+    let orderByFields = [
+      desc(material.createdAt), // Default ordering
+      desc(material.likes),
+      desc(material.downloads),
+      desc(material.views),
+    ];
+
+    // If query was provided, sort by rank first using the vector index
+    if (query && query.trim() !== '') {
+      orderByFields = [
+        desc(
+          sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query}))`,
+        ),
+        ...orderByFields,
+      ];
+    }
     const data = await this.db.query.material.findMany({
       where: whereClause,
-      orderBy: [
-        desc(material.likes),
-        desc(material.downloadCount),
-        desc(material.viewCount),
-        desc(material.createdAt),
-      ],
+      orderBy: orderByFields,
       with: {
         creator: {
           columns: {
@@ -266,11 +337,22 @@ export class MaterialRepository {
             courseCode: true,
           },
         },
+        reviewedBy: true,
+        // ...(includeReviewer
+        //   ? {
+        //       reviewedBy: {
+        //         columns: {
+        //           id: true,
+        //           firstName: true,
+        //           lastName: true,
+        //           username: true,
+        //         },
+        //       },
+        //     }
+        //   : {}),
       },
       columns: {
         searchVector: false,
-        createdAt: false,
-        updatedAt: false,
       },
       limit,
       offset,
@@ -290,26 +372,29 @@ export class MaterialRepository {
   }
 
   async searchMaterials(
-    query: string,
     filters: {
+      query?: string;
       creatorId?: string;
       courseId?: string;
       type?: MaterialTypeEnum;
       tag?: string;
+      advancedSearch?: boolean;
     },
     user: UserEntity,
     page: number = 1,
+    includeReviewer?: boolean,
   ) {
     const conditions = [];
     const limit = 10;
     const offset = (page - 1) * limit;
+    const { query } = filters;
 
     // Apply filters conditionally
     if (filters.creatorId) {
       conditions.push(eq(material.creatorId, filters.creatorId));
     }
     if (filters.courseId) {
-      conditions.push(eq(material.targetCourse, filters.courseId));
+      conditions.push(eq(material.targetCourseId, filters.courseId));
     }
     if (filters.type) {
       conditions.push(eq(material.type, filters.type));
@@ -318,97 +403,204 @@ export class MaterialRepository {
       conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
     }
 
-    const whereCondition = sql.join(
-      [
-        ...conditions,
-        sql<boolean>`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-      ],
-      sql` AND `,
-    );
+    // If query is provided, use full-text search
+    if (query && query.trim() !== '') {
+      const courseCodeIfExists = extractCourseCode(query)?.toLowerCase();
+      if (filters.advancedSearch) {
+        const searchCondition = or(
+          ilike(material.label, `%${query}%`),
+          ilike(material.description, `%${query}%`),
+          sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
+          sql`EXISTS (
+            SELECT 1 FROM ${courses} 
+            WHERE ${courses.id} = ${material.targetCourseId} 
+            AND (
+              ${courseCodeIfExists ? sql`${courses.courseCode} ILIKE ${`%${courseCodeIfExists}%`} OR` : sql`FALSE OR`}
+              ${courses.courseName} ILIKE ${`%${query}%`} OR 
+              ${courses.description} ILIKE ${`%${query}%`}
+            )
+          )`,
+        );
+        conditions.push(searchCondition);
+      } else {
+        conditions.push(
+          or(
+            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+            sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
+            courseCodeIfExists ? sql`${courseCodeIfExists} = ANY(${material.tags})` : sql`FALSE`,
+          ),
+        );
+      }
 
-    // Get total count for pagination
-    const countResult = await this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(material)
-      .where(whereCondition)
-      .execute();
+      // Get total count for pagination with search condition
+      const whereCondition =
+        conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
+      const countResult = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(whereCondition)
+        .execute();
 
-    const totalItems = Number(countResult[0]?.count || 0);
-    const totalPages = Math.ceil(totalItems / limit);
+      const totalItems = Number(countResult[0]?.count || 0);
+      const totalPages = Math.ceil(totalItems / limit);
 
-    // Destructure unwanted fields from material table columns
-    let { updatedAt, createdAt, searchVector, ...rest } =
-      getTableColumns(material);
+      // Destructure unwanted fields from material table columns
+      let { searchVector, ...rest } = getTableColumns(material);
 
-    const data = await this.db
-      .select({
-        ...rest,
-        // Creator fields
-        creator: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          username: users.username,
+      const data = await this.db
+        .select({
+          ...rest,
+          // Creator fields
+          creator: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            username: users.username,
+          },
+          // Target course fields
+          targetCourse: {
+            id: courses.id,
+            courseName: courses.courseName,
+            courseCode: courses.courseCode,
+          },
+          ...(includeReviewer
+            ? {
+                reviewerBy: {
+                  id: users.id,
+                  firstName: users.firstName,
+                  lastName: users.lastName,
+                  username: users.username,
+                },
+              }
+            : {}),
+
+          rank: sql<number>`
+          ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query})) 
+
+          + CASE 
+              -- Boost if the material is for a course the user is actively taking
+              WHEN EXISTS (
+                SELECT 1 FROM ${uc} 
+                WHERE ${uc.courseId} = ${material.targetCourseId}
+                AND ${uc.userId} = ${user.id}
+              ) THEN 0.3 
+              ELSE 0 
+            END
+
+          + CASE 
+              -- Boost if material is for a course in the user's department
+              WHEN ${material.targetCourseId} IN (SELECT ${courses.id} FROM ${courses}  
+              JOIN ${dlc}  ON ${courses.id} = ${dlc.courseId}
+              WHERE ${dlc.departmentId} = ${user.departmentId}) THEN 0.2
+              -- Boost if material is used at the user's level not specifically department
+              WHEN EXISTS (
+                SELECT 1 FROM ${dlc} 
+                WHERE  ${dlc.courseId} = ${material.targetCourseId}
+                AND ${dlc.level} = ${user.level}
+              ) THEN 0.1
+              ELSE 0 
+            END AS rank`,
+        })
+        .from(material)
+        .leftJoin(users, eq(material.creatorId, users.id))
+        .leftJoin(courses, eq(material.targetCourseId, courses.id))
+        .where(whereCondition)
+        .orderBy(
+          desc(sql`rank`),
+          desc(material.likes),
+          desc(material.downloads),
+          desc(material.views),
+          desc(material.createdAt),
+        )
+        .limit(limit)
+        .offset(offset)
+        .execute();
+
+      return {
+        data,
+        pagination: {
+          page,
+          limit,
+          totalItems,
+          totalPages,
+          hasMore: page < totalPages,
+          hasPrev: page > 1,
         },
-        // Target course fields
-        targetCourse: {
-          id: courses.id,
-          courseName: courses.courseName,
-          courseCode: courses.courseCode,
+      };
+    }
+    // If no query is provided, just use the other filters and standard ordering
+    else {
+      // Create where clause from conditions
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
+
+      // Get total count for pagination
+      const countResult = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(whereClause)
+        .execute();
+
+      const totalItems = Number(countResult[0]?.count || 0);
+      const totalPages = Math.ceil(totalItems / limit);
+
+      // Get data with standard ordering
+      const data = await this.db.query.material.findMany({
+        where: whereClause,
+        orderBy: [
+          desc(material.likes),
+          desc(material.downloads),
+          desc(material.views),
+          desc(material.createdAt),
+        ],
+        with: {
+          creator: {
+            columns: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              username: true,
+            },
+          },
+          targetCourse: {
+            columns: {
+              id: true,
+              courseName: true,
+              courseCode: true,
+            },
+          },
+          ...(includeReviewer
+            ? {
+                reviewedBy: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                  },
+                },
+              }
+            : {}),
         },
-        rank: sql<number>`
-        ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query})) 
-
-        + CASE 
-            -- Boost if the material is for a course the user is actively taking
-            WHEN EXISTS (
-              SELECT 1 FROM ${uc} 
-              WHERE ${uc.courseId} = ${material.targetCourse}
-              AND ${uc.userId} = ${user.id}
-            ) THEN 0.3 
-            ELSE 0 
-          END
-
-        + CASE 
-            -- Boost if material is for a course in the user's department
-            WHEN ${material.targetCourse} IN (SELECT ${courses.id} FROM ${courses}  
-            JOIN ${dlc}  ON ${courses.id} = ${dlc.courseId}
-            WHERE ${dlc.departmentId} = ${user.departmentId}) THEN 0.2
-            -- Boost if material is used at the user's level not specifically department
-            WHEN EXISTS (
-              SELECT 1 FROM ${dlc} 
-              WHERE  ${dlc.courseId} = ${material.targetCourse}
-              AND ${dlc.level} = ${user.level}
-            ) THEN 0.1
-            ELSE 0 
-          END AS rank`,
-      })
-      .from(material)
-      .leftJoin(users, eq(material.creatorId, users.id))
-      .leftJoin(courses, eq(material.targetCourse, courses.id))
-      .where(whereCondition)
-      .orderBy(
-        desc(sql`rank`),
-        desc(material.likes),
-        desc(material.downloadCount),
-        desc(material.viewCount),
-        desc(material.createdAt),
-      )
-      .limit(limit)
-      .offset(offset)
-      .execute();
-
-    return {
-      data,
-      pagination: {
-        page,
+        columns: {
+          searchVector: false,
+        },
         limit,
-        totalItems,
-        totalPages,
-        hasMore: page < totalPages,
-        hasPrev: page > 1,
-      },
-    };
+        offset,
+      });
+
+      return {
+        data,
+        pagination: {
+          page,
+          limit,
+          totalItems,
+          totalPages,
+          hasMore: page < totalPages,
+          hasPrev: page > 1,
+        },
+      };
+    }
   }
 
   async getRecommendations(
@@ -434,7 +626,7 @@ export class MaterialRepository {
       .from(material)
       .where(
         sql`
-        ${material.targetCourse} IN (
+        ${material.targetCourseId} IN (
           SELECT ${uc.courseId}
           FROM ${uc}
           WHERE ${uc.userId} = ${user.id}
@@ -453,11 +645,11 @@ export class MaterialRepository {
       .where(eq(uc.userId, user.id));
 
     const data = await this.db.query.material.findMany({
-      where: inArray(material.targetCourse, subQuery),
+      where: inArray(material.targetCourseId, subQuery),
       orderBy: [
         desc(material.likes),
-        desc(material.downloadCount),
-        desc(material.viewCount),
+        desc(material.downloads),
+        desc(material.views),
         desc(material.createdAt),
       ],
       with: {
@@ -479,8 +671,6 @@ export class MaterialRepository {
       },
       columns: {
         searchVector: false,
-        createdAt: false,
-        updatedAt: false,
       },
       limit,
       offset,
@@ -529,5 +719,71 @@ export class MaterialRepository {
           eq(materialLikes.userId, userId),
         ),
       );
+  }
+
+  async countByStatus(departmentId?: string) {
+    const result = await this.db.transaction(async (tx) => {
+      // Count pending
+      const pendingResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(
+          and(
+            eq(material.reviewStatus, ApprovalStatus.PENDING),
+            departmentId
+              ? sql`${material.targetCourseId} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count approved
+      const approvedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(
+          and(
+            eq(material.reviewStatus, ApprovalStatus.APPROVED),
+            departmentId
+              ? sql`${material.targetCourseId} IN (
+                SELECT ${departmentLevelCourses.courseId}
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      // Count rejected
+      const rejectedResult = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(
+          and(
+            eq(material.reviewStatus, ApprovalStatus.REJECTED),
+            departmentId
+              ? sql`${material.targetCourseId} IN (
+                SELECT ${departmentLevelCourses.courseId}k
+                FROM ${departmentLevelCourses}
+                WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
+              )`
+              : undefined,
+          ),
+        )
+        .execute();
+
+      return {
+        pending: Number(pendingResult[0]?.count || 0),
+        approved: Number(approvedResult[0]?.count || 0),
+        rejected: Number(rejectedResult[0]?.count || 0),
+      };
+    });
+
+    return result;
   }
 }

@@ -55,7 +55,9 @@ export enum RestrictionEnum {
 
 export enum AdvertTypeEnum {
   FREE = 'free',
-  PAID = 'paid',
+  PAID = 'pro',
+  BOOST = 'boost',
+  TARGETED = 'targeted',
 }
 
 export enum BlogTypeEnum {

@@ -21,6 +21,6 @@ export const departmentRelations = relations(department, ({ one, many }) => ({
     references: [faculty.id],
   }),
   users: many(users),
-  departmentCourses: many(departmentLevelCourses),
+  courses: many(departmentLevelCourses),
   moderators: many(moderator),
 }));

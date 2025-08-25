@@ -26,4 +26,15 @@ export default registerAs('config', (): { [key in ENV]: string } => ({
     process.env.CRYPTO_ENCRYPTION_ALGORITHM || 'aes-256-cbc',
 
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  ROOT_API_KEY: process.env.ROOT_API_KEY,
+
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+  BREVO_API_KEY: process.env.BREVO_API_KEY,
+  BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL,
+  MAILSEND_API_KEY: process.env.MAILSEND_API_KEY,
+  MAILSEND_SENDER_EMAIL: process.env.MAILSEND_SENDER_EMAIL,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  RESEND_SENDER_EMAIL: process.env.RESEND_SENDER_EMAIL,
 }));
