@@ -5,7 +5,6 @@ import { userCourses, users } from './user.schema';
 import { timestamps } from 'src/modules/drizzle/schema/timestamps';
 import { approvalStatusEnum } from 'src/modules/drizzle/schema/enums.schema';
 import { TABLES } from '../tables.constants';
-import { P } from 'pino';
 
 export const courses = pgTable(TABLES.COURSES, {
   id: uuid('id').primaryKey().defaultRandom(),
