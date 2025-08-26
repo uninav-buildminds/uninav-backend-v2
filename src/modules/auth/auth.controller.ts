@@ -74,17 +74,24 @@ export class AuthController {
   }
 
   @Get('verify-email/token')
-  async verifyEmailWithToken(@Query('token') token: string) {
-    const verified = await this.authService.verifyEmailWithToken(token);
+  async verifyEmailWithToken(
+    @Query('token') token: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { verified, user } =
+      await this.authService.verifyEmailWithToken(token);
     if (!verified) {
       throw new BadRequestException('Email verification failed');
     }
 
+    const accessToken = await this.authService.generateToken(user.id);
+    await this.authService.setCookie(res, accessToken);
+
     const responseObj = ResponseDto.createSuccessResponse(
       'Email verified successfully',
-      { verified },
+      { verified, user },
     );
-    return responseObj;
+    res.status(HttpStatus.OK).json(responseObj);
   }
 
   @Post('resend-verification')
@@ -125,11 +132,8 @@ export class AuthController {
     }
 
     const accessToken = await this.authService.generateToken(user.id);
-    // for cookies
-    res.cookie('authorization', accessToken, globalCookieOptions);
-    // for sessions  (if not using cookies)
-    res.header('authorization', `Bearer ${accessToken}`);
-    res.header('Access-Control-Expose-Headers', 'authorization');
+    await this.authService.setCookie(res, accessToken);
+
     const responseObj = ResponseDto.createSuccessResponse(
       'Login Successful',
       profile,

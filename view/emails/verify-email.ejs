@@ -214,6 +214,19 @@
             >
           </center>
         </div>
+        <!-- For email clients (like Yahoo) that may not render buttons well, show the link below -->
+        <div style="margin-top: 18px; text-align: center">
+          <p style="font-size: 14px; color: #64748b">
+            If the button above doesn't work, copy and paste this link into your
+            browser:
+          </p>
+          <a
+            href="<%= verificationUrl %>"
+            style="font-size: 14px; color: #3b82f6; word-break: break-all"
+          >
+            <%= verificationUrl %>
+          </a>
+        </div>
 
         <div class="expiry-notice">
           <p>⏰ This verification link will expire in 15 minutes.</p>

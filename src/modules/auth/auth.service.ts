@@ -12,7 +12,10 @@ import * as bcrypt from 'bcryptjs';
 import envConfig from 'src/utils/config/env.config';
 import { ConfigType } from 'src/utils/types/config.types';
 import { JwtService } from '@nestjs/jwt';
-import { JWT_SYMBOL } from 'src/utils/config/constants.config';
+import {
+  globalCookieOptions,
+  JWT_SYMBOL,
+} from 'src/utils/config/constants.config';
 import { UserEntity, AuthEntity } from 'src/utils/types/db.types';
 import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
@@ -23,6 +26,7 @@ import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ModeratorService } from '../moderator/moderator.service';
 import { AdminService } from '../admin/admin.service';
 import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -124,7 +128,11 @@ export class AuthService {
       expiresIn: '15m',
     });
     // Encrypt the token for added security
-    return cryptoService.encrypt(token);
+    const encryptedToken = cryptoService.encrypt(token);
+
+    // make it safe for browsers to interpret correctly (ensure "+" isn't interpreted as "  ")
+    const encodedToken = encodeURIComponent(encryptedToken);
+    return encodedToken;
   }
 
   // Request email verification
@@ -166,7 +174,9 @@ export class AuthService {
   }
 
   // Verify email with token (primary method)
-  async verifyEmailWithToken(token: string): Promise<boolean> {
+  async verifyEmailWithToken(
+    token: string,
+  ): Promise<{ verified: boolean; user: UserEntity }> {
     try {
       // Decrypt token
       const decryptedToken = cryptoService.decrypt(token);
@@ -185,10 +195,11 @@ export class AuthService {
         if (!auth || !auth.user) {
           throw new NotFoundException('User not found');
         }
+        const user = await this.userService.findOne(auth.userId);
 
         // Check if already verified
         if (auth.emailVerified) {
-          return true;
+          return { verified: true, user };
         }
 
         // Update email verification status
@@ -208,7 +219,7 @@ export class AuthService {
         };
         this.eventsEmitter.sendEmail(successEmailPayload);
 
-        return true;
+        return { verified: true, user };
       } catch (jwtError) {
         if (jwtError.name === 'TokenExpiredError') {
           throw new UnauthorizedException('Verification token has expired');
@@ -237,7 +248,7 @@ export class AuthService {
 
     // Check if email is already verified
     if (auth.emailVerified) {
-      throw new BadRequestException('Email is already verified');
+      // throw new BadRequestException('Email is already verified');
     }
 
     // Generate verification token
@@ -469,7 +480,12 @@ export class AuthService {
     return createdUser;
   }
 
-  async login(user: UserEntity) {
-    // Implementation of login method
+  async setCookie(res: Response, token: string) {
+    // for cookies
+    res.cookie('authorization', token, globalCookieOptions);
+
+    // for sessions  (if not using cookies)
+    res.header('authorization', `Bearer ${token}`);
+    res.header('Access-Control-Expose-Headers', 'authorization');
   }
 }
