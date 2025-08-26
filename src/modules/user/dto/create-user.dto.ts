@@ -10,35 +10,29 @@ import {
 import { UserRoleEnum } from 'src/utils/types/db.types';
 
 export class CreateUserDto {
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
   @IsString()
   @IsNotEmpty()
   firstName: string;
 
   @IsString()
-  @IsNotEmpty()
   lastName: string;
 
-  @IsString()
+  @IsEmail()
   @IsNotEmpty()
-  username: string;
+  email: string;
 
   @IsString()
-  @IsOptional()
-  departmentId?: string;
-
-  @IsNumber()
-  @IsIn([100, 200, 300, 400, 500, 600])
-  level: number;
+  departmentId: string;
 
   @IsOptional()
   @IsEnum(UserRoleEnum)
   role?: UserRoleEnum;
 
-  @IsString()
-  @IsOptional()
+  @IsNumber()
+  @IsIn([100, 200, 300, 400, 500, 600, 700])
+  level: number;
+
+  username?: string; // generated from start
+
   googleId?: string;
 }

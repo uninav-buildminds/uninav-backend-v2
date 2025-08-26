@@ -13,7 +13,7 @@ import { sql } from 'drizzle-orm';
 export class UserRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto & { username: string }) {
     const valuesToInsert = { ...createUserDto };
     if (valuesToInsert.googleId === undefined) {
       delete valuesToInsert.googleId;

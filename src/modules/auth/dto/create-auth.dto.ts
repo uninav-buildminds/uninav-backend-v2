@@ -1,7 +1,9 @@
 import {
   IsEmail,
   IsEnum,
+  IsIn,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Length,
@@ -29,8 +31,8 @@ export class CreateAuthDto {
   })
   userIdType?: UserIdTypeEnum;
 
-  @IsString()
-  @IsNotEmpty()
-  @IsOptional()
+  // @IsString()
+  // @IsNotEmpty()
+  // @IsOptional()
   userIdImage?: string;
 }

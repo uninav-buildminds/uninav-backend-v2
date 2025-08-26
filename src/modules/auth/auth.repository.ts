@@ -1,15 +1,27 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { auth } from 'src/modules/drizzle/schema/auth.schema';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { DrizzleDB, AuthEntity } from 'src/utils/types/db.types';
+import {
+  DrizzleDB,
+  AuthEntity,
+  UserIdTypeEnum,
+} from 'src/utils/types/db.types';
 import { eq, or } from 'drizzle-orm';
-import { CreateAuthDto } from './dto/create-auth.dto';
+
+interface CreateAuthEntityDto {
+  userId: string;
+  email: string;
+  password: string;
+  matricNo?: string;
+  userIdType?: UserIdTypeEnum;
+  userIdImage?: string;
+}
 
 @Injectable()
 export class AuthRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
 
-  async create(createAuthDto: CreateAuthDto & { userId: string }) {
+  async create(createAuthDto: CreateAuthEntityDto) {
     const createdAuth = await this.db
       .insert(auth)
       .values(createAuthDto)

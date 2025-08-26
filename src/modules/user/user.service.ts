@@ -10,6 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRepository } from './user.repository';
 import { DataFormatter } from '../../utils/helpers/data-formater.helper';
+import { UsernameGeneratorHelper } from '../../utils/helpers/username-generator.helper';
 import { DepartmentService } from '../department/department.service';
 import { CoursesRepository } from '../courses/courses.repository';
 import { AddBookmarkDto } from './dto/bookmark.dto';
@@ -23,22 +24,34 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly departmentService: DepartmentService,
     private readonly coursesRepository: CoursesRepository,
+    private readonly usernameGenerator: UsernameGeneratorHelper,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    let userWithUsername = await this.userRepository.findByUsername(
-      createUserDto.username,
-    );
-    if (userWithUsername) {
-      throw new BadRequestException('User with this username already exists');
-    }
-
+    // Check if user already exists by email
     let userWithEmail = await this.userRepository.findByEmail(
       createUserDto.email,
     );
     if (userWithEmail) {
       throw new BadRequestException('User with this email already exists');
     }
+
+    // Generate username if not provided
+    if (!createUserDto.username) {
+      createUserDto.username = await this.generateUniqueUsernameFromName(
+        createUserDto.firstName,
+        createUserDto.lastName,
+      );
+    } else {
+      // Check if provided username is already taken
+      let userWithUsername = await this.userRepository.findByUsername(
+        createUserDto.username,
+      );
+      if (userWithUsername) {
+        throw new BadRequestException('User with this username already exists');
+      }
+    }
+
     // Only validate department if departmentId is provided
     if (createUserDto.departmentId) {
       let department = await this.departmentService.findOne(
@@ -52,10 +65,12 @@ export class UserService {
     }
 
     try {
-      const user = await this.userRepository.create(createUserDto);
+      const user = await this.userRepository.create(
+        createUserDto as CreateUserDto & { username: string },
+      );
 
-      // Only fetch and populate user courses if departmentId is provided
-      if (createUserDto.departmentId) {
+      // Only fetch and populate user courses if departmentId and level are provided
+      if (createUserDto.departmentId && createUserDto.level) {
         const userCourses =
           await this.coursesRepository.findCoursesByDepartmentAndLevel(
             createUserDto.departmentId,
@@ -147,35 +162,47 @@ export class UserService {
     }
   }
 
+  async generateUniqueUsernameFromName(
+    firstName?: string,
+    lastName?: string,
+  ): Promise<string> {
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+      let username: string;
+
+      if (firstName || lastName) {
+        // Try generating with name-based approach first
+        const fullName = `${firstName || ''} ${lastName || ''}`.trim();
+        username =
+          this.usernameGenerator.generateUsernameWithFallback(fullName);
+      } else {
+        // Use random generation if no name provided
+        username = this.usernameGenerator.generateRandomUsername();
+      }
+
+      // Check if username is unique
+      const existingUser = await this.userRepository.findByUsername(username);
+      if (!existingUser) {
+        return username;
+      }
+
+      attempts++;
+    }
+
+    // If we've tried multiple times and still no unique username, throw error
+    this.logger.error(
+      `Could not generate a unique username after ${maxAttempts} attempts for ${firstName} ${lastName}`,
+    );
+    throw new ConflictException('Could not generate a unique username.');
+  }
+
   async generateUniqueUsername(
     firstName: string,
     lastName: string,
   ): Promise<string> {
-    // Simple initial username generation
-    const baseUsername = (
-      firstName.toLowerCase() + (lastName ? lastName.toLowerCase() : '')
-    ).replace(/\s+/g, '');
-    let username = baseUsername;
-    let counter = 0;
-
-    // Loop to find a unique username
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const existingUser = await this.userRepository.findByUsername(username);
-      if (!existingUser) {
-        return username; // Username is unique
-      }
-      counter++;
-      username = `${baseUsername}${counter}`;
-      if (counter > 100) {
-        // Safety break to prevent infinite loops in extreme cases
-        this.logger.error(
-          'Could not generate a unique username after 100 attempts for base:',
-          baseUsername,
-        );
-        throw new ConflictException('Could not generate a unique username.');
-      }
-    }
+    return this.generateUniqueUsernameFromName(firstName, lastName);
   }
 
   async getProfile(id: string) {
@@ -254,16 +281,25 @@ export class UserService {
         }
       }
 
-      // Handle course reassignment if level is changed
-      if (updateUserDto.level && updateUserDto.level !== currentUser.level) {
+      // Handle course reassignment if level or department is changed
+      const levelChanged =
+        updateUserDto.level && updateUserDto.level !== currentUser.level;
+      const departmentChanged =
+        updateUserDto.departmentId &&
+        updateUserDto.departmentId !== currentUser.departmentId;
+
+      if (levelChanged || departmentChanged) {
         // Delete all existing user courses
         await this.userRepository.deleteAllUserCourses(id);
 
-        // Fetch and assign new courses based on department and new level
+        // Use new level or current level, and new department or current department
+        const newLevel = updateUserDto.level || currentUser.level;
+
+        // Fetch and assign new courses based on department and level
         const userCourses =
           await this.coursesRepository.findCoursesByDepartmentAndLevel(
             departmentId,
-            updateUserDto.level,
+            newLevel,
           );
 
         // Create new user course relationships

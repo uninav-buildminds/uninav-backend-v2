@@ -27,14 +27,14 @@ export const users = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     email: text('email').notNull().unique(),
-    firstName: text('first_name').notNull(),
-    lastName: text('last_name').notNull(),
+    firstName: text('first_name'),
+    lastName: text('last_name'),
     username: text('username').notNull().unique(),
     googleId: text('google_id').unique(),
     departmentId: uuid('department_id').references(() => department.id, {
       onDelete: 'set null',
     }),
-    level: integer('level').notNull(),
+    level: integer('level'),
     role: userRoleEnum('role').default('student'),
     ...timestamps,
   },
