@@ -223,7 +223,7 @@ export class AuthController {
 
     // Redirect to frontend loading page with token in query param
     const frontendUrl = this.configService.get(ENV.FRONTEND_URL);
-    const redirectUrl = `${frontendUrl}/auth/google/loading?token=${accessToken}`;
+    const redirectUrl = `${frontendUrl}/`;
 
     // Perform the redirect
     // passthrough: true with res.redirect() might not work as expected for status codes other than default.
