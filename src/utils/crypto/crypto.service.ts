@@ -38,23 +38,25 @@ class CryptoService implements CryptoInterface {
       CryptoService.key,
       CryptoService.iv,
     );
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    let encryptedText = Buffer.from(encrypted, 'hex').toString('base64');
-    console.log('encryptedText', encryptedText);
-    return encryptedText;
+    const encrypted = Buffer.concat([
+      cipher.update(text, 'utf8'),
+      cipher.final(),
+    ]);
+    return encrypted.toString('hex');
   }
 
   decrypt(text: string) {
-    const encryptedText = Buffer.from(text, 'base64').toString('hex');
+    const encryptedText = Buffer.from(text, 'hex');
     const decipher = createDecipheriv(
       this.encryptionAlgorithm,
       CryptoService.key,
       CryptoService.iv,
     );
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    const decrypted = Buffer.concat([
+      decipher.update(encryptedText),
+      decipher.final(),
+    ]);
+    return decrypted.toString('utf8');
   }
 
   random(): string {

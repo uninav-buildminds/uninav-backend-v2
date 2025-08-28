@@ -190,11 +190,7 @@ export class AuthController {
   // Google OAuth initiation route
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req: Request) {
-    // Passport strategy will automatically redirect to Google
-    // This function might not even be called if redirect happens before
-    // It's here mainly to apply the guard
-  }
+  async googleAuth(@Req() req: Request) {}
 
   // Google OAuth callback route
   @Get('google/callback')
@@ -213,9 +209,6 @@ export class AuthController {
       );
     }
 
-    // At this point, `user` is the user object returned by GoogleStrategy.validate()
-    // which means user is found or created in our DB.
-
     const accessToken = await this.authService.generateToken(user.id);
 
     // Set cookie
@@ -226,8 +219,6 @@ export class AuthController {
     const redirectUrl = `${frontendUrl}/`;
 
     // Perform the redirect
-    // passthrough: true with res.redirect() might not work as expected for status codes other than default.
-    // Using res.status().redirect() for clarity.
     res.status(HttpStatus.FOUND).redirect(redirectUrl);
   }
 }
