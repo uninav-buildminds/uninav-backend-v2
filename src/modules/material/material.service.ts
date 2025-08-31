@@ -22,6 +22,7 @@ import { materialLogger as logger } from 'src/modules/material/material.module';
 import {
   RESOURCE_ADDRESS_EXPIRY_DAYS,
   RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS,
+  STORAGE_FOLDERS,
 } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
 import { UserService } from 'src/modules/user/user.service';
@@ -98,11 +99,17 @@ export class MaterialService {
       // Infer resource type based on input
       if (file) {
         resourceType = ResourceType.UPLOAD;
-        const uploadResult = await this.storageService.uploadFile(file, false);
+        const uploadResult = await this.storageService.uploadFile(
+          file,
+          'private', // Store sensitive materials in private bucket
+          STORAGE_FOLDERS.DOCS,
+        );
         fileKey = uploadResult.fileKey;
         resourceAddress = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
+          false,
+          'private',
         );
       } else if (resourceAddress) {
         // Check if it's a Google Drive link
@@ -216,6 +223,7 @@ export class MaterialService {
         materialResource.fileKey,
         3600 * 24 * RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS, // 7 days expiration
         true,
+        'private', // Materials are stored in private bucket
       );
       return signedUrl;
     }
@@ -270,12 +278,15 @@ export class MaterialService {
           resourceType = ResourceType.UPLOAD;
           const uploadResult = await this.storageService.uploadFile(
             file,
-            false,
+            'private',
+            STORAGE_FOLDERS.DOCS,
           );
           fileKey = uploadResult.fileKey;
           const signedUrl = await this.storageService.getSignedUrl(
             fileKey,
             3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
+            false,
+            'private',
           );
 
           // Delete old file if it exists and is an uploaded file
@@ -284,7 +295,10 @@ export class MaterialService {
             currentResource?.fileKey
           ) {
             try {
-              await this.storageService.deleteFile(currentResource.fileKey);
+              await this.storageService.deleteFile(
+                currentResource.fileKey,
+                'private', // Materials are stored in private bucket
+              );
             } catch (error) {
               logger.error(
                 `Failed to delete old file when updating material: ${error.message}`,
@@ -352,7 +366,10 @@ export class MaterialService {
     ) {
       // Delete the file from storage
       try {
-        await this.storageService.deleteFile(material.resource.fileKey);
+        await this.storageService.deleteFile(
+          material.resource.fileKey,
+          'private', // Materials are stored in private bucket
+        );
         logger.log(
           `Successfully deleted file ${material.resource.fileKey} when removing material ${id}`,
         );

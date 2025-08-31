@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 import { ENV } from 'src/utils/config/env.enum';
+import { Request } from 'express';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -16,17 +17,19 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret: configService.get<string>(ENV.GOOGLE_CLIENT_SECRET),
       callbackURL: configService.get<string>(ENV.GOOGLE_REDIRECT_URI), // e.g., http://localhost:YOUR_BACKEND_PORT/api/auth/google/callback
       scope: ['email', 'profile'],
+      passReqToCallback: true, // Enable request access in validate method
     });
-    console.log('redirect url', this.configService.get<string>(ENV.GOOGLE_REDIRECT_URI))  
   }
 
   async validate(
+    req: Request,
     accessToken: string,
     refreshToken: string,
     profile: Profile,
     done: VerifyCallback,
   ): Promise<any> {
     try {
+      console.log('current state', req.query.state);
       const { name, emails, photos, id: googleId } = profile;
       const userEmail = emails?.[0]?.value;
       const userFirstName = name?.givenName;
@@ -48,4 +51,4 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       return done(error, false);
     }
   }
-} 
+}

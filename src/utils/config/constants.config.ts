@@ -28,11 +28,12 @@ export const globalCookieOptions: CookieOptions = {
   // maxAge: 60 * 60 * 24 * cookie_duration,
 };
 
-// Blackbase buckets
-export enum B2_BUCKETS {
-  media = 'uninav-media',
-  docs = 'uninav-docs',
-  blogs = 'uninav-blogs',
+// Storage bucket types for organizing files within buckets
+export enum STORAGE_FOLDERS {
+  MEDIA = 'media',
+  DOCS = 'docs', 
+  BLOGS = 'blogs',
+  ADVERTS = 'adverts',
 }
 
 // Material Resource config

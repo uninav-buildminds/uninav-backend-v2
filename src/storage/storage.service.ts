@@ -14,57 +14,60 @@ import {
 } from '@aws-sdk/client-s3';
 import { ENV } from 'src/utils/config/env.enum';
 import { MulterFile } from 'src/utils/types';
-import { B2_BUCKETS } from 'src/utils/config/constants.config';
 
 @Injectable()
 export class StorageService {
   private s3: S3;
-  private bucketMedia: string;
-  private bucketDocs: string;
-  private bucketBlogs: string;
+  private publicBucket: string;
+  private privateBucket: string;
   private endpoint: string;
   private logger = new Logger(StorageService.name);
+
   constructor(private readonly configService: ConfigService) {
-    let endpoint = this.configService.get(ENV.B2_ENDPOINT) as string;
+    let endpoint = this.configService.get(ENV.IDRIVE_ENDPOINT) as string;
     this.endpoint = endpoint.startsWith('https')
       ? endpoint
       : `https://${endpoint}`;
     this.s3 = new S3({
       endpoint: this.endpoint,
-      region: this.configService.get(ENV.B2_REGION),
+      region: this.configService.get(ENV.IDRIVE_REGION),
       credentials: {
-        accessKeyId: this.configService.get(ENV.B2_ACCESS_KEY),
-        secretAccessKey: this.configService.get(ENV.B2_SECRET_KEY),
+        accessKeyId: this.configService.get(ENV.IDRIVE_ACCESS_KEY),
+        secretAccessKey: this.configService.get(ENV.IDRIVE_SECRET_KEY),
       },
     });
-    this.bucketMedia = B2_BUCKETS.media;
-    this.bucketDocs = B2_BUCKETS.docs;
-    this.bucketBlogs = B2_BUCKETS.blogs;
+    this.publicBucket = this.configService.get(ENV.IDRIVE_PUBLIC_BUCKET);
+    this.privateBucket = this.configService.get(ENV.IDRIVE_PRIVATE_BUCKET);
   }
 
   /**
-   * Upload a file to Backblaze B2
+   * Upload a file to IDrive storage
    * @param file The file to upload
-   * @param isMedia Whether the file is a media file or document
-   * @returns The URL of the uploaded file
+   * @param bucketType 'public' or 'private' - determines which bucket to use
+   * @param folder Optional folder path within the bucket (e.g., 'media', 'docs', 'blogs')
+   * @returns The URL of the uploaded file and file key
    */
   async uploadFile(
     file: MulterFile,
-    isMedia = false,
+    bucketType: 'public' | 'private' = 'public',
+    folder?: string,
   ): Promise<{ publicUrl: string; fileKey: string }> {
-    // Determine folder based on file type
-    const bucket = isMedia ? this.bucketMedia : this.bucketDocs;
+    const bucket =
+      bucketType === 'public' ? this.publicBucket : this.privateBucket;
 
-    const fileKey = `${randomUUID()}-${file.originalname.replace(/\s+/g, '_')}`;
+    // Create file key with optional folder structure
+    const fileName = `${randomUUID()}-${file.originalname.replace(/\s+/g, '_')}`;
+    const fileKey = folder ? `${folder}/${fileName}` : fileName;
+
     this.logger.log(`Uploading file to ${bucket}: ${fileKey}`);
-    // Upload file to Backblaze B2
+
     try {
       await this.s3.putObject({
         Bucket: bucket,
         Key: fileKey,
         Body: file.buffer,
         ContentType: file.mimetype,
-        ACL: 'public-read', // Make the file publicly accessible
+        ACL: bucketType === 'public' ? 'public-read' : 'private',
       });
     } catch (error) {
       this.logger.error(`Failed to upload file: ${error.message}`, error);
@@ -78,18 +81,18 @@ export class StorageService {
   }
 
   /**
-   * Upload a blog image to the media bucket
+   * Upload a blog image to the public bucket under media folder
    * @param file The image file to upload
    * @returns Object containing the public URL and file key
    */
   async uploadBlogImage(
     file: MulterFile,
   ): Promise<{ publicUrl: string; fileKey: string }> {
-    return this.uploadFile(file, true);
+    return this.uploadFile(file, 'public', 'media');
   }
 
   /**
-   * Upload blog content (markdown) to the blogs bucket
+   * Upload blog content (markdown) to the public bucket under blogs folder
    * @param content The markdown content as string
    * @param blogId Optional blog ID to use in the file key
    * @returns Object containing the public URL and file key
@@ -98,14 +101,16 @@ export class StorageService {
     content: string,
     blogId?: string,
   ): Promise<{ publicUrl: string; fileKey: string }> {
-    const fileKey = `${blogId || randomUUID()}-content.md`;
+    const fileName = `${blogId || randomUUID()}-content.md`;
+    const fileKey = `blogs/${fileName}`;
+
     this.logger.log(
-      `Uploading blog content to ${this.bucketBlogs}: ${fileKey}`,
+      `Uploading blog content to ${this.publicBucket}: ${fileKey}`,
     );
 
     try {
       await this.s3.putObject({
-        Bucket: this.bucketBlogs,
+        Bucket: this.publicBucket,
         Key: fileKey,
         Body: Buffer.from(content, 'utf-8'),
         ContentType: 'text/markdown',
@@ -113,7 +118,7 @@ export class StorageService {
       });
 
       return {
-        publicUrl: `${this.endpoint}/${this.bucketBlogs}/${fileKey}`,
+        publicUrl: `${this.endpoint}/${this.publicBucket}/${fileKey}`,
         fileKey,
       };
     } catch (error) {
@@ -128,7 +133,7 @@ export class StorageService {
   }
 
   /**
-   * Update existing blog content in the blogs bucket
+   * Update existing blog content in the public bucket
    * @param content The new markdown content
    * @param fileKey The existing file key
    * @returns Object containing the public URL and file key
@@ -141,7 +146,7 @@ export class StorageService {
 
     try {
       await this.s3.putObject({
-        Bucket: this.bucketBlogs,
+        Bucket: this.publicBucket,
         Key: fileKey,
         Body: Buffer.from(content, 'utf-8'),
         ContentType: 'text/markdown',
@@ -149,7 +154,7 @@ export class StorageService {
       });
 
       return {
-        publicUrl: `${this.endpoint}/${this.bucketBlogs}/${fileKey}`,
+        publicUrl: `${this.endpoint}/${this.publicBucket}/${fileKey}`,
         fileKey,
       };
     } catch (error) {
@@ -164,14 +169,14 @@ export class StorageService {
   }
 
   /**
-   * Fetch blog content from the blogs bucket
+   * Fetch blog content from the public bucket
    * @param fileKey The key of the content file
    * @returns The markdown content as string
    */
   async getBlogContent(fileKey: string): Promise<string> {
     try {
       const command = new GetObjectCommand({
-        Bucket: this.bucketBlogs,
+        Bucket: this.publicBucket,
         Key: fileKey,
       });
 
@@ -191,18 +196,19 @@ export class StorageService {
    * @param fileKey The file key/path in the bucket
    * @param expiry Expiry time in seconds
    * @param forDownload Whether the URL is for download (with attachment disposition)
-   * @param bucketType The bucket type ('media', 'blogs', etc.) - defaults to docs bucket
+   * @param bucketType 'public' or 'private' - determines which bucket to use
    * @returns A signed URL for accessing the file
    */
   async getSignedUrl(
     fileKey: string,
     expiry: number,
     forDownload: boolean = false,
-    bucketType: string = 'docs',
+    bucketType: 'public' | 'private' = 'public',
   ): Promise<string> {
     try {
       // Determine which bucket to use
-      const bucketName = this.getStorageBucket(bucketType);
+      const bucketName =
+        bucketType === 'public' ? this.publicBucket : this.privateBucket;
 
       // Create the command with appropriate parameters
       const command = new GetObjectCommand({
@@ -228,44 +234,19 @@ export class StorageService {
   }
 
   /**
-   * Helper method to get the correct bucket name based on type
-   */
-  private getStorageBucket(bucketType: string): string {
-    switch (bucketType) {
-      case 'media':
-        return this.bucketMedia;
-      case 'blogs':
-        return this.bucketBlogs;
-      case 'docs':
-        return this.bucketDocs;
-      default:
-        return this.bucketDocs;
-    }
-  }
-
-  /**
-   * Delete a file from any Backblaze B2 bucket
+   * Delete a file from IDrive storage
    * @param fileKey The key of the file in the bucket
-   * @param bucketType The type of bucket: 'media', 'docs', or 'blogs'
+   * @param bucketType 'public' or 'private' - determines which bucket to use
    * @returns True if deletion was successful
    */
   async deleteFile(
     fileKey: string,
-    bucketType: 'media' | 'docs' | 'blogs' = 'docs',
+    bucketType: 'public' | 'private' = 'public',
   ): Promise<boolean> {
     if (!fileKey) return true; // Skip if no file key
 
-    let bucket: string;
-    switch (bucketType) {
-      case 'media':
-        bucket = this.bucketMedia;
-        break;
-      case 'blogs':
-        bucket = this.bucketBlogs;
-        break;
-      default:
-        bucket = this.bucketDocs;
-    }
+    const bucket =
+      bucketType === 'public' ? this.publicBucket : this.privateBucket;
 
     try {
       const command = new DeleteObjectCommand({

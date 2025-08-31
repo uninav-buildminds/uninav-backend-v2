@@ -19,7 +19,7 @@ import {
 } from 'src/utils/types/db.types';
 import { MulterFile } from 'src/utils/types';
 import * as moment from 'moment-timezone';
-import { BLOG_HEADING_IMG_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
+import { BLOG_HEADING_IMG_URL_EXPIRY_DAYS, STORAGE_FOLDERS } from 'src/utils/config/constants.config';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { UserService } from 'src/modules/user/user.service';
 
@@ -50,6 +50,7 @@ export class BlogService {
       let headingImageKey = null;
       if (headingImage) {
         // 1. Upload the heading image to B2 media bucket
+        // Upload the heading image to public bucket under media folder
         const { fileKey: headingImageKey } =
           await this.storageService.uploadBlogImage(headingImage);
 
@@ -58,7 +59,7 @@ export class BlogService {
           headingImageKey,
           3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
           false,
-          'media',
+          'public' // Blog images are public
         );
       }
 
@@ -148,7 +149,7 @@ export class BlogService {
           blog.headingImageKey,
           3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
           false,
-          'media',
+          'public',
         );
 
         // Update the blog with the new URL
@@ -243,7 +244,7 @@ export class BlogService {
     if (headingImage) {
       // Delete old image if exists
       if (blog.headingImageKey) {
-        await this.storageService.deleteFile(blog.headingImageKey, 'media');
+        await this.storageService.deleteFile(blog.headingImageKey, 'public');
       }
 
       // Upload new image
@@ -255,7 +256,7 @@ export class BlogService {
         fileKey,
         3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
         false,
-        'media',
+        'public',
       );
 
       updateData.headingImageAddress = headingImageUrl;
@@ -304,11 +305,11 @@ export class BlogService {
 
     // Delete associated files from storage
     if (blog.headingImageKey) {
-      await this.storageService.deleteFile(blog.headingImageKey, 'media');
+      await this.storageService.deleteFile(blog.headingImageKey, 'public');
     }
 
     if (blog.bodyKey) {
-      await this.storageService.deleteFile(blog.bodyKey, 'blogs');
+      await this.storageService.deleteFile(blog.bodyKey, 'public');
     }
 
     // Delete the blog from database

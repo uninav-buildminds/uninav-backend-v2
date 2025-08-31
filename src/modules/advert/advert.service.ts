@@ -17,7 +17,7 @@ import {
   UserRoleEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
-import { ADVERT_IMAGE_URL_EXPIRY_DAYS } from 'src/utils/config/constants.config';
+import { ADVERT_IMAGE_URL_EXPIRY_DAYS, STORAGE_FOLDERS } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
 import { MaterialService } from 'src/modules/material/material.service';
 import { UserService } from 'src/modules/user/user.service';
@@ -62,10 +62,11 @@ export class AdvertService {
         );
       }
 
-      // Upload image to storage
+      // Upload image to storage (public bucket since adverts are publicly displayed)
       const { fileKey } = await this.storageService.uploadFile(
         image,
-        true, // isMedia = true since it's an image
+        'public', // Advert images are public
+        STORAGE_FOLDERS.ADVERTS
       );
 
       // Generate initial signed URL
@@ -73,7 +74,7 @@ export class AdvertService {
         fileKey,
         3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS, // 7 days expiration
         false,
-        'media',
+        'public',
       );
 
       let isAdminOrModerator =
@@ -126,7 +127,7 @@ export class AdvertService {
         advert.fileKey,
         3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
         false,
-        'media',
+        'public',
       );
 
       // Update advert with new URL
@@ -190,20 +191,24 @@ export class AdvertService {
 
       if (image) {
         // Upload new image
-        const { fileKey } = await this.storageService.uploadFile(image, true);
+        const { fileKey } = await this.storageService.uploadFile(
+          image, 
+          'public', 
+          STORAGE_FOLDERS.ADVERTS
+        );
 
         // Generate new signed URL
         const imageUrl = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
           false,
-          'media',
+          'public',
         );
 
         // Delete old image if exists
         if (advert.fileKey) {
           try {
-            await this.storageService.deleteFile(advert.fileKey);
+            await this.storageService.deleteFile(advert.fileKey, 'public');
           } catch (error) {
             this.logger.error(`Failed to delete old image: ${error.message}`);
           }
@@ -241,7 +246,7 @@ export class AdvertService {
       // Delete image from storage if exists
       if (advert.fileKey) {
         try {
-          await this.storageService.deleteFile(advert.fileKey);
+          await this.storageService.deleteFile(advert.fileKey, 'public');
         } catch (error) {
           this.logger.error(`Failed to delete advert image: ${error.message}`);
           // Continue with deletion even if image deletion fails
@@ -273,7 +278,7 @@ export class AdvertService {
             advert.fileKey,
             3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
             false,
-            'media',
+            'public',
           );
 
           // Update advert with new URL

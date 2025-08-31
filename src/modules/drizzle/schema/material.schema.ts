@@ -6,6 +6,7 @@ import {
   timestamp,
   index,
   customType,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import {
@@ -50,7 +51,8 @@ export const material = pgTable(
     reviewedById: uuid('reviewed_by').references(() => users.id, {
       onDelete: 'set null',
     }),
-
+    previewUrl: text('preview_url'),
+    metaData: jsonb('meta_data'),
     searchVector: tsvector('search_vector'),
     ...timestamps,
   },

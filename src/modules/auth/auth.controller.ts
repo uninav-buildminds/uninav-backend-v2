@@ -27,7 +27,8 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from 'src/modules/auth/dto/password-reset.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { GoogleAuthGuard } from 'src/guards/google.guard';
+import { OriginDetectorHelper } from 'src/utils/helpers/origin-detector.helper';
 
 @Controller('auth')
 export class AuthController {
@@ -189,16 +190,14 @@ export class AuthController {
 
   // Google OAuth initiation route
   @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req: Request) {}
+  @UseGuards(GoogleAuthGuard)
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async googleAuth() {}
 
-  // Google OAuth callback route
+  // Google OAuth callback route - handles dynamic redirect based on state
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  @UseGuards(GoogleAuthGuard)
+  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     const user = req.user as UserEntity;
 
     if (!user) {
@@ -214,11 +213,15 @@ export class AuthController {
     // Set cookie
     res.cookie('authorization', accessToken, globalCookieOptions);
 
-    // Redirect to frontend loading page with token in query param
-    const frontendUrl = this.configService.get(ENV.FRONTEND_URL);
-    const redirectUrl = `${frontendUrl}/`;
+    const redirectUrl = OriginDetectorHelper.detectAndValidateOrigin(
+      req,
+      this.configService.get(ENV.FRONTEND_URL),
+    );
+
+    // Ensure redirect URL ends with dashboard path
+    const finalRedirectUrl = `${redirectUrl}/dashboard`;
 
     // Perform the redirect
-    res.status(HttpStatus.FOUND).redirect(redirectUrl);
+    res.status(HttpStatus.FOUND).redirect(finalRedirectUrl);
   }
 }

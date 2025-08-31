@@ -24,7 +24,6 @@ import { UpdateMaterialDto } from './dto/update-material.dto';
 import { resource } from 'src/modules/drizzle/schema/resource.schema';
 import { CreateResourceDto } from 'src/modules/material/dto/create-resource.dto';
 import { materialLogger } from 'src/modules/material/material.module';
-import { TABLES } from 'src/modules/drizzle/tables.constants';
 import {
   users,
   userCourses as uc,
@@ -284,10 +283,13 @@ export class MaterialRepository {
           or(
             sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
             sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
-            courseCodeIfExists ? sql`${courseCodeIfExists} = ANY(${material.tags})` : sql`FALSE`,
+            courseCodeIfExists
+              ? sql`${courseCodeIfExists} = ANY(${material.tags})`
+              : sql`FALSE`,
           ),
         );
-      }}
+      }
+    }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -427,7 +429,9 @@ export class MaterialRepository {
           or(
             sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
             sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
-            courseCodeIfExists ? sql`${courseCodeIfExists} = ANY(${material.tags})` : sql`FALSE`,
+            courseCodeIfExists
+              ? sql`${courseCodeIfExists} = ANY(${material.tags})`
+              : sql`FALSE`,
           ),
         );
       }
