@@ -61,6 +61,7 @@
     "drizzle-kit": "^0.30.6",
     "drizzle-orm": "^0.41.0",
     "ejs": "^3.1.10",
+    "google-auth-library": "^10.3.0",
     "googleapis": "^148.0.0",
     "helmet": "^8.1.0",
     "mailersend": "^2.6.0",
