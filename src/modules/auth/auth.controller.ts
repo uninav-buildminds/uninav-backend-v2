@@ -29,6 +29,7 @@ import {
 } from 'src/modules/auth/dto/password-reset.dto';
 import { GoogleAuthGuard } from 'src/guards/google.guard';
 import { OriginDetectorHelper } from 'src/utils/helpers/origin-detector.helper';
+import { OAuth2Client } from 'google-auth-library';
 
 @Controller('auth')
 export class AuthController {
@@ -219,9 +220,66 @@ export class AuthController {
     );
 
     // Ensure redirect URL ends with dashboard path
-    const finalRedirectUrl = `${redirectUrl}/dashboard`;
+    const finalRedirectUrl = `${redirectUrl}/`;
 
     // Perform the redirect
     res.status(HttpStatus.FOUND).redirect(finalRedirectUrl);
+  }
+
+  @Get('google/onetap')
+  // @UseGuards(GoogleAuthGuard)
+  async googleOneTapRedirect(
+    @Query('token') token: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    console.log('Blah');
+    const oAuth2Client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+    );
+    // const authHeader = req.headers.authorization;
+    // const token = authHeader.split(' ')[1];
+    if (!token) {
+      throw new BadRequestException('Authorization token missing');
+    }
+    const loginTicket = await oAuth2Client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const userGoogleData = loginTicket.getPayload();
+    if (!userGoogleData) {
+      throw new BadRequestException('Invalid Google token');
+    }
+
+    const userEmail = userGoogleData.email;
+    const userFirstName = userGoogleData.given_name;
+    const userLastName = userGoogleData.family_name;
+    const googleId = userGoogleData.sub;
+
+    const user = await this.authService.validateUserWithGoogle(
+      userEmail,
+      userFirstName,
+      userLastName,
+      googleId,
+    );
+
+    const accessToken = await this.authService.generateToken(user.id);
+    await this.authService.setCookie(res, accessToken);
+    // const user = this.authService.validateUserWithGoogle()
+
+    // const redirectUrl = OriginDetectorHelper.detectAndValidateOrigin(
+    //   req,
+    //   this.configService.get(ENV.FRONTEND_URL),
+    // );
+
+    // Ensure redirect URL ends with dashboard path
+    // const finalRedirectUrl = `${redirectUrl}/`;
+
+    // Perform the redirect
+    // res.status(HttpStatus.FOUND).redirect(finalRedirectUrl);
+    res
+      .status(HttpStatus.OK)
+      .json({ message: 'Google One Tap login successful' });
   }
 }
