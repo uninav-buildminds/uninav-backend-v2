@@ -7,17 +7,13 @@ export const userRoleEnum = pgEnum('user_role', [
   'admin',
 ]);
 export const materialTypeEnum = pgEnum('material_type', [
-  'pdf',
+  'docs',
   'video',
   'article',
   'image',
   'other',
 ]);
-export const resourceTypeEnum = pgEnum('resource_type', [
-  'url',
-  'GDrive',
-  'upload',
-]);
+export const resourceTypeEnum = pgEnum('resource_type', ['url', 'upload']);
 export const visibilityEnum = pgEnum('visibility_enum', ['public', 'private']);
 export const restrictionEnum = pgEnum('restriction_enum', [
   'readonly',

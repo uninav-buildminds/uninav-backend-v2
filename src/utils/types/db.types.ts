@@ -68,8 +68,8 @@ export enum BlogTypeEnum {
 }
 
 export enum MaterialTypeEnum {
-  PDF = 'pdf',
-  VIDEO = 'video',
+  DOCS = 'docs', // pdf, ppt, doc, docx, etc.
+  VIDEO = 'video', // youtube, vimeo,
   ARTICLE = 'article',
   IMAGE = 'image',
   OTHER = 'other',
@@ -78,9 +78,6 @@ export enum MaterialTypeEnum {
 export enum ResourceType {
   // url doesn't need to be uploaded
   URL = 'url',
-
-  // GDrive doesn't need to be uploaded only indexed to metadata using GDrive API, to read files within folder
-  GDRIVE = 'GDrive',
 
   // uploaded means the file is uploaded to the server
   UPLOAD = 'upload',

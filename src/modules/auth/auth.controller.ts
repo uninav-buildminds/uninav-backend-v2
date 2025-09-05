@@ -192,7 +192,6 @@ export class AuthController {
   // Google OAuth initiation route
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   async googleAuth() {}
 
   // Google OAuth callback route - handles dynamic redirect based on state
