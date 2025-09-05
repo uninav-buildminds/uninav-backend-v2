@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { AdvertRepository } from './advert.repository';
 import { CreateFreeAdvertDto } from './dto/create-free-advert.dto';
-import { StorageService } from 'src/storage/storage.service';
+import { StorageService } from 'src/utils/storage/storage.service';
 import { MulterFile } from 'src/utils/types';
 import {
   AdvertEntity,
@@ -17,7 +17,10 @@ import {
   UserRoleEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
-import { ADVERT_IMAGE_URL_EXPIRY_DAYS, STORAGE_FOLDERS } from 'src/utils/config/constants.config';
+import {
+  ADVERT_IMAGE_URL_EXPIRY_DAYS,
+  STORAGE_FOLDERS,
+} from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
 import { MaterialService } from 'src/modules/material/material.service';
 import { UserService } from 'src/modules/user/user.service';
@@ -66,7 +69,7 @@ export class AdvertService {
       const { fileKey } = await this.storageService.uploadFile(
         image,
         'public', // Advert images are public
-        STORAGE_FOLDERS.ADVERTS
+        STORAGE_FOLDERS.ADVERTS,
       );
 
       // Generate initial signed URL
@@ -192,9 +195,9 @@ export class AdvertService {
       if (image) {
         // Upload new image
         const { fileKey } = await this.storageService.uploadFile(
-          image, 
-          'public', 
-          STORAGE_FOLDERS.ADVERTS
+          image,
+          'public',
+          STORAGE_FOLDERS.ADVERTS,
         );
 
         // Generate new signed URL

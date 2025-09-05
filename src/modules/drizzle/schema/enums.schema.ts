@@ -8,9 +8,14 @@ export const userRoleEnum = pgEnum('user_role', [
 ]);
 export const materialTypeEnum = pgEnum('material_type', [
   'docs',
+  'pdf',
+  'ppt',
+  'excel',
+  'gdrive',
+  // generic
+  'image',
   'video',
   'article',
-  'image',
   'other',
 ]);
 export const resourceTypeEnum = pgEnum('resource_type', ['url', 'upload']);

@@ -15,26 +15,27 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { MaterialService } from './material.service';
-import { CreateMaterialDto } from './dto/create-material.dto';
-import { UpdateMaterialDto } from './dto/update-material.dto';
+import { MaterialService } from 'src/modules/material/services/material.service';
+import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
+import { UpdateMaterialDto } from 'src/modules/material/dto/update-material.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import {
-  ResourceType,
-  UserEntity,
-  UserRoleEnum,
-} from 'src/utils/types/db.types';
+import { UserEntity, UserRoleEnum } from 'src/utils/types/db.types';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Request } from 'express';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
 import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
 import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { ProcessGDriveUrlDto, PreviewResult } from './dto/preview.dto';
+import { PreviewService } from './services/preview.service';
 @Controller('materials')
 @UseInterceptors(CacheControlInterceptor)
 export class MaterialController {
-  constructor(private readonly materialService: MaterialService) {}
+  constructor(
+    private readonly materialService: MaterialService,
+    private readonly previewService: PreviewService,
+  ) {}
 
   @Post()
   @UseGuards(RolesGuard)
@@ -236,6 +237,20 @@ export class MaterialController {
     const user = req['user'] as UserEntity;
     const result = await this.materialService.likeMaterial(id, user.id);
     return ResponseDto.createSuccessResponse(result.message, result);
+  }
+
+  @Post('test/gdrive/preview')
+  @UseGuards(RolesGuard)
+  async generateGDrivePreview(
+    @Body() processGDriveDto: ProcessGDriveUrlDto,
+  ): Promise<any> {
+    const result = await this.previewService.processGDriveUrl(
+      processGDriveDto.url,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Google Drive preview generated successfully',
+      result,
+    );
   }
 
   @Get(':id')

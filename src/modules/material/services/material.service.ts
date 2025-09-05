@@ -5,10 +5,10 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { MaterialRepository } from './material.repository';
-import { CreateMaterialDto } from './dto/create-material.dto';
-import { UpdateMaterialDto } from './dto/update-material.dto';
-import { StorageService } from 'src/storage/storage.service';
+import { MaterialRepository } from 'src/modules/material/material.repository';
+import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
+import { UpdateMaterialDto } from 'src/modules/material/dto/update-material.dto';
+import { StorageService } from 'src/utils/storage/storage.service';
 import {
   ApprovalStatus,
   MaterialEntity,
@@ -26,6 +26,7 @@ import {
 } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
 import { UserService } from 'src/modules/user/user.service';
+import { PreviewService } from './preview.service';
 ('updateMaterialDto');
 
 @Injectable()
@@ -34,6 +35,7 @@ export class MaterialService {
     private readonly materialRepository: MaterialRepository,
     private readonly storageService: StorageService,
     private readonly userService: UserService,
+    private readonly previewService: PreviewService,
   ) {}
 
   async countMaterialsByStatus(departmentId?: string) {
@@ -95,6 +97,9 @@ export class MaterialService {
       let resourceType: ResourceType;
       let resourceAddress = resourceDto.resourceAddress;
       let fileKey = resourceDto.fileKey;
+      let materialType: MaterialTypeEnum;
+      let previewUrl: string | undefined;
+      let gdriveMetadata: Record<string, any> | undefined;
 
       // Infer resource type based on input
       if (file) {
@@ -114,7 +119,24 @@ export class MaterialService {
       } else if (resourceAddress) {
         // Check if it's a Google Drive link
         if (resourceAddress.includes('drive.google.com')) {
-          resourceType = ResourceType.GDRIVE;
+          materialType = MaterialTypeEnum.GDRIVE;
+          resourceType = ResourceType.URL; // Google Drive links are still URLs
+
+          // Generate preview for Google Drive links
+          try {
+            const gdriveResult =
+              await this.previewService.processGDriveUrl(resourceAddress);
+            previewUrl = gdriveResult.previewUrl;
+            gdriveMetadata = gdriveResult.metadata;
+            logger.log(
+              `Generated preview for Google Drive material: ${previewUrl}`,
+            );
+          } catch (error) {
+            logger.warn(
+              `Failed to generate preview for Google Drive link: ${error.message}`,
+            );
+            // Continue without preview - this is not a critical failure
+          }
         } else {
           resourceType = ResourceType.URL;
         }
@@ -131,6 +153,23 @@ export class MaterialService {
         metaData: resourceDto.metaData || [],
         fileKey,
       };
+
+      // Update material with preview URL and type if available
+      const materialUpdates: any = {};
+      if (previewUrl) {
+        materialUpdates.previewUrl = previewUrl;
+        materialUpdates.metaData = gdriveMetadata;
+      }
+      if (materialType) {
+        materialUpdates.type = materialType;
+      }
+
+      if (Object.keys(materialUpdates).length > 0) {
+        await this.materialRepository.update(
+          materialId,
+          materialUpdates as any,
+        );
+      }
 
       return await this.materialRepository.createResource(resourceData);
     } catch (error) {
@@ -228,7 +267,7 @@ export class MaterialService {
       return signedUrl;
     }
 
-    // For other resource types (URL, GDRIVE), just return the resource address
+    // For other resource types (URL), just return the resource address
     return materialResource.resourceAddress;
   }
 
@@ -314,9 +353,15 @@ export class MaterialService {
           });
         } else if (resourceAddress) {
           // Infer type from resource address
-          resourceType = resourceAddress.includes('drive.google.com')
-            ? ResourceType.GDRIVE
-            : ResourceType.URL;
+          if (resourceAddress.includes('drive.google.com')) {
+            resourceType = ResourceType.URL; // Google Drive links are URLs
+            // Also update the material type to GDRIVE
+            await this.materialRepository.update(id, {
+              type: MaterialTypeEnum.GDRIVE,
+            });
+          } else {
+            resourceType = ResourceType.URL;
+          }
 
           await this.materialRepository.updateResource(id, {
             resourceAddress,
