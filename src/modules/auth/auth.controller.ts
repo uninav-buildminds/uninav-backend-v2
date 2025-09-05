@@ -150,6 +150,7 @@ export class AuthController {
       ...globalCookieOptions,
       maxAge: 0,
     });
+    res.clearCookie('logged_in');
 
     const responseObj = ResponseDto.createSuccessResponse(
       'Logged out successfully',
@@ -212,7 +213,8 @@ export class AuthController {
     const accessToken = await this.authService.generateToken(user.id);
 
     // Set cookie
-    res.cookie('authorization', accessToken, globalCookieOptions);
+    await this.authService.setCookie(res, accessToken);
+    // res.cookie('authorization', accessToken, globalCookieOptions);
 
     const redirectUrl = OriginDetectorHelper.detectAndValidateOrigin(
       req,
