@@ -14,8 +14,8 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateStudentDto } from './dto/create-student.dto';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { LocalAuthGuard } from 'src/guards/local.guard';
+import { ResponseDto } from '@app/common/dto/response.dto';
+import { LocalAuthGuard } from '@app/common/guards/local.guard';
 import { Request, Response } from 'express';
 import { UserEntity, UserRoleEnum, AuthEntity } from 'src/utils/types/db.types';
 import { globalCookieOptions } from 'src/utils/config/constants.config';
@@ -27,7 +27,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from 'src/modules/auth/dto/password-reset.dto';
-import { GoogleAuthGuard } from 'src/guards/google.guard';
+import { GoogleAuthGuard } from '@app/common/guards/google.guard';
 import { OriginDetectorHelper } from 'src/utils/helpers/origin-detector.helper';
 import { OAuth2Client } from 'google-auth-library';
 

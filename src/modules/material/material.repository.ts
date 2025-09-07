@@ -17,22 +17,22 @@ import {
   or,
 } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import { material } from 'src/modules/drizzle/schema/material.schema';
-import { materialLikes } from 'src/modules/drizzle/schema/material-likes.schema';
+import { material } from '@app/common/modules/database/schema/material.schema';
+import { materialLikes } from '@app/common/modules/database/schema/material-likes.schema';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
-import { resource } from 'src/modules/drizzle/schema/resource.schema';
+import { resource } from '@app/common/modules/database/schema/resource.schema';
 import { CreateResourceDto } from 'src/modules/material/dto/create-resource.dto';
 import { materialLogger } from 'src/modules/material/material.module';
 import {
   users,
   userCourses as uc,
-} from 'src/modules/drizzle/schema/user.schema';
+} from '@app/common/modules/database/schema/user.schema';
 import {
   courses,
   departmentLevelCourses as dlc,
   departmentLevelCourses,
-} from 'src/modules/drizzle/schema/course.schema';
+} from '@app/common/modules/database/schema/course.schema';
 import { extractCourseCode } from 'src/utils/util';
 
 @Injectable()

@@ -3,7 +3,7 @@ import { relations } from 'drizzle-orm';
 import { advertTypeEnum, approvalStatusEnum } from './enums.schema';
 import { material } from './material.schema';
 import { collection } from './collection.schema';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { TABLES } from '../tables.constants';
 import { users } from './user.schema';
 

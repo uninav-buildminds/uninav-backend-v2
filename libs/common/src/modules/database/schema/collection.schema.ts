@@ -12,8 +12,8 @@ import { bookmarks, users } from './user.schema';
 import { material } from './material.schema';
 import { advert } from './advert.schema';
 import { TABLES } from '../tables.constants';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
-import { courses } from 'src/modules/drizzle/schema/course.schema';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
+import { courses } from '@app/common/modules/database/schema/course.schema';
 
 export const collection = pgTable(TABLES.COLLECTION, {
   id: uuid('id').primaryKey().defaultRandom(),

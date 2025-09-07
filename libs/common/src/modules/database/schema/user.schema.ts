@@ -16,8 +16,8 @@ import { material } from './material.schema';
 import { collection } from './collection.schema';
 import { courses } from './course.schema';
 import { comments } from './comments.schema';
-import { blogs } from 'src/modules/drizzle/schema/blog.schema';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { blogs } from '@app/common/modules/database/schema/blog.schema';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { TABLES } from '../tables.constants';
 import { advert } from './advert.schema';
 

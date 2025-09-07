@@ -9,3 +9,5 @@ export interface MulterFile {
   path: string; // Full path (if using disk storage)
   buffer: Buffer; // File content (if using memory storage)
 }
+
+export * from './db.types';

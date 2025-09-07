@@ -8,7 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { LocalStrategy } from 'src/modules/auth/strategies/local.strategy';
 import { AuthRepository } from './auth.repository';
-import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DatabaseModule } from '@app/common/modules/database/database.module';
 import { DepartmentModule } from 'src/modules/department/department.module';
 import { EmailService } from 'src/utils/email/email.service';
 import { AdminModule } from 'src/modules/admin/admin.module';
@@ -20,7 +20,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
 @Global()
 @Module({
   imports: [
-    DrizzleModule,
+    DatabaseModule,
     DepartmentModule,
     UserModule,
     AdminModule,

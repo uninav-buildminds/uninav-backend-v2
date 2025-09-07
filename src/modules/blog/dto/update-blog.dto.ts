@@ -9,7 +9,7 @@ import {
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateBlogDto } from './create-blog.dto';
 import { BlogTypeEnum } from 'src/utils/types/db.types';
-import { TransformStringToArray } from 'src/transformers/TransformStringToArray';
+import { TransformStringToArray } from 'src/utils/transformers/TransformStringToArray';
 
 export class UpdateBlogDto extends PartialType(CreateBlogDto) {
   @IsString()

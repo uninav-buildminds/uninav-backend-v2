@@ -2,8 +2,8 @@ import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { approvalStatusEnum, blogTypeEnum } from './enums.schema';
 import { comments } from './comments.schema';
-import { users } from 'src/modules/drizzle/schema/user.schema';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { users } from '@app/common/modules/database/schema/user.schema';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { TABLES } from '../tables.constants';
 import { blogLikes } from './blog-likes.schema';
 

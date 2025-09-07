@@ -1,5 +1,5 @@
 import { Logger, Module } from '@nestjs/common';
-import { DrizzleService } from './drizzle.service';
+import { DrizzleService } from './database.service';
 
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
@@ -54,6 +54,6 @@ import { ENV } from 'src/utils/config/env.enum';
   ],
   exports: [DRIZZLE_SYMBOL],
 })
-export class DrizzleModule {}
+export class DatabaseModule {}
 
-export const logger = new Logger(DrizzleModule.name);
+export const logger = new Logger(DatabaseModule.name);

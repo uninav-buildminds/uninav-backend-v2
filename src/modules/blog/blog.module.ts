@@ -3,10 +3,10 @@ import { BlogService } from './blog.service';
 import { BlogController } from './blog.controller';
 import { BlogRepository } from './blog.repository';
 import { StorageService } from 'src/utils/storage/storage.service';
-import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DatabaseModule } from '@app/common/modules/database/database.module';
 
 @Module({
-  imports: [DrizzleModule],
+  imports: [DatabaseModule],
   controllers: [BlogController],
   providers: [BlogService, BlogRepository, StorageService],
   exports: [BlogService],

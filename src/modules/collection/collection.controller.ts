@@ -13,8 +13,8 @@ import { CollectionService } from './collection.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
 import { AddMaterialToCollectionDto } from './dto/add-material.dto';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
+import { ResponseDto } from '@app/common/dto/response.dto';
+import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Request } from 'express';
 import { UserEntity } from 'src/utils/types/db.types';
 @Controller('collections')

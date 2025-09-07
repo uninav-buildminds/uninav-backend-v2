@@ -24,7 +24,7 @@ import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ModeratorService } from '../moderator/moderator.service';
 import { AdminService } from '../admin/admin.service';
-import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { Response } from 'express';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { ENV } from 'src/utils/config/env.enum';

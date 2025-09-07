@@ -1,8 +1,8 @@
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
-import { material } from 'src/modules/drizzle/schema/material.schema';
-import { resourceTypeEnum } from 'src/modules/drizzle/schema/enums.schema';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { material } from '@app/common/modules/database/schema/material.schema';
+import { resourceTypeEnum } from '@app/common/modules/database/schema/enums.schema';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { TABLES } from '../tables.constants';
 
 export const resource = pgTable(TABLES.RESOURCE, {

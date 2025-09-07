@@ -4,7 +4,7 @@ import { approvalStatusEnum } from './enums.schema';
 import { users } from './user.schema';
 import { department } from './department.schema';
 import { faculty } from './faculty.schema';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { material } from './material.schema';
 import { TABLES } from '../tables.constants';
 

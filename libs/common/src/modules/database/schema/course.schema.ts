@@ -2,8 +2,8 @@ import { pgTable, uuid, text, primaryKey, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { department } from './department.schema';
 import { userCourses, users } from './user.schema';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
-import { approvalStatusEnum } from 'src/modules/drizzle/schema/enums.schema';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
+import { approvalStatusEnum } from '@app/common/modules/database/schema/enums.schema';
 import { TABLES } from '../tables.constants';
 
 export const courses = pgTable(TABLES.COURSES, {

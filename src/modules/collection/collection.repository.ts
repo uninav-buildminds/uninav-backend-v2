@@ -5,7 +5,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import {
   collection,
   collectionContent,
-} from 'src/modules/drizzle/schema/collection.schema';
+} from '@app/common/modules/database/schema/collection.schema';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
 import { AddMaterialToCollectionDto } from './dto/add-material.dto';

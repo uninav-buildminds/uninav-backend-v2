@@ -2,7 +2,7 @@ import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { blogs } from './blog.schema';
 import { users } from './user.schema';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { TABLES } from '../tables.constants';
 
 export const comments = pgTable(TABLES.COMMENTS, {

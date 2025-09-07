@@ -13,16 +13,16 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ReviewActionDto } from '../dto/review-action.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { Roles } from 'src/utils/decorators/roles.decorator';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { Roles } from '@app/common/decorators/roles.decorator';
 import {
   ApprovalStatus,
   UserRoleEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
 import { MaterialService } from 'src/modules/material/services/material.service';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { ResponseDto } from '@app/common/dto/response.dto';
+import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';

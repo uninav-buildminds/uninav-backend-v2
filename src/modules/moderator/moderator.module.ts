@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ModeratorService } from './moderator.service';
 import { ModeratorRepository } from './moderator.repository';
-import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DatabaseModule } from '@app/common/modules/database/database.module';
 
 @Module({
-  imports: [DrizzleModule],
+  imports: [DatabaseModule],
   providers: [ModeratorService, ModeratorRepository],
   exports: [ModeratorService],
 })

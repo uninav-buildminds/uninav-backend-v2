@@ -12,12 +12,12 @@ import {
 import { FacultyService } from './faculty.service';
 import { CreateFacultyDto } from './dto/create-faculty.dto';
 import { UpdateFacultyDto } from './dto/update-faculty.dto';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { Roles } from 'src/utils/decorators/roles.decorator';
+import { ResponseDto } from '@app/common/dto/response.dto';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { Roles } from '@app/common/decorators/roles.decorator';
 import { UserRoleEnum } from 'src/utils/types/db.types';
-import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
-import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
+import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 @Controller('faculty')
 @UseInterceptors(CacheControlInterceptor)
 export class FacultyController {

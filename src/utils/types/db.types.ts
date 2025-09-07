@@ -1,18 +1,18 @@
-import * as schema from 'src/modules/drizzle/schema/schema';
+import * as schema from '@app/common/modules/database/schema/schema';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { InferSelectModel } from 'drizzle-orm';
 // Tables
-import { users } from 'src/modules/drizzle/schema/user.schema';
-import { moderator } from 'src/modules/drizzle/schema/moderator.schema';
-import { faculty } from 'src/modules/drizzle/schema/faculty.schema';
-import { department } from 'src/modules/drizzle/schema/department.schema';
-import { courses } from 'src/modules/drizzle/schema/course.schema';
-import { material } from 'src/modules/drizzle/schema/material.schema';
-import { collection } from 'src/modules/drizzle/schema/collection.schema';
-import { blogs } from 'src/modules/drizzle/schema/blog.schema';
-import { comments } from 'src/modules/drizzle/schema/comments.schema';
-import { advert } from 'src/modules/drizzle/schema/advert.schema';
-import { auth } from 'src/modules/drizzle/schema/schema';
+import { users } from '@app/common/modules/database/schema/user.schema';
+import { moderator } from '@app/common/modules/database/schema/moderator.schema';
+import { faculty } from '@app/common/modules/database/schema/faculty.schema';
+import { department } from '@app/common/modules/database/schema/department.schema';
+import { courses } from '@app/common/modules/database/schema/course.schema';
+import { material } from '@app/common/modules/database/schema/material.schema';
+import { collection } from '@app/common/modules/database/schema/collection.schema';
+import { blogs } from '@app/common/modules/database/schema/blog.schema';
+import { comments } from '@app/common/modules/database/schema/comments.schema';
+import { advert } from '@app/common/modules/database/schema/advert.schema';
+import { auth } from '@app/common/modules/database/schema/schema';
 export type DrizzleDB = NodePgDatabase<typeof schema>;
 
 export type UserEntity = Omit<

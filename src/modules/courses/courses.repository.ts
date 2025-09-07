@@ -5,14 +5,14 @@ import {
   CourseEntity,
   DrizzleDB,
 } from 'src/utils/types/db.types';
-import { userCourses } from 'src/modules/drizzle/schema/user.schema';
+import { userCourses } from '@app/common/modules/database/schema/user.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { and, eq, or, sql, desc, ilike } from 'drizzle-orm';
 import {
   courses,
   departmentLevelCourses,
-} from '../drizzle/schema/course.schema';
-import { department } from 'src/modules/drizzle/schema/department.schema';
+} from '../../../libs/common/src/modules/database/schema/course.schema';
+import { department } from '@app/common/modules/database/schema/department.schema';
 
 @Injectable()
 export class CoursesRepository {

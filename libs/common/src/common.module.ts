@@ -1,9 +1,9 @@
+import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { Global, Module } from '@nestjs/common';
-import { EventsEmitter } from 'src/utils/events/events.emitter';
 
 @Global()
 @Module({
   providers: [EventsEmitter],
   exports: [EventsEmitter],
 })
-export class GlobalModule {}
+export class CommonModule {}

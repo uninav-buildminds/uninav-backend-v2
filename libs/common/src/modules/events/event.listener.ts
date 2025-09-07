@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { EVENTS } from 'src/utils/events/events.enum';
+import { EVENTS } from '@app/common/modules/events/events.enum';
 import { EmailService } from 'src/utils/email/email.service';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 

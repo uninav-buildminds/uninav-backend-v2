@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
-import { CACHE_CONTROL_KEY } from '../utils/decorators/cache-control.decorator';
+import { CACHE_CONTROL_KEY } from '../decorators/cache-control.decorator';
 
 @Injectable()
 export class CacheControlInterceptor implements NestInterceptor {

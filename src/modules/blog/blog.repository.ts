@@ -6,12 +6,12 @@ import {
   BlogTypeEnum,
   DrizzleDB,
 } from 'src/utils/types/db.types';
-import { blogs } from 'src/modules/drizzle/schema/blog.schema';
-import { comments } from 'src/modules/drizzle/schema/comments.schema';
-import { blogLikes } from 'src/modules/drizzle/schema/blog-likes.schema';
+import { blogs } from '@app/common/modules/database/schema/blog.schema';
+import { comments } from '@app/common/modules/database/schema/comments.schema';
+import { blogLikes } from '@app/common/modules/database/schema/blog-likes.schema';
 import { eq, desc, and, sql, like, or, ilike, asc } from 'drizzle-orm';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { users } from 'src/modules/drizzle/schema/user.schema';
+import { users } from '@app/common/modules/database/schema/user.schema';
 
 @Injectable()
 export class BlogRepository {

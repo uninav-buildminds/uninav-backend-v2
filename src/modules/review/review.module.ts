@@ -3,7 +3,7 @@ import { CourseReviewController } from './controllers/course-review.controller';
 import { CoursesModule } from '../courses/courses.module';
 import { MaterialModule } from '../material/material.module';
 import { BlogModule } from '../blog/blog.module';
-import { DrizzleModule } from '../drizzle/drizzle.module';
+import { DatabaseModule } from '../../../libs/common/src/modules/database/database.module';
 import { DLCReviewController } from 'src/modules/review/controllers/dlc-review.controller';
 import { MaterialReviewController } from 'src/modules/review/controllers/material-review.controller';
 import { BlogReviewController } from 'src/modules/review/controllers/blog-review.controller';
@@ -12,7 +12,7 @@ import { AdvertModule } from 'src/modules/advert/advert.module';
 
 @Module({
   imports: [
-    DrizzleModule,
+    DatabaseModule,
     CoursesModule,
     MaterialModule,
     BlogModule,

@@ -18,12 +18,12 @@ import {
 import { bookmarks, users } from './user.schema';
 import { collectionContent } from './collection.schema';
 import { advert } from './advert.schema';
-import { resource } from 'src/modules/drizzle/schema/resource.schema';
-import { timestamps } from 'src/modules/drizzle/schema/timestamps';
-import { courses } from 'src/modules/drizzle/schema/course.schema';
+import { resource } from '@app/common/modules/database/schema/resource.schema';
+import { timestamps } from '@app/common/modules/database/schema/timestamps';
+import { courses } from '@app/common/modules/database/schema/course.schema';
 import { TABLES } from '../tables.constants';
 import { materialLikes } from './material-likes.schema';
-import { tsvector } from 'src/modules/drizzle/schema/custom-type';
+import { tsvector } from '@app/common/modules/database/schema/custom-type';
 
 export const material = pgTable(
   TABLES.MATERIALS,

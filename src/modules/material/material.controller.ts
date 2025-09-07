@@ -20,14 +20,14 @@ import { MaterialService } from 'src/modules/material/services/material.service'
 import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
 import { UpdateMaterialDto } from 'src/modules/material/dto/update-material.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
+import { ResponseDto } from '@app/common/dto/response.dto';
 import { UserEntity, UserRoleEnum } from 'src/utils/types/db.types';
-import { RolesGuard } from 'src/guards/roles.guard';
+import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Request } from 'express';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
-import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
-import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
+import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 import { ProcessGDriveUrlDto, PreviewResult } from './dto/preview.dto';
 import { PreviewService } from './services/preview.service';
 @Controller('materials')

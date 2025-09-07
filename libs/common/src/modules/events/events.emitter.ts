@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
-import { EVENTS } from 'src/utils/events/events.enum';
+import { EVENTS } from '@app/common/modules/events/events.enum';
 
 @Injectable()
 export class EventsEmitter {

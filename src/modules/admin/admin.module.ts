@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminRepository } from './admin.repository';
-import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DatabaseModule } from '@app/common/modules/database/database.module';
 
 @Module({
-  imports: [DrizzleModule],
+  imports: [DatabaseModule],
   providers: [AdminService, AdminRepository],
   exports: [AdminService],
 })

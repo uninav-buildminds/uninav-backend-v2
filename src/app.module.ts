@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DatabaseModule } from '@app/common/modules/database';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -12,21 +12,21 @@ import { CollectionModule } from './modules/collection/collection.module';
 import { BlogModule } from './modules/blog/blog.module';
 import { CoursesModule } from 'src/modules/courses/courses.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { EventsListeners } from 'src/utils/events/event.listener';
+import { EventsListeners } from '@app/common/modules/events/event.listener';
 import { EmailService } from 'src/utils/email/email.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { getJwtConfig } from 'src/utils/config/jwt.config';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { CacheControlInterceptor } from './interceptors/cache-control.interceptor';
+import { CacheControlInterceptor } from '../libs/common/src/interceptors/cache-control.interceptor';
 import { AdvertModule } from 'src/modules/advert/advert.module';
 import { ReviewModule } from './modules/review/review.module';
-import { GlobalModule } from './modules/global/global.module';
+import { CommonModule } from '@app/common';
 
 @Module({
   imports: [
-    DrizzleModule,
-    GlobalModule,
+    CommonModule,
+    DatabaseModule,
     UserModule,
     AuthModule,
     ConfigModule.forRoot({

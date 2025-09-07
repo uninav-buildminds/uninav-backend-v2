@@ -2,12 +2,12 @@ import { Logger, Module } from '@nestjs/common';
 import { MaterialService } from './services/material.service';
 import { MaterialController } from './material.controller';
 import { MaterialRepository } from './material.repository';
-import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DatabaseModule } from '@app/common/modules/database/database.module';
 import { StorageService } from 'src/utils/storage/storage.service';
 import { PreviewService } from './services/preview.service';
 
 @Module({
-  imports: [DrizzleModule],
+  imports: [DatabaseModule],
   controllers: [MaterialController],
   providers: [
     MaterialService,
