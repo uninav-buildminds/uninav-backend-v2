@@ -6,8 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import * as pdfjsLib from 'pdfjs-dist';
-import { createCanvas } from 'canvas';
+// Preview service for handling image uploads and Google Drive previews
 import { StorageService } from 'src/utils/storage/storage.service';
 import { ENV } from 'src/utils/config/env.enum';
 import { STORAGE_FOLDERS } from 'src/utils/config/constants.config';
@@ -30,79 +29,6 @@ export class PreviewService {
       timeout: 30000,
       params: { key: this.googleApiKey },
     });
-
-    // Configure pdfjs-dist for server-side rendering
-    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
-  }
-
-  /**
-   * Generate preview for Google Drive PDF file
-   * @param fileId Google Drive file ID
-   * @param resourceKey Optional resource key for restricted files
-   * @returns Public URL of the generated preview image
-   */
-  async generateGDrivePdfPreview(
-    fileId: string,
-    resourceKey?: string,
-  ): Promise<string> {
-    try {
-      this.logger.log(
-        `Generating Google Drive PDF preview for file: ${fileId}`,
-      );
-
-      // Download PDF from Google Drive
-      const pdfBuffer = await this.downloadGDriveFile(fileId, resourceKey);
-
-      // Convert first page to PNG
-      const pngBuffer = await this.convertPdfFirstPageToPng(pdfBuffer);
-
-      // Upload to storage
-      const filename = `gdrive-${fileId}-preview.png`;
-      const previewUrl = await this.uploadPreviewImage(pngBuffer, filename);
-
-      this.logger.log(
-        `Successfully generated Google Drive PDF preview: ${previewUrl}`,
-      );
-      return previewUrl;
-    } catch (error) {
-      this.logger.error(
-        `Failed to generate Google Drive PDF preview: ${error.message}`,
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Generate preview for direct PDF buffer
-   * @param pdfBuffer PDF content as Buffer
-   * @param filename Target filename for the preview
-   * @param width Target width for the output image (default: 1000px)
-   * @returns Public URL of the generated preview image
-   */
-  async generatePdfPreview(
-    pdfBuffer: Buffer,
-    filename: string,
-    width: number = 1000,
-  ): Promise<string> {
-    try {
-      this.logger.log(`Generating PDF preview: ${filename}`);
-
-      // Convert first page to PNG
-      const pngBuffer = await this.convertPdfFirstPageToPng(pdfBuffer, width);
-
-      // Upload to storage
-      const previewFilename = `pdf-${filename}-preview.png`;
-      const previewUrl = await this.uploadPreviewImage(
-        pngBuffer,
-        previewFilename,
-      );
-
-      this.logger.log(`Successfully generated PDF preview: ${previewUrl}`);
-      return previewUrl;
-    } catch (error) {
-      this.logger.error(`Failed to generate PDF preview: ${error.message}`);
-      throw error;
-    }
   }
 
   /**
@@ -388,28 +314,34 @@ export class PreviewService {
         };
       }
 
-      // Handle PDF files
+      // Handle PDF files - use Google Drive thumbnail only
       if (file.mimeType === 'application/pdf') {
-        const pdfBuffer = await this.downloadGDriveFile(file.id, resourceKey);
-        const pngBuffer = await this.convertPdfFirstPageToPng(pdfBuffer);
-        const filename = `gdrive-${file.id}-preview.png`;
-        const previewUrl = await this.uploadPreviewImage(pngBuffer, filename);
-
-        return {
-          previewUrl,
-          metadata: { source: 'pdf-render', originalMimeType: file.mimeType },
-        };
+        if (file.thumbnailLink) {
+          return {
+            previewUrl: file.thumbnailLink,
+            metadata: {
+              source: 'google-pdf-thumbnail',
+              originalMimeType: file.mimeType,
+            },
+          };
+        }
+        // If no thumbnail available for PDF, throw error
+        throw new Error('PDF preview not available - no thumbnail found');
       }
 
       // Handle image files
       if (file.mimeType.startsWith('image/')) {
         const imageBuffer = await this.downloadGDriveFile(file.id, resourceKey);
         const filename = `gdrive-${file.id}-${file.name}`;
-        const previewUrl = await this.uploadPreviewImage(
-          imageBuffer,
-          filename,
-          file.mimeType,
-        );
+
+        // Create mock file for upload
+        const mockFile = {
+          buffer: imageBuffer,
+          originalname: filename,
+          mimetype: file.mimeType,
+        } as any;
+
+        const previewUrl = await this.uploadPreviewImage(mockFile);
 
         return {
           previewUrl,
@@ -443,71 +375,13 @@ export class PreviewService {
   }
 
   /**
-   * Convert PDF first page to PNG buffer
+   * Upload preview image file to storage
    */
-  private async convertPdfFirstPageToPng(
-    pdfBuffer: Buffer,
-    width: number = 1000,
-  ): Promise<Buffer> {
+  async uploadPreviewImage(file: any): Promise<string> {
     try {
-      // Load PDF document
-      const pdfDocument = await pdfjsLib.getDocument({
-        data: new Uint8Array(pdfBuffer),
-        useSystemFonts: true,
-      }).promise;
-
-      if (pdfDocument.numPages === 0) {
-        throw new Error('PDF has no pages');
-      }
-
-      // Get first page
-      const page = await pdfDocument.getPage(1);
-      const viewport = page.getViewport({ scale: 1 });
-
-      // Calculate scale to achieve desired width
-      const scale = width / viewport.width;
-      const scaledViewport = page.getViewport({ scale });
-
-      // Create canvas
-      const canvas = createCanvas(scaledViewport.width, scaledViewport.height);
-      const canvasContext = canvas.getContext('2d');
-
-      // Render page to canvas
-      const renderContext = {
-        canvasContext: canvasContext as any,
-        viewport: scaledViewport,
-        canvas: canvas as any, // Required by pdfjs for Node.js canvas rendering
-      };
-
-      await page.render(renderContext).promise;
-
-      // Convert canvas to PNG buffer
-      return canvas.toBuffer('image/png');
-    } catch (error) {
-      this.logger.error(`Failed to convert PDF to PNG: ${error.message}`);
-      throw new InternalServerErrorException('Failed to convert PDF to PNG');
-    }
-  }
-
-  /**
-   * Upload preview image to storage
-   */
-  private async uploadPreviewImage(
-    buffer: Buffer,
-    filename: string,
-    mimeType: string = 'image/png',
-  ): Promise<string> {
-    try {
-      // Create mock MulterFile for StorageService compatibility
-      const mockFile = {
-        buffer,
-        originalname: filename,
-        mimetype: mimeType,
-      } as any;
-
       // Upload using StorageService
       const uploadResult = await this.storageService.uploadFile(
-        mockFile,
+        file,
         'public',
         STORAGE_FOLDERS.MEDIA,
       );
@@ -524,7 +398,7 @@ export class PreviewService {
   /**
    * Check if file type is a Google Workspace file
    */
-  private isGoogleWorkspaceFile(mimeType: string): boolean {
+  public isGoogleWorkspaceFile(mimeType: string): boolean {
     const googleMimeTypes = [
       'application/vnd.google-apps.document',
       'application/vnd.google-apps.spreadsheet',

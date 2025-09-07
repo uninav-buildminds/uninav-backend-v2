@@ -22,7 +22,7 @@ import {
   STORAGE_FOLDERS,
 } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
-import { MaterialService } from 'src/modules/material/material.service';
+import { MaterialService } from 'src/modules/material/services/material.service';
 import { UserService } from 'src/modules/user/user.service';
 
 @Injectable()

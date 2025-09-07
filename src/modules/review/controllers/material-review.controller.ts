@@ -20,7 +20,7 @@ import {
   UserRoleEnum,
   UserEntity,
 } from 'src/utils/types/db.types';
-import { MaterialService } from 'src/modules/material/material.service';
+import { MaterialService } from 'src/modules/material/services/material.service';
 import { ResponseDto } from 'src/utils/globalDto/response.dto';
 import { EventsEmitter } from 'src/utils/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';

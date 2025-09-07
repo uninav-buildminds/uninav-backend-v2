@@ -14,6 +14,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { MaterialService } from 'src/modules/material/services/material.service';
 import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
@@ -237,6 +238,34 @@ export class MaterialController {
     const user = req['user'] as UserEntity;
     const result = await this.materialService.likeMaterial(id, user.id);
     return ResponseDto.createSuccessResponse(result.message, result);
+  }
+
+  @Post('preview/upload/:materialId')
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('preview'))
+  async uploadPreview(
+    @UploadedFile() file: MulterFile,
+    @Param('materialId') materialId: string,
+  ): Promise<any> {
+    if (!file) {
+      throw new BadRequestException('Preview file is required');
+    }
+
+    // Validate that it's an image
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Preview file must be an image');
+    }
+
+    // Upload the preview image
+    const uploadResult = await this.previewService.uploadPreviewImage(file);
+
+    const result = await this.materialService.updateMaterialPreview(
+      materialId,
+      uploadResult,
+    );
+    return ResponseDto.createSuccessResponse('Preview uploaded successfully', {
+      previewUrl: uploadResult,
+    });
   }
 
   @Post('test/gdrive/preview')

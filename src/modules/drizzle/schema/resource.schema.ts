@@ -13,7 +13,7 @@ export const resource = pgTable(TABLES.RESOURCE, {
     }),
 
   resourceAddress: text('resourceAddress').notNull(),
-  resourceType: resourceTypeEnum('resourceType').notNull().default('url'),
+  resourceType: resourceTypeEnum('resourceType'),
   fileKey: text('fileKey'),
   metaData: text('metaData').array(),
 

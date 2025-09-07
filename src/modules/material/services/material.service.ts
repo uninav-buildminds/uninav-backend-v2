@@ -42,6 +42,26 @@ export class MaterialService {
     return this.materialRepository.countByStatus(departmentId);
   }
 
+  /**
+   * Update material with preview URL
+   * @param materialId Material ID
+   * @param previewUrl Preview URL to associate
+   */
+  async updateMaterialPreview(materialId: string, previewUrl: string) {
+    try {
+      await this.materialRepository.update(materialId, { previewUrl });
+      logger.log(
+        `Updated material ${materialId} with preview URL: ${previewUrl}`,
+      );
+      return { success: true, previewUrl };
+    } catch (error) {
+      logger.error(`Failed to update material preview: ${error.message}`);
+      throw new InternalServerErrorException(
+        'Failed to update material preview',
+      );
+    }
+  }
+
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
     try {
       const { resourceAddress, metaData, ...materialData } = createMaterialDto;

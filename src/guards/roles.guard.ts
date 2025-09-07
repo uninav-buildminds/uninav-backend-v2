@@ -11,9 +11,10 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { ROLES_KEY } from 'src/utils/decorators/roles.decorator';
-import envConfig from 'src/utils/config/env.config';
+import { ConfigService } from '@nestjs/config';
 import { UserEntity, UserRoleEnum } from 'src/utils/types/db.types';
 import { UserService } from 'src/modules/user/user.service';
+import { ENV } from 'src/utils/config/env.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -21,6 +22,7 @@ export class RolesGuard implements CanActivate {
     @Inject(JWT_SYMBOL) private readonly jwtService: JwtService,
     private readonly reflector: Reflector,
     private readonly userService: UserService,
+    private readonly configService: ConfigService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -67,6 +69,7 @@ export class RolesGuard implements CanActivate {
 
   private async authenticateRequest(request: Request): Promise<{ id: string }> {
     // Check if token exists in cookies or authorization header
+    console.log('cookies', this.configService.get(ENV.JWT_SECRET));
     console.log('cookies', request.cookies);
     let token = request.cookies?.authorization;
 
