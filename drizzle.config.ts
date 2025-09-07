@@ -6,7 +6,7 @@ const databaseConnectionString =
     ? process.env.DATABASE_URL_DEV
     : process.env.DATABASE_URL;
 const options: Config = {
-  schema: './libs/common/modules/database/schema/schema.ts',
+  schema: './libs/common/src/modules/database/schema/schema.ts',
   out: './migrations/drizzle',
   dialect: 'postgresql',
   dbCredentials: {

@@ -20,7 +20,7 @@ import {
   UserEntity,
 } from 'src/utils/types/db.types';
 import { UserService } from 'src/modules/user/user.service';
-import { ModeratorService } from 'src/modules/moderator/moderator.service';
+import { ModeratorService } from 'src/modules/user/submodules/moderator/moderator.service';
 import { Request } from 'express';
 import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';

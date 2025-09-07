@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { DrizzleDB, ApprovalStatus } from 'src/utils/types/db.types';
-import { moderator } from '../../../libs/common/src/modules/database/schema/moderator.schema';
+import { moderator } from '../../../../../libs/common/src/modules/database/schema/moderator.schema';
 import { and, eq, sql, or, ilike, desc } from 'drizzle-orm';
-import { users } from '../../../libs/common/src/modules/database/schema/user.schema';
+import { users } from '../../../../../libs/common/src/modules/database/schema/user.schema';
 
 @Injectable()
 export class ModeratorRepository {
