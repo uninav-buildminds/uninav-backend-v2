@@ -10,7 +10,6 @@ import {
   UseInterceptors,
   UploadedFile,
   UseGuards,
-  Req,
   Query,
   HttpCode,
   HttpStatus,
@@ -19,11 +18,12 @@ import {
 import { MaterialService } from 'src/modules/material/services/material.service';
 import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
 import { UpdateMaterialDto } from 'src/modules/material/dto/update-material.dto';
+import { MaterialQueryDto } from 'src/modules/material/dto/material-query.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResponseDto } from '@app/common/dto/response.dto';
 import { UserEntity, UserRoleEnum } from 'src/utils/types/db.types';
 import { RolesGuard } from '@app/common/guards/roles.guard';
-import { Request } from 'express';
+import { CurrentUser } from '@app/common/decorators/current-user.decorator';
 import { MulterFile } from 'src/utils/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
 import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
@@ -42,13 +42,10 @@ export class MaterialController {
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('file'))
   async create(
-    @Req() req: Request,
+    @CurrentUser() user: UserEntity,
     @Body() createMaterialDto: CreateMaterialDto,
     @UploadedFile() file?: MulterFile,
   ) {
-    // Extract user from request (from auth guard)
-    const user = req['user'] as UserEntity;
-
     createMaterialDto.creatorId = user.id;
 
     logger.log({ createMaterialDto });
@@ -62,57 +59,8 @@ export class MaterialController {
 
   @Get()
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
-  async findWithFilters(
-    @Query('creatorId') creatorId?: string,
-    @Query('courseId') courseId?: string,
-    @Query('type') type?: string,
-    @Query('tag') tag?: string,
-    @Query('query') query?: string,
-    @Query('advancedSearch') advancedSearch?: string,
-    @Query('page') page: string = '1',
-  ) {
-    const materials = await this.materialService.findAllPaginated({
-      creatorId,
-      courseId,
-      type,
-      tag,
-      query,
-      page: +page,
-      advancedSearch: !!advancedSearch,
-    });
-    return ResponseDto.createSuccessResponse(
-      'Materials retrieved successfully',
-      materials,
-    );
-  }
-
-  @Get('search')
-  @UseGuards(RolesGuard)
-  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
-  async search(
-    @Req() req: Request,
-    @Query('query') query?: string,
-    @Query('advancedSearch') advancedSearch?: string,
-    @Query('creatorId') creatorId?: string,
-    @Query('courseId') courseId?: string,
-    @Query('type') type?: string,
-    @Query('tag') tag?: string,
-    @Query('page') page: string = '1',
-  ) {
-    const user = req.user as UserEntity;
-    const materials = await this.materialService.searchMaterials(
-      {
-        query,
-        creatorId,
-        courseId,
-        type,
-        tag,
-        advancedSearch: !!advancedSearch,
-      },
-      user,
-      +page,
-      user.role === UserRoleEnum.ADMIN,
-    );
+  async findWithFilters(@Query() queryDto: MaterialQueryDto) {
+    const materials = await this.materialService.findAllPaginated(queryDto);
     return ResponseDto.createSuccessResponse(
       'Materials retrieved successfully',
       materials,
@@ -123,10 +71,9 @@ export class MaterialController {
   @UseGuards(RolesGuard)
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
   async getRecommendations(
-    @Req() req: Request,
+    @CurrentUser() user: UserEntity,
     @Query('page') page: number = 1,
   ) {
-    const user = req['user'] as UserEntity;
     const recommendations = await this.materialService.getRecommendations(
       user,
       page,
@@ -180,12 +127,11 @@ export class MaterialController {
   @Get('me')
   @UseGuards(RolesGuard)
   async findMyMaterials(
-    @Req() req: Request,
+    @CurrentUser() user: UserEntity,
     @Query('page') page: string = '1',
     @Query('type') type?: string,
     @Query('tag') tag?: string,
   ) {
-    const user = req['user'] as UserEntity;
     const materials = await this.materialService.findAllPaginated({
       creatorId: user.id,
       page: +page,
@@ -202,12 +148,11 @@ export class MaterialController {
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('file'))
   async update(
-    @Req() req: Request,
+    @CurrentUser() user: UserEntity,
     @Param('id') id: string,
     @Body() updateMaterialDto: UpdateMaterialDto,
     @UploadedFile() file?: MulterFile,
   ) {
-    const user = req['user'] as UserEntity;
     const material = await this.materialService.update(
       id,
       updateMaterialDto,
@@ -222,8 +167,7 @@ export class MaterialController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  async remove(@Req() req: Request, @Param('id') id: string) {
-    const user = req['user'] as UserEntity;
+  async remove(@CurrentUser() user: UserEntity, @Param('id') id: string) {
     const material = await this.materialService.remove(id, user.id);
     return ResponseDto.createSuccessResponse(
       'Material deleted successfully',
@@ -234,8 +178,7 @@ export class MaterialController {
   @Post('like/:id')
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.OK)
-  async likeMaterial(@Req() req: Request, @Param('id') id: string) {
-    const user = req['user'] as UserEntity;
+  async likeMaterial(@CurrentUser() user: UserEntity, @Param('id') id: string) {
     const result = await this.materialService.likeMaterial(id, user.id);
     return ResponseDto.createSuccessResponse(result.message, result);
   }

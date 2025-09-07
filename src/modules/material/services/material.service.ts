@@ -499,27 +499,6 @@ export class MaterialService {
     return this.materialRepository.findByCreator(creatorId);
   }
 
-  async searchMaterials(
-    filters: {
-      query?: string;
-      creatorId?: string;
-      courseId?: string;
-      type?: any;
-      tag?: string;
-      advancedSearch?: boolean;
-    },
-    user: UserEntity,
-    page: number = 1,
-    includeReviewer = false,
-  ) {
-    return this.materialRepository.searchMaterials(
-      filters,
-      user,
-      page,
-      includeReviewer,
-    );
-  }
-
   async findAllPaginated(
     filters: {
       creatorId?: string;
@@ -530,7 +509,9 @@ export class MaterialService {
       query?: string;
       page?: number;
       advancedSearch?: boolean;
+      ignorePreference?: boolean;
     },
+    user?: UserEntity,
     includeReviewer = false,
   ) {
     return this.materialRepository.findAllPaginated(
@@ -538,6 +519,7 @@ export class MaterialService {
         ...filters,
         type: filters.type as MaterialTypeEnum,
       },
+      user,
       includeReviewer,
     );
   }
