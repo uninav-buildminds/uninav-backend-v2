@@ -13,7 +13,7 @@
     "url": "https://github.com/ProsperCoded/uninav-backend.git"
   },
   "license": "UNLICENSED",
-  "main": "dist/src/main.js",
+  "main": "dist/main.js",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"libs/**/*.ts\"",
