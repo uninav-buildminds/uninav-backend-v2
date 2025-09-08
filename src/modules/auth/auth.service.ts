@@ -487,6 +487,11 @@ export class AuthService {
   async setCookie(res: Response, token: string) {
     // for cookies
     res.cookie('authorization', token, globalCookieOptions);
+    // To let frontend know user is logged in (for UI purposes)
+    res.cookie('logged_in', true, {
+      ...globalCookieOptions,
+      httpOnly: false,
+    });
 
     // for sessions  (if not using cookies)
     res.header('authorization', `Bearer ${token}`);
