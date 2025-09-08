@@ -1,13 +1,10 @@
 import { Request } from 'express';
+import { AppEnum } from 'src/utils/config/app.config';
 
 export class OriginDetectorHelper {
   // Define allowed origins for security
-  private static readonly allowedOrigins = [
-    'http://localhost:3000', // Development frontend
-    'http://localhost:3001', // Alternative dev port
-    'https://uninav.live', // Production frontend
-    'https://www.uninav.live', // Production frontend with www
-  ];
+  private static readonly allowedOrigins = AppEnum.CORS_OPTIONS
+    .origin as string;
 
   static detectAndValidateOrigin(
     req: Request,
