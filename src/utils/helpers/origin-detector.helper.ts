@@ -18,8 +18,13 @@ export class OriginDetectorHelper {
       return fallbackUrl;
     }
 
+    let decodedOrigin = origin;
     try {
-      const originUrl = new URL(origin);
+      // Try decoding if it looks encoded
+      if (typeof origin === 'string' && origin.includes('%')) {
+        decodedOrigin = decodeURIComponent(origin);
+      }
+      const originUrl = new URL(decodedOrigin);
       const baseOrigin = `${originUrl.protocol}//${originUrl.hostname}${
         originUrl.port ? ':' + originUrl.port : ''
       }`;
