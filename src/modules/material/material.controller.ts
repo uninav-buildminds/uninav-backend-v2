@@ -48,10 +48,9 @@ export class MaterialController {
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('file'))
   async create(
+    @UploadedFile() file: MulterFile,
     @CurrentUser() user: UserEntity,
     @Body() createMaterialDto: CreateMaterialDto,
-
-    @UploadedFile() file?: MulterFile,
   ) {
     createMaterialDto.creatorId = user.id;
 
@@ -123,22 +122,22 @@ export class MaterialController {
     );
   }
 
-  @Get('me')
-  @UseGuards(RolesGuard)
-  async findMyMaterials(
-    @CurrentUser() user: UserEntity,
-    @Query() queryDto: Omit<MaterialQueryDto, 'creatorId'>,
-  ) {
-    const result = await this.materialService.searchMaterial({
-      ...queryDto,
-      creatorId: user.id,
-    });
-    return ResponseDto.createPaginatedResponse(
-      'Materials retrieved successfully',
-      result.items,
-      result.pagination,
-    );
-  }
+  // @Get('me')
+  // @UseGuards(RolesGuard)
+  // async findMyMaterials(
+  //   @CurrentUser() user: UserEntity,
+  //   @Query() queryDto: Omit<MaterialQueryDto, 'creatorId'>,
+  // ) {
+  //   const result = await this.materialService.searchMaterial({
+  //     ...queryDto,
+  //     creatorId: user.id,
+  //   });
+  //   return ResponseDto.createPaginatedResponse(
+  //     'Materials retrieved successfully',
+  //     result.items,
+  //     result.pagination,
+  //   );
+  // }
 
   @Patch(':id')
   @UseGuards(RolesGuard)
