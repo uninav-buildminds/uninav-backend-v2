@@ -4,7 +4,7 @@ import {
   ApprovalStatus,
   CourseEntity,
   DrizzleDB,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { userCourses } from '@app/common/modules/database/schema/user.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { and, eq, or, sql, desc, ilike } from 'drizzle-orm';

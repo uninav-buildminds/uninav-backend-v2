@@ -13,7 +13,7 @@ import {
   ResourceType,
   RestrictionEnum,
   VisibilityEnum,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 
 export class ResourceDto {
   @IsOptional()

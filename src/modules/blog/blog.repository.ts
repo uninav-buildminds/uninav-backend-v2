@@ -5,7 +5,7 @@ import {
   BlogEntity,
   BlogTypeEnum,
   DrizzleDB,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { blogs } from '@app/common/modules/database/schema/blog.schema';
 import { comments } from '@app/common/modules/database/schema/comments.schema';
 import { blogLikes } from '@app/common/modules/database/schema/blog-likes.schema';

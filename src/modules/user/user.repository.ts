@@ -3,7 +3,7 @@ import { users } from '@app/common/modules/database/schema/user.schema';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { DrizzleDB } from 'src/utils/types/db.types';
+import { DrizzleDB } from '@app/common/types/db.types';
 import { eq, or, and, inArray, isNull, ilike } from 'drizzle-orm';
 import {
   userCourses,

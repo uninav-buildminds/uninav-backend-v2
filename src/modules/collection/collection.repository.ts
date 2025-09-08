@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { CollectionEntity, DrizzleDB } from 'src/utils/types/db.types';
+import { CollectionEntity, DrizzleDB } from '@app/common/types/db.types';
 import { and, eq, sql } from 'drizzle-orm';
 import {
   collection,

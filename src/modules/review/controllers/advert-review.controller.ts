@@ -17,7 +17,7 @@ import {
   UserRoleEnum,
   ApprovalStatus,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { UserService } from 'src/modules/user/user.service';
 import { AdvertService } from 'src/modules/advert/advert.service';
 import { Request } from 'express';

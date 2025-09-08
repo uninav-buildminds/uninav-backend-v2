@@ -7,7 +7,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { TransformStringToArray } from 'src/utils/transformers/TransformStringToArray';
-import { BlogTypeEnum } from 'src/utils/types/db.types';
+import { BlogTypeEnum } from '@app/common/types/db.types';
 
 export class CreateBlogDto {
   @IsString()

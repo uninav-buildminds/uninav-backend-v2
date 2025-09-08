@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DrizzleDB } from 'src/utils/types/db.types';
+import { DrizzleDB } from '@app/common/types/db.types';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { admin } from '../../../../../libs/common/src/modules/database/schema/admin.schema';
 import { users } from '../../../../../libs/common/src/modules/database/schema/user.schema';

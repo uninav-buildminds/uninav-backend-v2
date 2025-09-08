@@ -19,7 +19,7 @@ import {
   ApprovalStatus,
   UserRoleEnum,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { BlogService } from 'src/modules/blog/blog.service';
 import { ResponseDto } from '@app/common/dto/response.dto';
 import { EventsEmitter } from '@app/common/modules/events/events.emitter';

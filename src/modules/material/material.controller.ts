@@ -14,6 +14,8 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { MaterialService } from 'src/modules/material/services/material.service';
 import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
@@ -21,10 +23,14 @@ import { UpdateMaterialDto } from 'src/modules/material/dto/update-material.dto'
 import { MaterialQueryDto } from 'src/modules/material/dto/material-query.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResponseDto } from '@app/common/dto/response.dto';
-import { UserEntity, UserRoleEnum } from 'src/utils/types/db.types';
+import {
+  MaterialTypeEnum,
+  UserEntity,
+  UserRoleEnum,
+} from '@app/common/types/db.types';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { CurrentUser } from '@app/common/decorators/current-user.decorator';
-import { MulterFile } from 'src/utils/types';
+import { MulterFile } from '@app/common/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
 import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
 import { CacheControl } from '@app/common/decorators/cache-control.decorator';
@@ -44,11 +50,20 @@ export class MaterialController {
   async create(
     @CurrentUser() user: UserEntity,
     @Body() createMaterialDto: CreateMaterialDto,
+
     @UploadedFile() file?: MulterFile,
   ) {
     createMaterialDto.creatorId = user.id;
 
-    logger.log({ createMaterialDto });
+    // Enhanced logging for debugging
+    logger.debug('File upload attempt:', {
+      hasFile: !!file,
+      fileName: file?.originalname,
+      fileSize: file?.size,
+      mimeType: file?.mimetype,
+      fieldName: file?.fieldname,
+      dto: createMaterialDto,
+    });
 
     const material = await this.materialService.create(createMaterialDto, file);
     return ResponseDto.createSuccessResponse(
@@ -60,10 +75,11 @@ export class MaterialController {
   @Get()
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
   async findWithFilters(@Query() queryDto: MaterialQueryDto) {
-    const materials = await this.materialService.findAllPaginated(queryDto);
-    return ResponseDto.createSuccessResponse(
+    const result = await this.materialService.searchMaterial(queryDto);
+    return ResponseDto.createPaginatedResponse(
       'Materials retrieved successfully',
-      materials,
+      result.items,
+      result.pagination,
     );
   }
 
@@ -74,13 +90,11 @@ export class MaterialController {
     @CurrentUser() user: UserEntity,
     @Query('page') page: number = 1,
   ) {
-    const recommendations = await this.materialService.getRecommendations(
-      user,
-      page,
-    );
-    return ResponseDto.createSuccessResponse(
+    const result = await this.materialService.getRecommendations(user, page);
+    return ResponseDto.createPaginatedResponse(
       'Recommendations retrieved successfully',
-      recommendations,
+      result.items,
+      result.pagination,
     );
   }
 
@@ -109,38 +123,20 @@ export class MaterialController {
     );
   }
 
-  @Get('user/:creatorId')
-  async findByCreator(
-    @Param('creatorId') creatorId: string,
-    @Query('page') page: string = '1',
-  ) {
-    const materials = await this.materialService.findAllPaginated({
-      creatorId,
-      page: +page,
-    });
-    return ResponseDto.createSuccessResponse(
-      'Materials retrieved successfully',
-      materials,
-    );
-  }
-
   @Get('me')
   @UseGuards(RolesGuard)
   async findMyMaterials(
     @CurrentUser() user: UserEntity,
-    @Query('page') page: string = '1',
-    @Query('type') type?: string,
-    @Query('tag') tag?: string,
+    @Query() queryDto: Omit<MaterialQueryDto, 'creatorId'>,
   ) {
-    const materials = await this.materialService.findAllPaginated({
+    const result = await this.materialService.searchMaterial({
+      ...queryDto,
       creatorId: user.id,
-      page: +page,
-      type,
-      tag,
     });
-    return ResponseDto.createSuccessResponse(
+    return ResponseDto.createPaginatedResponse(
       'Materials retrieved successfully',
-      materials,
+      result.items,
+      result.pagination,
     );
   }
 

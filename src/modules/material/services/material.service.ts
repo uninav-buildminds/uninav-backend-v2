@@ -16,8 +16,8 @@ import {
   ResourceType,
   UserEntity,
   UserRoleEnum,
-} from 'src/utils/types/db.types';
-import { MulterFile } from 'src/utils/types';
+} from '@app/common/types/db.types';
+import { MulterFile } from '@app/common/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
 import {
   RESOURCE_ADDRESS_EXPIRY_DAYS,
@@ -27,6 +27,7 @@ import {
 import * as moment from 'moment-timezone';
 import { UserService } from 'src/modules/user/user.service';
 import { PreviewService } from './preview.service';
+import { MaterialQueryDto } from '../dto/material-query.dto';
 ('updateMaterialDto');
 
 @Injectable()
@@ -499,25 +500,15 @@ export class MaterialService {
     return this.materialRepository.findByCreator(creatorId);
   }
 
-  async findAllPaginated(
-    filters: {
-      creatorId?: string;
-      courseId?: string;
-      type?: any;
-      tag?: string;
-      reviewStatus?: ApprovalStatus;
-      query?: string;
-      page?: number;
-      advancedSearch?: boolean;
-      ignorePreference?: boolean;
-    },
+  async searchMaterial(
+    filters: MaterialQueryDto,
     user?: UserEntity,
-    includeReviewer = false,
+    includeReviewer?: boolean,
   ) {
-    return this.materialRepository.findAllPaginated(
+    return this.materialRepository.searchMaterial(
       {
         ...filters,
-        type: filters.type as MaterialTypeEnum,
+        type: filters.type,
       },
       user,
       includeReviewer,

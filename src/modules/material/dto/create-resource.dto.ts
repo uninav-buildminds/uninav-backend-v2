@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { ResourceType } from 'src/utils/types/db.types';
+import { ResourceType } from '@app/common/types/db.types';
 
 export class CreateResourceDto {
   @IsNotEmpty()

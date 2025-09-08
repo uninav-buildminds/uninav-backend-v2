@@ -15,7 +15,7 @@ import { UpdateFacultyDto } from './dto/update-faculty.dto';
 import { ResponseDto } from '@app/common/dto/response.dto';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Roles } from '@app/common/decorators/roles.decorator';
-import { UserRoleEnum } from 'src/utils/types/db.types';
+import { UserRoleEnum } from '@app/common/types/db.types';
 import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
 import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 @Controller('faculty')

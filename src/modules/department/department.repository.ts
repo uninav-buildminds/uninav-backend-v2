@@ -3,7 +3,7 @@ import { department } from '@app/common/modules/database/schema/department.schem
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { DepartmentEntity, DrizzleDB } from 'src/utils/types/db.types';
+import { DepartmentEntity, DrizzleDB } from '@app/common/types/db.types';
 import { eq } from 'drizzle-orm';
 
 @Injectable()

@@ -17,7 +17,7 @@ import {
 import { UserService } from './user.service';
 import { ResponseDto } from '../../../libs/common/src/dto/response.dto';
 import { RolesGuard } from '../../../libs/common/src/guards/roles.guard';
-import { UserEntity } from '../../utils/types/db.types';
+import { UserEntity } from '../../../libs/common/src/types/db.types';
 import { CurrentUser } from '../../../libs/common/src/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AddCourseDto } from './dto/add-course.dto';
@@ -25,7 +25,7 @@ import { AddBookmarkDto } from './dto/bookmark.dto';
 import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 import { ConfigService } from '@nestjs/config';
 import { Roles } from '../../../libs/common/src/decorators/roles.decorator';
-import { UserRoleEnum } from '../../utils/types/db.types';
+import { UserRoleEnum } from '../../../libs/common/src/types/db.types';
 import { PaginationDto } from '../../../libs/common/src/dto/pagination.dto';
 
 @Controller('user')

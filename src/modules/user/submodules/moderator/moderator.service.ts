@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ModeratorRepository } from './moderator.repository';
-import { ApprovalStatus } from 'src/utils/types/db.types';
+import { ApprovalStatus } from '@app/common/types/db.types';
 
 @Injectable()
 export class ModeratorService {

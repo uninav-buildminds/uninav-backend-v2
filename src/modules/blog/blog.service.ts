@@ -16,8 +16,8 @@ import {
   BlogTypeEnum,
   UserEntity,
   UserRoleEnum,
-} from 'src/utils/types/db.types';
-import { MulterFile } from 'src/utils/types';
+} from '@app/common/types/db.types';
+import { MulterFile } from '@app/common/types';
 import * as moment from 'moment-timezone';
 import {
   BLOG_HEADING_IMG_URL_EXPIRY_DAYS,

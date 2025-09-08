@@ -1,4 +1,6 @@
 import { Logger, Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
+import * as multer from 'multer';
 import { MaterialService } from './services/material.service';
 import { MaterialController } from './material.controller';
 import { MaterialRepository } from './material.repository';

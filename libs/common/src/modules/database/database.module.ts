@@ -5,7 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from './schema/schema';
-import { DrizzleDB } from 'src/utils/types/db.types';
+import { DrizzleDB } from '@app/common/types/db.types';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { ENV } from 'src/utils/config/env.enum';
 @Module({
@@ -44,7 +44,7 @@ import { ENV } from 'src/utils/config/env.enum';
         } catch (error) {
           logger.error('Failed to connect to database:');
           logger.error(error.message);
-          console.log(error);
+          throw new Error(error);
         }
 
         return drizzle(pool, { schema }) as DrizzleDB;

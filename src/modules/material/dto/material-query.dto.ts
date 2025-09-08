@@ -7,7 +7,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { MaterialTypeEnum, ApprovalStatus } from 'src/utils/types/db.types';
+import { MaterialTypeEnum, ApprovalStatus } from '@app/common/types/db.types';
 
 export class MaterialQueryDto extends PaginationDto {
   @IsOptional()

@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserEntity } from 'src/utils/types/db.types';
+import { UserEntity } from '@app/common/types/db.types';
 
 /**
  * Extract current user from request object

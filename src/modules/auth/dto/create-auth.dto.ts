@@ -8,7 +8,7 @@ import {
   IsString,
   Length,
 } from 'class-validator';
-import { UserIdTypeEnum } from 'src/utils/types/db.types';
+import { UserIdTypeEnum } from '@app/common/types/db.types';
 
 export class CreateAuthDto {
   @IsEmail()

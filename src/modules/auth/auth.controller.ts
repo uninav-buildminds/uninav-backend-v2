@@ -17,7 +17,11 @@ import { CreateStudentDto } from './dto/create-student.dto';
 import { ResponseDto } from '@app/common/dto/response.dto';
 import { LocalAuthGuard } from '@app/common/guards/local.guard';
 import { Request, Response } from 'express';
-import { UserEntity, UserRoleEnum, AuthEntity } from 'src/utils/types/db.types';
+import {
+  UserEntity,
+  UserRoleEnum,
+  AuthEntity,
+} from '@app/common/types/db.types';
 import { globalCookieOptions } from 'src/utils/config/constants.config';
 import { UserService } from 'src/modules/user/user.service';
 import { ResendVerificationDto } from './dto/verify-email.dto';

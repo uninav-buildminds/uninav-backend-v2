@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 // import { Cron, CronExpression } from '@nestjs/schedule';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { DrizzleDB } from 'src/utils/types/db.types';
+import { DrizzleDB } from '@app/common/types/db.types';
 
 @Injectable()
 export class DrizzleService {

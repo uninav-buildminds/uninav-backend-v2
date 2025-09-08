@@ -3,7 +3,7 @@ import { faculty } from '@app/common/modules/database/schema/faculty.schema';
 import { CreateFacultyDto } from './dto/create-faculty.dto';
 import { UpdateFacultyDto } from './dto/update-faculty.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { DrizzleDB, FacultyEntity } from 'src/utils/types/db.types';
+import { DrizzleDB, FacultyEntity } from '@app/common/types/db.types';
 import { eq } from 'drizzle-orm';
 
 @Injectable()

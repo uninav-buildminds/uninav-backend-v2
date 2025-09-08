@@ -4,7 +4,7 @@ import {
   DrizzleDB,
   AdvertEntity,
   ApprovalStatus,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { eq, sql, and, desc, or, ilike } from 'drizzle-orm';
 import { advert } from '@app/common/modules/database/schema/advert.schema';
 import { CreateFreeAdvertDto } from './dto/create-free-advert.dto';

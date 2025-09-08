@@ -5,7 +5,7 @@ import {
   DrizzleDB,
   AuthEntity,
   UserIdTypeEnum,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { eq, or } from 'drizzle-orm';
 
 interface CreateAuthEntityDto {

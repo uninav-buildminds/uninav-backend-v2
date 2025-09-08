@@ -15,7 +15,7 @@ import { DepartmentService } from '../department/department.service';
 import { CoursesRepository } from '../courses/courses.repository';
 import { AddBookmarkDto } from './dto/bookmark.dto';
 import { PaginationDto } from '../../../libs/common/src/dto/pagination.dto';
-import { UserEntity } from 'src/utils/types/db.types';
+import { UserEntity } from '@app/common/types/db.types';
 
 @Injectable()
 export class UserService {

@@ -19,7 +19,7 @@ import {
   UserRoleEnum,
   ApprovalStatus,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { CoursesService } from 'src/modules/courses/courses.service';
 import { Request } from 'express';
 import { EventsEmitter } from '@app/common/modules/events/events.emitter';

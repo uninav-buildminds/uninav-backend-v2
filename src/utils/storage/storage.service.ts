@@ -13,7 +13,7 @@ import {
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { ENV } from 'src/utils/config/env.enum';
-import { MulterFile } from 'src/utils/types';
+import { MulterFile } from '@app/common/types';
 
 @Injectable()
 export class StorageService {

@@ -15,7 +15,7 @@ import {
   globalCookieOptions,
   JWT_SYMBOL,
 } from 'src/utils/config/constants.config';
-import { UserEntity, AuthEntity } from 'src/utils/types/db.types';
+import { UserEntity, AuthEntity } from '@app/common/types/db.types';
 import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { cryptoService } from 'src/utils/crypto/crypto.service';

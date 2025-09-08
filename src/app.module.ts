@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from '@app/common/modules/database';
@@ -22,6 +22,7 @@ import { CacheControlInterceptor } from '../libs/common/src/interceptors/cache-c
 import { AdvertModule } from 'src/modules/advert/advert.module';
 import { ReviewModule } from './modules/review/review.module';
 import { CommonModule } from '@app/common';
+import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.middleware';
 
 @Module({
   imports: [
@@ -73,4 +74,8 @@ import { CommonModule } from '@app/common';
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationMiddleware).forRoutes('*path');
+  }
+}

@@ -12,7 +12,7 @@ import { Request } from 'express';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { ROLES_KEY } from '@app/common/decorators/roles.decorator';
 import { ConfigService } from '@nestjs/config';
-import { UserEntity, UserRoleEnum } from 'src/utils/types/db.types';
+import { UserEntity, UserRoleEnum } from '@app/common/types/db.types';
 import { UserService } from 'src/modules/user/user.service';
 import { ENV } from 'src/utils/config/env.enum';
 

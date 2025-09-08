@@ -10,7 +10,7 @@ import {
   ApprovalStatus,
   UserEntity,
   UserRoleEnum,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { LinkCourseDto } from './dto/link-course.dto';
 import { UserService } from 'src/modules/user/user.service';
 import { UpdateCourseDto } from './dto/update-course.dto';

@@ -19,7 +19,7 @@ import {
   ApprovalStatus,
   UserRoleEnum,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { MaterialService } from 'src/modules/material/services/material.service';
 import { ResponseDto } from '@app/common/dto/response.dto';
 import { EventsEmitter } from '@app/common/modules/events/events.emitter';
@@ -42,7 +42,7 @@ export class MaterialReviewController {
     @Query('page') page?: number,
     @Query('query') query?: string,
   ) {
-    const result = await this.materialService.findAllPaginated({
+    const result = await this.materialService.searchMaterial({
       reviewStatus: status,
       page,
       query,

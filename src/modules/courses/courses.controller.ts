@@ -21,7 +21,7 @@ import {
   ApprovalStatus,
   UserEntity,
   UserRoleEnum,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { Request } from 'express';
 import { LinkCourseDto } from './dto/link-course.dto';
 import { Roles } from '@app/common/decorators/roles.decorator';

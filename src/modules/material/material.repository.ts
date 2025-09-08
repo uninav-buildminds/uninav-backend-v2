@@ -4,9 +4,8 @@ import {
   ApprovalStatus,
   DrizzleDB,
   MaterialEntity,
-  MaterialTypeEnum,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import {
   eq,
   and,
@@ -34,6 +33,7 @@ import {
   departmentLevelCourses,
 } from '@app/common/modules/database/schema/course.schema';
 import { extractCourseCode } from 'src/utils/util';
+import { MaterialQueryDto } from './dto/material-query.dto';
 
 @Injectable()
 export class MaterialRepository {
@@ -215,29 +215,17 @@ export class MaterialRepository {
     });
   }
 
-  async findAllPaginated(
-    options: {
-      creatorId?: string;
-      courseId?: string;
-      type?: MaterialTypeEnum;
-      tag?: string;
-      reviewStatus?: ApprovalStatus;
-      page?: number;
-      query?: string;
-      advancedSearch?: boolean;
-      ignorePreference?: boolean;
-    },
+  async searchMaterial(
+    options: MaterialQueryDto,
     user?: UserEntity,
     includeReviewer?: boolean,
   ): Promise<{
-    data: Partial<MaterialEntity>[];
+    items: Partial<MaterialEntity>[];
     pagination: {
+      total: number;
       page: number;
-      limit: number;
-      totalItems: number;
+      pageSize: number;
       totalPages: number;
-      hasMore: boolean;
-      hasPrev: boolean;
     };
   }> {
     let {
@@ -388,14 +376,12 @@ export class MaterialRepository {
         .execute();
 
       return {
-        data,
+        items: data,
         pagination: {
+          total: totalItems,
           page,
-          limit,
-          totalItems,
+          pageSize: limit,
           totalPages,
-          hasMore: page < totalPages,
-          hasPrev: page > 1,
         },
       };
     } else {
@@ -461,14 +447,12 @@ export class MaterialRepository {
       });
 
       return {
-        data,
+        items: data,
         pagination: {
+          total: totalItems,
           page,
-          limit,
-          totalItems,
+          pageSize: limit,
           totalPages,
-          hasMore: page < totalPages,
-          hasPrev: page > 1,
         },
       };
     }
@@ -478,14 +462,12 @@ export class MaterialRepository {
     user: UserEntity,
     page: number = 1,
   ): Promise<{
-    data: Partial<MaterialEntity>[];
+    items: Partial<MaterialEntity>[];
     pagination: {
+      total: number;
       page: number;
-      limit: number;
-      totalItems: number;
+      pageSize: number;
       totalPages: number;
-      hasMore: boolean;
-      hasPrev: boolean;
     };
   }> {
     const limit = 10;
@@ -548,14 +530,12 @@ export class MaterialRepository {
     });
 
     return {
-      data,
+      items: data,
       pagination: {
+        total: totalItems,
         page,
-        limit,
-        totalItems,
+        pageSize: limit,
         totalPages,
-        hasMore: page < totalPages,
-        hasPrev: page > 1,
       },
     };
   }
@@ -639,7 +619,7 @@ export class MaterialRepository {
             eq(material.reviewStatus, ApprovalStatus.REJECTED),
             departmentId
               ? sql`${material.targetCourseId} IN (
-                SELECT ${departmentLevelCourses.courseId}k
+                SELECT ${departmentLevelCourses.courseId}
                 FROM ${departmentLevelCourses}
                 WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
               )`

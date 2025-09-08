@@ -9,14 +9,14 @@ import {
 import { AdvertRepository } from './advert.repository';
 import { CreateFreeAdvertDto } from './dto/create-free-advert.dto';
 import { StorageService } from 'src/utils/storage/storage.service';
-import { MulterFile } from 'src/utils/types';
+import { MulterFile } from '@app/common/types';
 import {
   AdvertEntity,
   MaterialEntity,
   ApprovalStatus,
   UserRoleEnum,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import {
   ADVERT_IMAGE_URL_EXPIRY_DAYS,
   STORAGE_FOLDERS,

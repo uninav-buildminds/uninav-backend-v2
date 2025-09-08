@@ -16,7 +16,7 @@ import { AddMaterialToCollectionDto } from './dto/add-material.dto';
 import { ResponseDto } from '@app/common/dto/response.dto';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Request } from 'express';
-import { UserEntity } from 'src/utils/types/db.types';
+import { UserEntity } from '@app/common/types/db.types';
 @Controller('collections')
 export class CollectionController {
   constructor(private readonly collectionService: CollectionService) {}

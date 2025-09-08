@@ -6,7 +6,7 @@ import {
 import { CreateFacultyDto } from './dto/create-faculty.dto';
 import { UpdateFacultyDto } from './dto/update-faculty.dto';
 import { FacultyRepository } from './faculty.repository';
-import { FacultyEntity } from 'src/utils/types/db.types';
+import { FacultyEntity } from '@app/common/types/db.types';
 
 @Injectable()
 export class FacultyService {
