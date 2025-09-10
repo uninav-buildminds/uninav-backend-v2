@@ -156,7 +156,7 @@ export class AuthController {
       'Logged out successfully',
       null,
     );
-    return responseObj;
+    return res.status(200).json(responseObj);
   }
 
   @Post('forgot-password')
