@@ -13,18 +13,18 @@ import {
 } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
-import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { ResponseDto } from '@app/common/dto/response.dto';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
+import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 import {
   ApprovalStatus,
   UserEntity,
   UserRoleEnum,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { Request } from 'express';
 import { LinkCourseDto } from './dto/link-course.dto';
-import { Roles } from 'src/utils/decorators/roles.decorator';
+import { Roles } from '@app/common/decorators/roles.decorator';
 import { UpdateCourseDto } from 'src/modules/courses/dto/update-course.dto';
 @Controller('courses')
 @UseInterceptors(CacheControlInterceptor)

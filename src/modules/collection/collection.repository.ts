@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
-import { CollectionEntity, DrizzleDB } from 'src/utils/types/db.types';
+import { CollectionEntity, DrizzleDB } from '@app/common/types/db.types';
 import { and, eq, sql } from 'drizzle-orm';
 import {
   collection,
   collectionContent,
-} from 'src/modules/drizzle/schema/collection.schema';
+} from '@app/common/modules/database/schema/collection.schema';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
 import { AddMaterialToCollectionDto } from './dto/add-material.dto';

@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DatabaseModule } from '@app/common/modules/database';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -10,24 +10,24 @@ import { DepartmentModule } from './modules/department/department.module';
 import { MaterialModule } from './modules/material/material.module';
 import { CollectionModule } from './modules/collection/collection.module';
 import { BlogModule } from './modules/blog/blog.module';
-import envConfig from 'src/utils/config/env.config';
 import { CoursesModule } from 'src/modules/courses/courses.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { EventsListeners } from 'src/utils/events/event.listener';
+import { EventsListeners } from '@app/common/modules/events/event.listener';
 import { EmailService } from 'src/utils/email/email.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { getJwtConfig } from 'src/utils/config/jwt.config';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { CacheControlInterceptor } from './interceptors/cache-control.interceptor';
+import { CacheControlInterceptor } from '../libs/common/src/interceptors/cache-control.interceptor';
 import { AdvertModule } from 'src/modules/advert/advert.module';
 import { ReviewModule } from './modules/review/review.module';
-import { GlobalModule } from './modules/global/global.module';
+import { CommonModule } from '@app/common';
+import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.middleware';
 
 @Module({
   imports: [
-    DrizzleModule,
-    GlobalModule,
+    CommonModule,
+    DatabaseModule,
     UserModule,
     AuthModule,
     ConfigModule.forRoot({
@@ -35,7 +35,6 @@ import { GlobalModule } from './modules/global/global.module';
       envFilePath: ['.env.local', '.env'],
       cache: false,
       expandVariables: true,
-      load: [envConfig],
     }),
     FacultyModule,
     DepartmentModule,
@@ -75,4 +74,8 @@ import { GlobalModule } from './modules/global/global.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationMiddleware).forRoutes('*path');
+  }
+}

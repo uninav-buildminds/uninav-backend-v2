@@ -1,13 +1,10 @@
 import { Request } from 'express';
+import { AppEnum } from 'src/utils/config/app.config';
 
 export class OriginDetectorHelper {
   // Define allowed origins for security
-  private static readonly allowedOrigins = [
-    'http://localhost:3000', // Development frontend
-    'http://localhost:3001', // Alternative dev port
-    'https://uninav.live', // Production frontend
-    'https://www.uninav.live', // Production frontend with www
-  ];
+  private static readonly allowedOrigins = AppEnum.CORS_OPTIONS
+    .origin as string;
 
   static detectAndValidateOrigin(
     req: Request,
@@ -21,8 +18,13 @@ export class OriginDetectorHelper {
       return fallbackUrl;
     }
 
+    let decodedOrigin = origin;
     try {
-      const originUrl = new URL(origin);
+      // Try decoding if it looks encoded
+      if (typeof origin === 'string' && origin.includes('%')) {
+        decodedOrigin = decodeURIComponent(origin);
+      }
+      const originUrl = new URL(decodedOrigin);
       const baseOrigin = `${originUrl.protocol}//${originUrl.hostname}${
         originUrl.port ? ':' + originUrl.port : ''
       }`;

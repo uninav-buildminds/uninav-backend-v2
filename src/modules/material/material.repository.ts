@@ -4,9 +4,8 @@ import {
   ApprovalStatus,
   DrizzleDB,
   MaterialEntity,
-  MaterialTypeEnum,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import {
   eq,
   and,
@@ -17,23 +16,24 @@ import {
   or,
 } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import { material } from 'src/modules/drizzle/schema/material.schema';
-import { materialLikes } from 'src/modules/drizzle/schema/material-likes.schema';
+import { material } from '@app/common/modules/database/schema/material.schema';
+import { materialLikes } from '@app/common/modules/database/schema/material-likes.schema';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
-import { resource } from 'src/modules/drizzle/schema/resource.schema';
+import { resource } from '@app/common/modules/database/schema/resource.schema';
 import { CreateResourceDto } from 'src/modules/material/dto/create-resource.dto';
 import { materialLogger } from 'src/modules/material/material.module';
 import {
   users,
   userCourses as uc,
-} from 'src/modules/drizzle/schema/user.schema';
+} from '@app/common/modules/database/schema/user.schema';
 import {
   courses,
   departmentLevelCourses as dlc,
   departmentLevelCourses,
-} from 'src/modules/drizzle/schema/course.schema';
+} from '@app/common/modules/database/schema/course.schema';
 import { extractCourseCode } from 'src/utils/util';
+import { MaterialQueryDto } from './dto/material-query.dto';
 
 @Injectable()
 export class MaterialRepository {
@@ -159,7 +159,7 @@ export class MaterialRepository {
     updateMaterialDto: Omit<
       UpdateMaterialDto,
       'resourceType' | 'resourceAddress' | 'metaData'
-    > & { reviewStatus?: string; reviewedById?: string },
+    > & { reviewStatus?: string; reviewedById?: string; previewUrl?: string },
   ): Promise<MaterialEntity> {
     materialLogger.log('updateMaterialDto', updateMaterialDto);
     console.log('updateMaterialDto', updateMaterialDto);
@@ -215,34 +215,31 @@ export class MaterialRepository {
     });
   }
 
-  async findAllPaginated(
-    options: {
-      creatorId?: string;
-      courseId?: string;
-      type?: MaterialTypeEnum;
-      tag?: string;
-      reviewStatus?: ApprovalStatus;
-      page?: number;
-      query?: string;
-      advancedSearch?: boolean;
-    },
+  async searchMaterial(
+    options: MaterialQueryDto,
+    user?: UserEntity,
     includeReviewer?: boolean,
   ): Promise<{
-    data: Partial<MaterialEntity>[];
+    items: Partial<MaterialEntity>[];
     pagination: {
+      total: number;
       page: number;
-      limit: number;
-      totalItems: number;
+      pageSize: number;
       totalPages: number;
-      hasMore: boolean;
-      hasPrev: boolean;
     };
   }> {
-    let { page = 1, query, advancedSearch, ...filters } = options;
+    let {
+      page = 1,
+      query,
+      advancedSearch,
+      ignorePreference = false,
+      ...filters
+    } = options;
     let conditions = [];
     const limit = 10;
     const offset = (page - 1) * limit;
 
+    // Apply filters conditionally
     if (filters.creatorId) {
       conditions.push(eq(material.creatorId, filters.creatorId));
     }
@@ -259,156 +256,10 @@ export class MaterialRepository {
       conditions.push(eq(material.reviewStatus, filters.reviewStatus));
     }
 
-    // Add text search if query is provided - using the full-text search index
+    // Add text search if query is provided
     if (query && query.trim() !== '') {
       const courseCodeIfExists = extractCourseCode(query)?.toLowerCase();
       if (advancedSearch) {
-        const searchCondition = or(
-          ilike(material.label, `%${query}%`),
-          ilike(material.description, `%${query}%`),
-          sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
-          sql`EXISTS (
-            SELECT 1 FROM course c 
-            WHERE c.id = ${material.targetCourseId} 
-            AND (
-              ${courseCodeIfExists ? sql`ilike(c.course_code, ${`%${courseCodeIfExists}%`}) OR` : sql`FALSE OR`}
-              ilike(c.course_name, ${`%${query}%`}) OR 
-              ilike(c.course_description, ${`%${query}%`})
-            )
-          )`,
-        );
-        conditions.push(searchCondition);
-      } else {
-        conditions.push(
-          or(
-            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-            sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
-            courseCodeIfExists
-              ? sql`${courseCodeIfExists} = ANY(${material.tags})`
-              : sql`FALSE`,
-          ),
-        );
-      }
-    }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    // Get total count for pagination
-    const countResult = await this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(material)
-      .where(whereClause)
-      .execute();
-
-    const totalItems = Number(countResult[0]?.count || 0);
-    const totalPages = Math.ceil(totalItems / limit);
-
-    // Define order by
-    let orderByFields = [
-      desc(material.createdAt), // Default ordering
-      desc(material.likes),
-      desc(material.downloads),
-      desc(material.views),
-    ];
-
-    // If query was provided, sort by rank first using the vector index
-    if (query && query.trim() !== '') {
-      orderByFields = [
-        desc(
-          sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query}))`,
-        ),
-        ...orderByFields,
-      ];
-    }
-    const data = await this.db.query.material.findMany({
-      where: whereClause,
-      orderBy: orderByFields,
-      with: {
-        creator: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-          },
-        },
-        targetCourse: {
-          columns: {
-            id: true,
-            courseName: true,
-            courseCode: true,
-          },
-        },
-        reviewedBy: true,
-        // ...(includeReviewer
-        //   ? {
-        //       reviewedBy: {
-        //         columns: {
-        //           id: true,
-        //           firstName: true,
-        //           lastName: true,
-        //           username: true,
-        //         },
-        //       },
-        //     }
-        //   : {}),
-      },
-      columns: {
-        searchVector: false,
-      },
-      limit,
-      offset,
-    });
-
-    return {
-      data,
-      pagination: {
-        page,
-        limit,
-        totalItems,
-        totalPages,
-        hasMore: page < totalPages,
-        hasPrev: page > 1,
-      },
-    };
-  }
-
-  async searchMaterials(
-    filters: {
-      query?: string;
-      creatorId?: string;
-      courseId?: string;
-      type?: MaterialTypeEnum;
-      tag?: string;
-      advancedSearch?: boolean;
-    },
-    user: UserEntity,
-    page: number = 1,
-    includeReviewer?: boolean,
-  ) {
-    const conditions = [];
-    const limit = 10;
-    const offset = (page - 1) * limit;
-    const { query } = filters;
-
-    // Apply filters conditionally
-    if (filters.creatorId) {
-      conditions.push(eq(material.creatorId, filters.creatorId));
-    }
-    if (filters.courseId) {
-      conditions.push(eq(material.targetCourseId, filters.courseId));
-    }
-    if (filters.type) {
-      conditions.push(eq(material.type, filters.type));
-    }
-    if (filters.tag) {
-      conditions.push(sql`${filters.tag} = ANY(${material.tags})`);
-    }
-
-    // If query is provided, use full-text search
-    if (query && query.trim() !== '') {
-      const courseCodeIfExists = extractCourseCode(query)?.toLowerCase();
-      if (filters.advancedSearch) {
         const searchCondition = or(
           ilike(material.label, `%${query}%`),
           ilike(material.description, `%${query}%`),
@@ -435,19 +286,23 @@ export class MaterialRepository {
           ),
         );
       }
+    }
 
-      // Get total count for pagination with search condition
-      const whereCondition =
-        conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
-      const countResult = await this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(material)
-        .where(whereCondition)
-        .execute();
+    const whereCondition =
+      conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
 
-      const totalItems = Number(countResult[0]?.count || 0);
-      const totalPages = Math.ceil(totalItems / limit);
+    // Get total count for pagination
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(material)
+      .where(whereCondition)
+      .execute();
 
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Use preference-based search with user ranking if user is provided and ignorePreference is false
+    if (!ignorePreference && user && query && query.trim() !== '') {
       // Destructure unwanted fields from material table columns
       let { searchVector, ...rest } = getTableColumns(material);
 
@@ -469,7 +324,7 @@ export class MaterialRepository {
           },
           ...(includeReviewer
             ? {
-                reviewerBy: {
+                reviewedBy: {
                   id: users.id,
                   firstName: users.firstName,
                   lastName: users.lastName,
@@ -521,42 +376,40 @@ export class MaterialRepository {
         .execute();
 
       return {
-        data,
+        items: data,
         pagination: {
+          total: totalItems,
           page,
-          limit,
-          totalItems,
+          pageSize: limit,
           totalPages,
-          hasMore: page < totalPages,
-          hasPrev: page > 1,
         },
       };
-    }
-    // If no query is provided, just use the other filters and standard ordering
-    else {
-      // Create where clause from conditions
+    } else {
+      // Use standard search without user preferences
+      // Define order by
+      let orderByFields = [
+        desc(material.createdAt), // Default ordering
+        desc(material.likes),
+        desc(material.downloads),
+        desc(material.views),
+      ];
+
+      // If query was provided, sort by rank first using the vector index
+      if (query && query.trim() !== '') {
+        orderByFields = [
+          desc(
+            sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query}))`,
+          ),
+          ...orderByFields,
+        ];
+      }
+
       const whereClause =
         conditions.length > 0 ? and(...conditions) : undefined;
 
-      // Get total count for pagination
-      const countResult = await this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(material)
-        .where(whereClause)
-        .execute();
-
-      const totalItems = Number(countResult[0]?.count || 0);
-      const totalPages = Math.ceil(totalItems / limit);
-
-      // Get data with standard ordering
       const data = await this.db.query.material.findMany({
         where: whereClause,
-        orderBy: [
-          desc(material.likes),
-          desc(material.downloads),
-          desc(material.views),
-          desc(material.createdAt),
-        ],
+        orderBy: orderByFields,
         with: {
           creator: {
             columns: {
@@ -594,14 +447,12 @@ export class MaterialRepository {
       });
 
       return {
-        data,
+        items: data,
         pagination: {
+          total: totalItems,
           page,
-          limit,
-          totalItems,
+          pageSize: limit,
           totalPages,
-          hasMore: page < totalPages,
-          hasPrev: page > 1,
         },
       };
     }
@@ -611,14 +462,12 @@ export class MaterialRepository {
     user: UserEntity,
     page: number = 1,
   ): Promise<{
-    data: Partial<MaterialEntity>[];
+    items: Partial<MaterialEntity>[];
     pagination: {
+      total: number;
       page: number;
-      limit: number;
-      totalItems: number;
+      pageSize: number;
       totalPages: number;
-      hasMore: boolean;
-      hasPrev: boolean;
     };
   }> {
     const limit = 10;
@@ -681,14 +530,12 @@ export class MaterialRepository {
     });
 
     return {
-      data,
+      items: data,
       pagination: {
+        total: totalItems,
         page,
-        limit,
-        totalItems,
+        pageSize: limit,
         totalPages,
-        hasMore: page < totalPages,
-        hasPrev: page > 1,
       },
     };
   }
@@ -772,7 +619,7 @@ export class MaterialRepository {
             eq(material.reviewStatus, ApprovalStatus.REJECTED),
             departmentId
               ? sql`${material.targetCourseId} IN (
-                SELECT ${departmentLevelCourses.courseId}k
+                SELECT ${departmentLevelCourses.courseId}
                 FROM ${departmentLevelCourses}
                 WHERE ${departmentLevelCourses.departmentId} = ${departmentId}
               )`

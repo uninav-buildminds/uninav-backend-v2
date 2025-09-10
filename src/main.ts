@@ -3,8 +3,8 @@ import { AppModule } from './app.module';
 import { EnvValidation } from 'src/utils/env.validation';
 import { AppEnum } from 'src/utils/config/app.config';
 import helmet from 'helmet';
-import { HttpExceptionFilter } from 'src/utils/exceptions/http-exception-filter';
-import { LoggerService } from 'src/utils/logger/logger.service';
+import { HttpExceptionFilter } from '@app/common/exceptions/http-exception-filter';
+import { StructuredLoggerService } from '@app/common/modules/logger';
 import { LoggerPaths } from 'src/utils/config/constants.config';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
@@ -14,12 +14,19 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3000;
   EnvValidation.validate();
   console.log(`=>     http://localhost:${port}`);
-  const app = await NestFactory.create(AppModule, {
-    logger: new LoggerService(LoggerPaths.APP, false),
-  });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Set up structured logger
+  // const logger = await app.resolve(StructuredLoggerService);
+  // app.useLogger(logger);
 
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: false,
+      forbidNonWhitelisted: false,
+      skipMissingProperties: false,
+      transform: true,
+    }),
   );
   app.use(helmet(AppEnum.HELMET_OPTIONS));
   app.enableCors(AppEnum.CORS_OPTIONS);

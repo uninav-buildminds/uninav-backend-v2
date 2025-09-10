@@ -1,4 +1,4 @@
-import * as schema from 'src/modules/drizzle/schema/schema';
+import * as schema from '@app/common/modules/database/schema/schema';
 
 /**
  * Seeds faculties and their departments into the database

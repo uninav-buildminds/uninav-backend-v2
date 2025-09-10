@@ -4,12 +4,12 @@ import {
   DrizzleDB,
   AdvertEntity,
   ApprovalStatus,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { eq, sql, and, desc, or, ilike } from 'drizzle-orm';
-import { advert } from 'src/modules/drizzle/schema/advert.schema';
+import { advert } from '@app/common/modules/database/schema/advert.schema';
 import { CreateFreeAdvertDto } from './dto/create-free-advert.dto';
-import { material } from 'src/modules/drizzle/schema/material.schema';
-import { departmentLevelCourses } from 'src/modules/drizzle/schema/course.schema';
+import { material } from '@app/common/modules/database/schema/material.schema';
+import { departmentLevelCourses } from '@app/common/modules/database/schema/course.schema';
 
 @Injectable()
 export class AdvertRepository {

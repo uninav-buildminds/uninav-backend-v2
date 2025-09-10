@@ -8,7 +8,7 @@ import {
 import { BlogRepository } from './blog.repository';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
-import { StorageService } from 'src/storage/storage.service';
+import { StorageService } from 'src/utils/storage/storage.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import {
   ApprovalStatus,
@@ -16,10 +16,13 @@ import {
   BlogTypeEnum,
   UserEntity,
   UserRoleEnum,
-} from 'src/utils/types/db.types';
-import { MulterFile } from 'src/utils/types';
+} from '@app/common/types/db.types';
+import { MulterFile } from '@app/common/types';
 import * as moment from 'moment-timezone';
-import { BLOG_HEADING_IMG_URL_EXPIRY_DAYS, STORAGE_FOLDERS } from 'src/utils/config/constants.config';
+import {
+  BLOG_HEADING_IMG_URL_EXPIRY_DAYS,
+  STORAGE_FOLDERS,
+} from 'src/utils/config/constants.config';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { UserService } from 'src/modules/user/user.service';
 
@@ -59,7 +62,7 @@ export class BlogService {
           headingImageKey,
           3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
           false,
-          'public' // Blog images are public
+          'public', // Blog images are public
         );
       }
 

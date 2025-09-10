@@ -9,25 +9,25 @@ import {
 import { CreateStudentDto } from 'src/modules/auth/dto/create-student.dto';
 import { UserService } from 'src/modules/user/user.service';
 import * as bcrypt from 'bcryptjs';
-import envConfig from 'src/utils/config/env.config';
-import { ConfigType } from 'src/utils/types/config.types';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
   globalCookieOptions,
   JWT_SYMBOL,
 } from 'src/utils/config/constants.config';
-import { UserEntity, AuthEntity } from 'src/utils/types/db.types';
+import { UserEntity, AuthEntity } from '@app/common/types/db.types';
 import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { cryptoService } from 'src/utils/crypto/crypto.service';
 import { DepartmentService } from 'src/modules/department/department.service';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
-import { ModeratorService } from '../moderator/moderator.service';
-import { AdminService } from '../admin/admin.service';
-import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { ModeratorService } from 'src/modules/user/submodules/moderator/moderator.service';
+import { AdminService } from 'src/modules/user/submodules/admin/admin.service';
+import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { Response } from 'express';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
+import { ENV } from 'src/utils/config/env.enum';
 
 @Injectable()
 export class AuthService {
@@ -38,12 +38,14 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly departmentService: DepartmentService,
     private readonly eventsEmitter: EventsEmitter,
-    @Inject(envConfig.KEY) private readonly config: ConfigType,
+    private readonly configService: ConfigService,
     @Inject(JWT_SYMBOL) private jwtService: JwtService,
     private readonly adminService: AdminService,
     private readonly moderatorService: ModeratorService,
   ) {
-    this.BCRYPT_SALT = bcrypt.genSaltSync(+this.config.BCRYPT_SALT_ROUNDS);
+    this.BCRYPT_SALT = bcrypt.genSaltSync(
+      +this.configService.get(ENV.BCRYPT_SALT_ROUNDS),
+    );
 
     this.logger.log('testing email...');
   }
@@ -157,7 +159,7 @@ export class AuthService {
     const token = await this.generateVerificationToken(email);
 
     // Create verification URL
-    const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${token}`;
+    const verificationUrl = `${this.configService.get(ENV.FRONTEND_URL)}/auth/verify-email?token=${token}`;
 
     // Send email verification
     const verificationEmailPayload: EmailPayloadDto = {
@@ -256,7 +258,7 @@ export class AuthService {
     const token = await this.generateVerificationToken(email);
 
     // Create verification URL
-    const verificationUrl = `${this.config.FRONTEND_URL}/auth/verify-email?token=${token}`;
+    const verificationUrl = `${this.configService.get(ENV.FRONTEND_URL)}/auth/verify-email?token=${token}`;
 
     const resendEmailPayload: EmailPayloadDto = {
       to: email,
@@ -291,7 +293,7 @@ export class AuthService {
       new Date(Date.now() + 3600000), // 1 hour from now
     );
     // Create reset URL
-    const resetUrl = `${this.config.FRONTEND_URL}/auth/reset-password?token=${encodedToken}`;
+    const resetUrl = `${this.configService.get(ENV.FRONTEND_URL)}/auth/reset-password?token=${encodedToken}`;
 
     // Send password reset email
     const passwordResetPayload: EmailPayloadDto = {
@@ -336,9 +338,11 @@ export class AuthService {
 
       // Hash new password
       const hashedPassword = await this.hashPassword(newPassword);
-
       // Update password and clear reset token
-      await this.authRepository.updatePassword(auth.userId, hashedPassword);
+      await this.authRepository.updatePassword(
+        auth.userId,
+        hashedPassword as string,
+      );
       await this.authRepository.clearPasswordResetToken(auth.userId);
 
       return true;
@@ -348,16 +352,17 @@ export class AuthService {
   }
 
   async hashPassword(password: string) {
-    const modifiedPassword = password + this.config.BCRYPT_PEPPER;
-    const hashedPassword = await bcrypt.hash(
-      modifiedPassword,
-      this.BCRYPT_SALT,
-    );
+    const modifiedPassword =
+      password + this.configService.get(ENV.BCRYPT_PEPPER);
+    const hashedPassword = bcrypt.hash(modifiedPassword, this.BCRYPT_SALT);
     return hashedPassword;
   }
 
   async comparePassword(password: string, hashedPassword: string) {
-    return bcrypt.compare(password + this.config.BCRYPT_PEPPER, hashedPassword);
+    return bcrypt.compare(
+      password + this.configService.get(ENV.BCRYPT_PEPPER),
+      hashedPassword,
+    );
   }
 
   async generateToken(userId: string) {

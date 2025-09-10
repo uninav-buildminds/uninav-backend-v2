@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { auth } from 'src/modules/drizzle/schema/auth.schema';
+import { auth } from '@app/common/modules/database/schema/auth.schema';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import {
   DrizzleDB,
   AuthEntity,
   UserIdTypeEnum,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { eq, or } from 'drizzle-orm';
 
 interface CreateAuthEntityDto {

@@ -18,11 +18,11 @@ import {
   UpdateAdvertDto,
 } from './dto/create-free-advert.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { MulterFile } from 'src/utils/types';
+import { ResponseDto } from '@app/common/dto/response.dto';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { MulterFile } from '@app/common/types';
 import { Request } from 'express';
-import { AdvertTypeEnum, UserEntity } from 'src/utils/types/db.types';
+import { AdvertTypeEnum, UserEntity } from '@app/common/types/db.types';
 @Controller('adverts')
 export class AdvertController {
   constructor(private readonly advertService: AdvertService) {}

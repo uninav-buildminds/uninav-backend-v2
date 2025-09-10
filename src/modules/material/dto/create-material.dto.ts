@@ -6,14 +6,14 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { TransformStringToArray } from 'src/transformers/TransformStringToArray';
+import { TransformStringToArray } from 'src/utils/transformers/TransformStringToArray';
 import {
   ApprovalStatus,
   MaterialTypeEnum,
   ResourceType,
   RestrictionEnum,
   VisibilityEnum,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 
 export class ResourceDto {
   @IsOptional()

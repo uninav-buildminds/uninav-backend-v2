@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
-import { VisibilityEnum } from 'src/utils/types/db.types';
+import { VisibilityEnum } from '@app/common/types/db.types';
 
 export class CreateCollectionDto {
   @IsString()

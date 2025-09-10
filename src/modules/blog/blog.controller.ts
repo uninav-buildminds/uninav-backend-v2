@@ -22,14 +22,14 @@ import {
   ApprovalStatus,
   BlogTypeEnum,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 import { Request } from 'express';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { MulterFile } from 'src/utils/types';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { MulterFile } from '@app/common/types';
+import { ResponseDto } from '@app/common/dto/response.dto';
 @Controller('blogs')
 export class BlogController {
   constructor(private readonly blogService: BlogService) {}

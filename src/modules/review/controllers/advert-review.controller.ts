@@ -11,20 +11,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ReviewActionDto } from '../dto/review-action.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { Roles } from 'src/utils/decorators/roles.decorator';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { Roles } from '@app/common/decorators/roles.decorator';
 import {
   UserRoleEnum,
   ApprovalStatus,
   UserEntity,
-} from 'src/utils/types/db.types';
+} from '@app/common/types/db.types';
 import { UserService } from 'src/modules/user/user.service';
 import { AdvertService } from 'src/modules/advert/advert.service';
 import { Request } from 'express';
-import { EventsEmitter } from 'src/utils/events/events.emitter';
+import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
+import { ResponseDto } from '@app/common/dto/response.dto';
 @Controller('review/adverts')
 @UseGuards(RolesGuard)
 @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)

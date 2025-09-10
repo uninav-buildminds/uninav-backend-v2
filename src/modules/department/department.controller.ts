@@ -12,12 +12,12 @@ import {
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { Roles } from 'src/utils/decorators/roles.decorator';
-import { UserRoleEnum } from 'src/utils/types/db.types';
-import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
-import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { ResponseDto } from '@app/common/dto/response.dto';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { Roles } from '@app/common/decorators/roles.decorator';
+import { UserRoleEnum } from '@app/common/types/db.types';
+import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
+import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 @Controller('department')
 @UseInterceptors(CacheControlInterceptor)
 export class DepartmentController {

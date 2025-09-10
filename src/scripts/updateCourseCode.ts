@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { courses } from '../modules/drizzle/schema/course.schema';
+import { courses } from '../../libs/common/src/modules/database/schema/course.schema';
 import { eq } from 'drizzle-orm';
 
 const updateCourseCodes = async () => {
@@ -43,16 +43,18 @@ const updateCourseCodes = async () => {
       try {
         // Remove spaces from course code
         const newCourseCode = course.courseCode.replace(/\s+/g, '');
-        
+
         // Only update if the course code actually contains spaces
         if (newCourseCode !== course.courseCode) {
           await db
             .update(courses)
             .set({ courseCode: newCourseCode })
             .where(eq(courses.id, course.id));
-          
+
           updatedCount++;
-          console.log(`Updated course code: ${course.courseCode} -> ${newCourseCode}`);
+          console.log(
+            `Updated course code: ${course.courseCode} -> ${newCourseCode}`,
+          );
         }
       } catch (error) {
         errorCount++;
@@ -64,7 +66,6 @@ const updateCourseCodes = async () => {
     console.log(`Total courses processed: ${allCourses.length}`);
     console.log(`Successfully updated: ${updatedCount}`);
     console.log(`Errors encountered: ${errorCount}`);
-
   } catch (error) {
     console.error('Error during course code update:', error);
   } finally {

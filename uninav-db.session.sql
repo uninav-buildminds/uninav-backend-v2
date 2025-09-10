@@ -1,0 +1,1 @@
+UPDATE resource SET "resourceType" = 'url' WHERE "resourceType" = 'GDrive';

@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { CollectionService } from './collection.service';
 import { CollectionController } from './collection.controller';
 import { CollectionRepository } from './collection.repository';
-import { DrizzleModule } from 'src/modules/drizzle/drizzle.module';
+import { DatabaseModule } from '@app/common/modules/database/database.module';
 
 @Module({
-  imports: [DrizzleModule],
+  imports: [DatabaseModule],
   controllers: [CollectionController],
   providers: [CollectionService, CollectionRepository],
   exports: [CollectionService],

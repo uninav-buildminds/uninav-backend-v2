@@ -7,7 +7,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { UserRoleEnum } from 'src/utils/types/db.types';
+import { UserRoleEnum } from '@app/common/types/db.types';
 
 export class CreateUserDto {
   @IsString()

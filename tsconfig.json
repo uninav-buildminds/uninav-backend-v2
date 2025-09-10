@@ -11,7 +11,15 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "src/*": ["./src/*"]
+      "src/*": [
+        "./src/*"
+      ],
+      "@app/common": [
+        "libs/common/src"
+      ],
+      "@app/common/*": [
+        "libs/common/src/*"
+      ]
     },
     "incremental": true,
     "skipLibCheck": true,

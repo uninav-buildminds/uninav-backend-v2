@@ -6,7 +6,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { AdvertTypeEnum } from 'src/utils/types/db.types';
+import { AdvertTypeEnum } from '@app/common/types/db.types';
 import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateFreeAdvertDto {

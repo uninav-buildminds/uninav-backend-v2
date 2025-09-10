@@ -10,46 +10,59 @@ import {
   UseInterceptors,
   UploadedFile,
   UseGuards,
-  Req,
   Query,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
-import { MaterialService } from './material.service';
-import { CreateMaterialDto } from './dto/create-material.dto';
-import { UpdateMaterialDto } from './dto/update-material.dto';
+import { MaterialService } from 'src/modules/material/services/material.service';
+import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
+import { UpdateMaterialDto } from 'src/modules/material/dto/update-material.dto';
+import { MaterialQueryDto } from 'src/modules/material/dto/material-query.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ResponseDto } from 'src/utils/globalDto/response.dto';
+import { ResponseDto } from '@app/common/dto/response.dto';
 import {
-  ResourceType,
+  MaterialTypeEnum,
   UserEntity,
   UserRoleEnum,
-} from 'src/utils/types/db.types';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { Request } from 'express';
-import { MulterFile } from 'src/utils/types';
+} from '@app/common/types/db.types';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { CurrentUser } from '@app/common/decorators/current-user.decorator';
+import { MulterFile } from '@app/common/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
-import { CacheControlInterceptor } from 'src/interceptors/cache-control.interceptor';
-import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
+import { CacheControl } from '@app/common/decorators/cache-control.decorator';
+import { ProcessGDriveUrlDto, PreviewResult } from './dto/preview.dto';
+import { PreviewService } from './services/preview.service';
 @Controller('materials')
 @UseInterceptors(CacheControlInterceptor)
 export class MaterialController {
-  constructor(private readonly materialService: MaterialService) {}
+  constructor(
+    private readonly materialService: MaterialService,
+    private readonly previewService: PreviewService,
+  ) {}
 
   @Post()
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('file'))
   async create(
-    @Req() req: Request,
+    @UploadedFile() file: MulterFile,
+    @CurrentUser() user: UserEntity,
     @Body() createMaterialDto: CreateMaterialDto,
-    @UploadedFile() file?: MulterFile,
   ) {
-    // Extract user from request (from auth guard)
-    const user = req['user'] as UserEntity;
-
     createMaterialDto.creatorId = user.id;
 
-    logger.log({ createMaterialDto });
+    // Enhanced logging for debugging
+    logger.debug('File upload attempt:', {
+      hasFile: !!file,
+      fileName: file?.originalname,
+      fileSize: file?.size,
+      mimeType: file?.mimetype,
+      fieldName: file?.fieldname,
+      dto: createMaterialDto,
+    });
 
     const material = await this.materialService.create(createMaterialDto, file);
     return ResponseDto.createSuccessResponse(
@@ -60,60 +73,12 @@ export class MaterialController {
 
   @Get()
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
-  async findWithFilters(
-    @Query('creatorId') creatorId?: string,
-    @Query('courseId') courseId?: string,
-    @Query('type') type?: string,
-    @Query('tag') tag?: string,
-    @Query('query') query?: string,
-    @Query('advancedSearch') advancedSearch?: string,
-    @Query('page') page: string = '1',
-  ) {
-    const materials = await this.materialService.findAllPaginated({
-      creatorId,
-      courseId,
-      type,
-      tag,
-      query,
-      page: +page,
-      advancedSearch: !!advancedSearch,
-    });
-    return ResponseDto.createSuccessResponse(
+  async findWithFilters(@Query() queryDto: MaterialQueryDto) {
+    const result = await this.materialService.searchMaterial(queryDto);
+    return ResponseDto.createPaginatedResponse(
       'Materials retrieved successfully',
-      materials,
-    );
-  }
-
-  @Get('search')
-  @UseGuards(RolesGuard)
-  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
-  async search(
-    @Req() req: Request,
-    @Query('query') query?: string,
-    @Query('advancedSearch') advancedSearch?: string,
-    @Query('creatorId') creatorId?: string,
-    @Query('courseId') courseId?: string,
-    @Query('type') type?: string,
-    @Query('tag') tag?: string,
-    @Query('page') page: string = '1',
-  ) {
-    const user = req.user as UserEntity;
-    const materials = await this.materialService.searchMaterials(
-      {
-        query,
-        creatorId,
-        courseId,
-        type,
-        tag,
-        advancedSearch: !!advancedSearch,
-      },
-      user,
-      +page,
-      user.role === UserRoleEnum.ADMIN,
-    );
-    return ResponseDto.createSuccessResponse(
-      'Materials retrieved successfully',
-      materials,
+      result.items,
+      result.pagination,
     );
   }
 
@@ -121,17 +86,14 @@ export class MaterialController {
   @UseGuards(RolesGuard)
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
   async getRecommendations(
-    @Req() req: Request,
+    @CurrentUser() user: UserEntity,
     @Query('page') page: number = 1,
   ) {
-    const user = req['user'] as UserEntity;
-    const recommendations = await this.materialService.getRecommendations(
-      user,
-      page,
-    );
-    return ResponseDto.createSuccessResponse(
+    const result = await this.materialService.getRecommendations(user, page);
+    return ResponseDto.createPaginatedResponse(
       'Recommendations retrieved successfully',
-      recommendations,
+      result.items,
+      result.pagination,
     );
   }
 
@@ -160,52 +122,32 @@ export class MaterialController {
     );
   }
 
-  @Get('user/:creatorId')
-  async findByCreator(
-    @Param('creatorId') creatorId: string,
-    @Query('page') page: string = '1',
-  ) {
-    const materials = await this.materialService.findAllPaginated({
-      creatorId,
-      page: +page,
-    });
-    return ResponseDto.createSuccessResponse(
-      'Materials retrieved successfully',
-      materials,
-    );
-  }
-
-  @Get('me')
-  @UseGuards(RolesGuard)
-  async findMyMaterials(
-    @Req() req: Request,
-    @Query('page') page: string = '1',
-    @Query('type') type?: string,
-    @Query('tag') tag?: string,
-  ) {
-    const user = req['user'] as UserEntity;
-    const materials = await this.materialService.findAllPaginated({
-      creatorId: user.id,
-      page: +page,
-      type,
-      tag,
-    });
-    return ResponseDto.createSuccessResponse(
-      'Materials retrieved successfully',
-      materials,
-    );
-  }
+  // @Get('me')
+  // @UseGuards(RolesGuard)
+  // async findMyMaterials(
+  //   @CurrentUser() user: UserEntity,
+  //   @Query() queryDto: Omit<MaterialQueryDto, 'creatorId'>,
+  // ) {
+  //   const result = await this.materialService.searchMaterial({
+  //     ...queryDto,
+  //     creatorId: user.id,
+  //   });
+  //   return ResponseDto.createPaginatedResponse(
+  //     'Materials retrieved successfully',
+  //     result.items,
+  //     result.pagination,
+  //   );
+  // }
 
   @Patch(':id')
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('file'))
   async update(
-    @Req() req: Request,
+    @CurrentUser() user: UserEntity,
     @Param('id') id: string,
     @Body() updateMaterialDto: UpdateMaterialDto,
     @UploadedFile() file?: MulterFile,
   ) {
-    const user = req['user'] as UserEntity;
     const material = await this.materialService.update(
       id,
       updateMaterialDto,
@@ -220,8 +162,7 @@ export class MaterialController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  async remove(@Req() req: Request, @Param('id') id: string) {
-    const user = req['user'] as UserEntity;
+  async remove(@CurrentUser() user: UserEntity, @Param('id') id: string) {
     const material = await this.materialService.remove(id, user.id);
     return ResponseDto.createSuccessResponse(
       'Material deleted successfully',
@@ -232,10 +173,51 @@ export class MaterialController {
   @Post('like/:id')
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.OK)
-  async likeMaterial(@Req() req: Request, @Param('id') id: string) {
-    const user = req['user'] as UserEntity;
+  async likeMaterial(@CurrentUser() user: UserEntity, @Param('id') id: string) {
     const result = await this.materialService.likeMaterial(id, user.id);
     return ResponseDto.createSuccessResponse(result.message, result);
+  }
+
+  @Post('preview/upload/:materialId')
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('preview'))
+  async uploadPreview(
+    @UploadedFile() file: MulterFile,
+    @Param('materialId') materialId: string,
+  ): Promise<any> {
+    if (!file) {
+      throw new BadRequestException('Preview file is required');
+    }
+
+    // Validate that it's an image
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Preview file must be an image');
+    }
+
+    // Upload the preview image
+    const uploadResult = await this.previewService.uploadPreviewImage(file);
+
+    const result = await this.materialService.updateMaterialPreview(
+      materialId,
+      uploadResult,
+    );
+    return ResponseDto.createSuccessResponse('Preview uploaded successfully', {
+      previewUrl: uploadResult,
+    });
+  }
+
+  @Post('test/gdrive/preview')
+  @UseGuards(RolesGuard)
+  async generateGDrivePreview(
+    @Body() processGDriveDto: ProcessGDriveUrlDto,
+  ): Promise<any> {
+    const result = await this.previewService.processGDriveUrl(
+      processGDriveDto.url,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Google Drive preview generated successfully',
+      result,
+    );
   }
 
   @Get(':id')

@@ -6,7 +6,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  Req,
   Patch,
   HttpCode,
   HttpStatus,
@@ -16,19 +15,18 @@ import {
   Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { Request } from 'express';
-import { ResponseDto } from '../../utils/globalDto/response.dto';
-import { RolesGuard } from '../../guards/roles.guard';
-import { UserEntity } from '../../utils/types/db.types';
+import { ResponseDto } from '../../../libs/common/src/dto/response.dto';
+import { RolesGuard } from '../../../libs/common/src/guards/roles.guard';
+import { UserEntity } from '../../../libs/common/src/types/db.types';
+import { CurrentUser } from '../../../libs/common/src/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AddCourseDto } from './dto/add-course.dto';
 import { AddBookmarkDto } from './dto/bookmark.dto';
-import { CacheControl } from 'src/utils/decorators/cache-control.decorator';
+import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 import { ConfigService } from '@nestjs/config';
-import { Roles } from '../../utils/decorators/roles.decorator';
-import { UserRoleEnum } from '../../utils/types/db.types';
-import { PaginationDto } from '../../utils/globalDto/pagination.dto';
+import { Roles } from '../../../libs/common/src/decorators/roles.decorator';
+import { UserRoleEnum } from '../../../libs/common/src/types/db.types';
+import { PaginationDto } from '../../../libs/common/src/dto/pagination.dto';
 
 @Controller('user')
 export class UserController {
@@ -45,14 +43,14 @@ export class UserController {
 
   @Get('profile')
   @UseGuards(RolesGuard)
-  async getProfile(@Req() req: Request) {
-    const user = req.user as UserEntity;
+  async getProfile(@CurrentUser() user: UserEntity) {
     let profile = await this.userService.getProfile(user.id);
     return ResponseDto.createSuccessResponse(
       'User profile retrieved successfully',
       profile,
     );
   }
+
   @Get('user-profile')
   async getProfileCourses(@Query('username') username: string) {
     const { email, ...user } = await this.userService.findByUsername(username);
@@ -65,12 +63,10 @@ export class UserController {
   @Patch()
   @UseGuards(RolesGuard)
   async update(
-    @Req() req: Request,
+    @CurrentUser() user: UserEntity,
     @Body() updateUserDto: UpdateUserDto,
     @Headers('root-api-key') rootApiKey?: string,
   ) {
-    const user = req.user as UserEntity;
-
     // Check if role update is requested and validate API key
     if (updateUserDto.role) {
       if (rootApiKey !== this.configService.get('ROOT_API_KEY')) {
@@ -87,8 +83,10 @@ export class UserController {
 
   @Post('courses')
   @UseGuards(RolesGuard)
-  async addCourses(@Req() req: Request, @Body() addCourseDto: AddCourseDto) {
-    const user = req.user as UserEntity;
+  async addCourses(
+    @CurrentUser() user: UserEntity,
+    @Body() addCourseDto: AddCourseDto,
+  ) {
     const result = await this.userService.addCourses(
       user.id,
       addCourseDto.courseIds,
@@ -101,8 +99,10 @@ export class UserController {
 
   @Delete('courses')
   @UseGuards(RolesGuard)
-  async removeCourses(@Req() req: Request, @Body() addCourseDto: AddCourseDto) {
-    const user = req.user as UserEntity;
+  async removeCourses(
+    @CurrentUser() user: UserEntity,
+    @Body() addCourseDto: AddCourseDto,
+  ) {
     const result = await this.userService.removeCourses(
       user.id,
       addCourseDto.courseIds,
@@ -115,8 +115,7 @@ export class UserController {
 
   @Get('courses')
   @UseGuards(RolesGuard)
-  async getUserCourses(@Req() req: Request) {
-    const user = req.user as UserEntity;
+  async getUserCourses(@CurrentUser() user: UserEntity) {
     console.log('user', user);
     const courses = await this.userService.getUserCourses(user.id);
     return ResponseDto.createSuccessResponse(
@@ -129,10 +128,9 @@ export class UserController {
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.CREATED)
   async addBookmark(
+    @CurrentUser() user: UserEntity,
     @Body() addBookmarkDto: AddBookmarkDto,
-    @Req() req: Request,
   ) {
-    const user = req.user as UserEntity;
     const bookmark = await this.userService.addBookmark(
       user.id,
       addBookmarkDto,
@@ -147,10 +145,9 @@ export class UserController {
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.OK)
   async removeBookmark(
+    @CurrentUser() user: UserEntity,
     @Param('bookmarkId', ParseUUIDPipe) bookmarkId: string,
-    @Req() req: Request,
   ) {
-    const user = req.user as UserEntity;
     const bookmark = await this.userService.removeBookmark(user.id, bookmarkId);
     return ResponseDto.createSuccessResponse(
       'Bookmark removed successfully',
@@ -162,10 +159,9 @@ export class UserController {
   @UseGuards(RolesGuard)
   @CacheControl({ maxAge: 300, private: true }) // Cache for 5 minutes
   async getBookmark(
+    @CurrentUser() user: UserEntity,
     @Param('bookmarkId', ParseUUIDPipe) bookmarkId: string,
-    @Req() req: Request,
   ) {
-    const user = req.user as UserEntity;
     const bookmark = await this.userService.getBookmarkById(
       user.id,
       bookmarkId,
@@ -179,8 +175,7 @@ export class UserController {
   @Get('bookmarks')
   @UseGuards(RolesGuard)
   @CacheControl({ maxAge: 300, private: true }) // Cache for 5 minutes
-  async getUserBookmarks(@Req() req: Request) {
-    const user = req.user as UserEntity;
+  async getUserBookmarks(@CurrentUser() user: UserEntity) {
     const bookmarks = await this.userService.getUserBookmarks(user.id);
     return ResponseDto.createSuccessResponse(
       'Bookmarks retrieved successfully',
