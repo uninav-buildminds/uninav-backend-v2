@@ -194,7 +194,6 @@ export class UserController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
   async findAll(@Query() paginationDto: PaginationDto) {
     const result = await this.userService.findAll(paginationDto);
     return ResponseDto.createSuccessResponse(
