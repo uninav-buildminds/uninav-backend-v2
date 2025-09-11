@@ -10,7 +10,7 @@ export class OriginDetectorHelper {
     req: Request,
     fallbackUrl: string = 'https://uninav.live',
   ): string {
-    console.log('req from google login', req.url, req.headers);
+    console.log(' will detect origin from ', req.url);
     // Extract origin from request headers
     const origin = req.headers.origin || req.headers.referer || req.query.state;
 
@@ -21,7 +21,7 @@ export class OriginDetectorHelper {
     let decodedOrigin = origin;
     try {
       // Try decoding if it looks encoded
-      if (typeof origin === 'string' && origin.includes('%')) {
+      if (origin.includes('%')) {
         decodedOrigin = decodeURIComponent(origin);
       }
       const originUrl = new URL(decodedOrigin);
@@ -31,12 +31,13 @@ export class OriginDetectorHelper {
 
       // Check if the origin is in the allowed list
       if (this.allowedOrigins.includes(baseOrigin)) {
+        console.log('detected origin', baseOrigin);
         return baseOrigin;
       }
     } catch (error) {
       console.warn('Failed to parse origin URL:', error);
     }
-
+    console.log('failed to detect origin, using fallback', fallbackUrl);
     return fallbackUrl;
   }
 }
