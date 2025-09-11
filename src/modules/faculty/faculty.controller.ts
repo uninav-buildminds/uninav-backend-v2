@@ -25,7 +25,7 @@ export class FacultyController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
+  @Roles([UserRoleEnum.ADMIN])
   async create(@Body() createFacultyDto: CreateFacultyDto) {
     const faculty = await this.facultyService.create(createFacultyDto);
     return ResponseDto.createSuccessResponse(

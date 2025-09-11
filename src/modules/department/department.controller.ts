@@ -25,7 +25,7 @@ export class DepartmentController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
+  @Roles([UserRoleEnum.ADMIN])
   async create(@Body() createDepartmentDto: CreateDepartmentDto) {
     const department = await this.departmentService.create(createDepartmentDto);
     return ResponseDto.createSuccessResponse(
@@ -65,7 +65,7 @@ export class DepartmentController {
 
   @Patch(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
+  @Roles([UserRoleEnum.ADMIN])
   async update(
     @Param('id') id: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
@@ -81,7 +81,7 @@ export class DepartmentController {
   }
 
   @Delete(':id')
-  @Roles(UserRoleEnum.ADMIN)
+  @Roles([UserRoleEnum.ADMIN])
   async remove(@Param('id') id: string) {
     const department = await this.departmentService.remove(id);
     return ResponseDto.createSuccessResponse(

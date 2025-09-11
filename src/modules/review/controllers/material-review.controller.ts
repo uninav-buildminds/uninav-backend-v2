@@ -28,7 +28,7 @@ import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';
 @Controller('review/materials')
 @UseGuards(RolesGuard)
-@Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
+@Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
 export class MaterialReviewController {
   constructor(
     private readonly materialService: MaterialService,

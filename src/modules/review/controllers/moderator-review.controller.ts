@@ -28,7 +28,7 @@ import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ResponseDto } from '@app/common/dto/response.dto';
 @Controller('review/moderators')
 @UseGuards(RolesGuard)
-@Roles(UserRoleEnum.ADMIN)
+@Roles([UserRoleEnum.ADMIN])
 export class ModeratorReviewController {
   constructor(
     private readonly userService: UserService,

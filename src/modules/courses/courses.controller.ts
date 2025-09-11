@@ -120,7 +120,7 @@ export class CoursesController {
 
   @Patch(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
+  @Roles([UserRoleEnum.ADMIN])
   async update(
     @Param('id') id: string,
     @Body() updateCourseDto: UpdateCourseDto,
@@ -136,7 +136,7 @@ export class CoursesController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
+  @Roles([UserRoleEnum.ADMIN])
   async remove(@Param('id') id: string, @Req() req: Request) {
     const user = req.user as UserEntity;
     await this.coursesService.remove(id, user.id);
@@ -145,7 +145,7 @@ export class CoursesController {
 
   @Delete('department-level/:departmentId/:courseId')
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
+  @Roles([UserRoleEnum.ADMIN])
   async removeDepartmentLevelCourse(
     @Param('departmentId') departmentId: string,
     @Param('courseId') courseId: string,

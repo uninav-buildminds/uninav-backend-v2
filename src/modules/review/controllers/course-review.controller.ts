@@ -28,7 +28,7 @@ import { UserService } from 'src/modules/user/user.service';
 import { ResponseDto } from '@app/common/dto/response.dto';
 @Controller('review/courses')
 @UseGuards(RolesGuard)
-@Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
+@Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
 export class CourseReviewController {
   constructor(
     private readonly coursesService: CoursesService,

@@ -27,7 +27,7 @@ import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ResponseDto } from '@app/common/dto/response.dto';
 @Controller('review/adverts')
 @UseGuards(RolesGuard)
-@Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
+@Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
 export class AdvertReviewController {
   constructor(
     private readonly advertService: AdvertService,
