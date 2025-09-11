@@ -34,6 +34,7 @@ import {
 } from '@app/common/modules/database/schema/course.schema';
 import { extractCourseCode } from 'src/utils/util';
 import { MaterialQueryDto } from './dto/material-query.dto';
+import { recent } from '@app/common/modules/database/schema/recent.schema';
 
 @Injectable()
 export class MaterialRepository {
@@ -636,5 +637,58 @@ export class MaterialRepository {
     });
 
     return result;
+  }
+
+  async trackRecentView(userId: string, materialId: string): Promise<void> {
+    // Delete existing record if it exists
+    await this.db
+      .delete(recent)
+      .where(and(eq(recent.userId, userId), eq(recent.materialId, materialId)))
+      .execute();
+
+    // Insert new record with current timestamp
+    await this.db
+      .insert(recent)
+      .values({
+        userId,
+        materialId,
+      })
+      .execute();
+  }
+
+  async getRecentMaterials(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ items: MaterialEntity[]; total: number }> {
+    const offset = (page - 1) * limit;
+
+    // Get total count
+    const totalResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(recent)
+      .where(eq(recent.userId, userId))
+      .execute();
+
+    const total = Number(totalResult[0]?.count || 0);
+
+    // Get recent materials with full material data
+    const recentMaterials = await this.db
+      .select({
+        ...getTableColumns(material),
+        lastViewedAt: recent.lastViewedAt,
+      })
+      .from(recent)
+      .innerJoin(material, eq(recent.materialId, material.id))
+      .where(eq(recent.userId, userId))
+      .orderBy(desc(recent.lastViewedAt))
+      .limit(limit)
+      .offset(offset)
+      .execute();
+
+    return {
+      items: recentMaterials as MaterialEntity[],
+      total,
+    };
   }
 }

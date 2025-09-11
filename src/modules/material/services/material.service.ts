@@ -228,7 +228,7 @@ export class MaterialService {
     return resource;
   }
 
-  async getMaterial(id: string) {
+  async getMaterial(id: string, userId?: string) {
     const material = await this.findOne(id);
 
     // Get the associated resource
@@ -260,7 +260,14 @@ export class MaterialService {
         material.resource.resourceAddress = signedUrl; // Update the resource address in the material
       }
     }
+
+    // Increment views
     this.materialRepository.incrementViews(id);
+
+    // Track recent view for authenticated users
+    if (userId) {
+      this.materialRepository.trackRecentView(userId, id);
+    }
 
     return material;
   }
@@ -542,5 +549,27 @@ export class MaterialService {
       reviewStatus: reviewData.reviewStatus,
       reviewedById: reviewData.reviewedById,
     });
+  }
+
+  async getRecentMaterials(
+    user: UserEntity,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    const result = await this.materialRepository.getRecentMaterials(
+      user.id,
+      page,
+      limit,
+    );
+
+    return {
+      items: result.items,
+      pagination: {
+        page,
+        pageSize: limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / limit),
+      },
+    };
   }
 }

@@ -10,7 +10,10 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
-import { ROLES_KEY } from '@app/common/decorators/roles.decorator';
+import {
+  ROLES_KEY,
+  ROLES_STRICT_KEY,
+} from '@app/common/decorators/roles.decorator';
 import { ConfigService } from '@nestjs/config';
 import { UserEntity, UserRoleEnum } from '@app/common/types/db.types';
 import { UserService } from 'src/modules/user/user.service';
@@ -32,6 +35,13 @@ export class RolesGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
+    // Get the strict mode setting
+    const isStrict =
+      this.reflector.getAllAndOverride<boolean>(ROLES_STRICT_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? true;
+
     const request = context.switchToHttp().getRequest() as Request;
 
     try {
@@ -40,9 +50,15 @@ export class RolesGuard implements CanActivate {
       // Fetch the user with their role from the database
       const dbUser = await this.userService.findOne(user.id);
       if (!dbUser) {
+        if (!isStrict) {
+          // In non-strict mode, continue without user
+          return true;
+        }
         throw new UnauthorizedException('User not found');
       }
+
       request.user = dbUser;
+
       // If no specific roles are required, just having a valid token is enough
       if (!requiredRoles || requiredRoles.length === 0) {
         return true;
@@ -57,6 +73,13 @@ export class RolesGuard implements CanActivate {
       }
       return authorized;
     } catch (error) {
+      // In non-strict mode, authentication failures are allowed
+      if (!isStrict) {
+        // Allow access but without user context
+        request.user = undefined;
+        return true;
+      }
+
       if (
         error instanceof UnauthorizedException ||
         error instanceof ForbiddenException

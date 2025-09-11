@@ -29,6 +29,7 @@ import {
   UserRoleEnum,
 } from '@app/common/types/db.types';
 import { RolesGuard } from '@app/common/guards/roles.guard';
+import { Roles } from '@app/common/decorators/roles.decorator';
 import { CurrentUser } from '@app/common/decorators/current-user.decorator';
 import { MulterFile } from '@app/common/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
@@ -97,6 +98,27 @@ export class MaterialController {
     );
   }
 
+  @Get('recent')
+  @UseGuards(RolesGuard)
+  @Roles() // Requires authentication (strict mode by default)
+  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  async getRecentMaterials(
+    @CurrentUser() user: UserEntity,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const result = await this.materialService.getRecentMaterials(
+      user,
+      page,
+      limit,
+    );
+    return ResponseDto.createPaginatedResponse(
+      'Recent materials retrieved successfully',
+      result.items,
+      result.pagination,
+    );
+  }
+
   @Get('resource/:materialId')
   async findMaterialResource(@Param('materialId') id: string) {
     const resource = await this.materialService.findMaterialResource(id);
@@ -121,23 +143,6 @@ export class MaterialController {
       { url },
     );
   }
-
-  // @Get('me')
-  // @UseGuards(RolesGuard)
-  // async findMyMaterials(
-  //   @CurrentUser() user: UserEntity,
-  //   @Query() queryDto: Omit<MaterialQueryDto, 'creatorId'>,
-  // ) {
-  //   const result = await this.materialService.searchMaterial({
-  //     ...queryDto,
-  //     creatorId: user.id,
-  //   });
-  //   return ResponseDto.createPaginatedResponse(
-  //     'Materials retrieved successfully',
-  //     result.items,
-  //     result.pagination,
-  //   );
-  // }
 
   @Patch(':id')
   @UseGuards(RolesGuard)
@@ -221,8 +226,10 @@ export class MaterialController {
   }
 
   @Get(':id')
-  async getMaterial(@Param('id') id: string) {
-    const material = await this.materialService.getMaterial(id);
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false }) // Optional authentication - accessible to both guests and signed-in users
+  async getMaterial(@Param('id') id: string, @CurrentUser() user?: UserEntity) {
+    const material = await this.materialService.getMaterial(id, user?.id);
     return ResponseDto.createSuccessResponse(
       'Material retrieved successfully',
       material,
