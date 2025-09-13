@@ -11,6 +11,7 @@ import {
   Headers,
   UnauthorizedException,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -22,7 +23,10 @@ import {
   UserRoleEnum,
   AuthEntity,
 } from '@app/common/types/db.types';
-import { globalCookieOptions } from 'src/utils/config/constants.config';
+import {
+  globalCookieOptions,
+  JWT_SYMBOL,
+} from 'src/utils/config/constants.config';
 import { UserService } from 'src/modules/user/user.service';
 import { ResendVerificationDto } from './dto/verify-email.dto';
 import { ConfigService } from '@nestjs/config';
@@ -34,14 +38,46 @@ import {
 import { GoogleAuthGuard } from '@app/common/guards/google.guard';
 import { OriginDetectorHelper } from 'src/utils/helpers/origin-detector.helper';
 import { OAuth2Client } from 'google-auth-library';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
 export class AuthController {
   constructor(
+    @Inject(JWT_SYMBOL) private readonly jwtService: JwtService,
     private readonly authService: AuthService,
     private readonly userService: UserService,
     private readonly configService: ConfigService,
   ) {}
+
+  @Get('check')
+  async checkAuthStatus(
+    @Req() req: Request,
+    // @Res({ passthrough: true }) res: Response,
+  ) {
+    let token = req.cookies?.authorization;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      token = authHeader?.split(' ')[1];
+    }
+
+    if (!token) {
+      return ResponseDto.createSuccessResponse('User not logged in', {
+        loggedIn: false,
+      });
+    }
+
+    try {
+      this.jwtService.verify(token);
+      return ResponseDto.createSuccessResponse('User is logged in', {
+        loggedIn: true,
+      });
+    } catch (error) {
+      return ResponseDto.createSuccessResponse('Invalid JWT token', {
+        loggedIn: false,
+      });
+    }
+  }
 
   @Post('student')
   async signupStudent(
@@ -154,7 +190,6 @@ export class AuthController {
       ...globalCookieOptions,
       maxAge: 0,
     });
-    res.clearCookie('logged_in');
 
     const responseObj = ResponseDto.createSuccessResponse(
       'Logged out successfully',
