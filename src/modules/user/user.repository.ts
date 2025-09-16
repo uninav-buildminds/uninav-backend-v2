@@ -122,7 +122,7 @@ export class UserRepository {
     return this.db.query.users.findMany({
       where: whereClause,
       with: {
-        department: true,
+        // department: true,
         auth: {
           columns: {
             emailVerified: true,
