@@ -270,8 +270,10 @@
         <div class="intro-text">
           We're thrilled to welcome you to <strong><%= companyName %></strong> -
           your new hub for university study materials and academic resources!
-          You've successfully joined the <%= departmentName %> department
-          community.
+          <% if (departmentName) { %>
+            You've successfully joined the <%= departmentName %> department
+            community.
+          <% } %>
         </div>
 
         <div class="section">

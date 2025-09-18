@@ -103,22 +103,24 @@ export class AuthService {
       );
     }
 
-    // Get department name for the welcome email
-    const department = await this.departmentService.findOne(
-      createStudentDto.departmentId,
-    );
-
-    // Send welcome email
     const welcomeEmailPayload: EmailPayloadDto = {
       to: createStudentDto.email,
       type: EmailType.WELCOME_STUDENT,
       context: {
         firstName: createStudentDto.firstName,
         lastName: createStudentDto.lastName,
-        departmentName: department.name,
         role: createdUser.role,
       },
     };
+
+    // Get department name for the welcome email if departmentId is provided
+    if (createStudentDto.departmentId) {
+      const department = await this.departmentService.findOne(
+        createStudentDto.departmentId,
+      );
+      welcomeEmailPayload.context['departmentName'] = department.name;
+    }
+    // Send welcome email
     this.eventsEmitter.sendEmail(welcomeEmailPayload);
 
     return createdUser;
