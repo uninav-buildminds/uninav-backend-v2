@@ -691,4 +691,95 @@ export class MaterialRepository {
       total,
     };
   }
+
+  // Optimized batch find by IDs - single query with joins
+  async findManyByIds(materialIds: string[]): Promise<any[]> {
+    if (materialIds.length === 0) {
+      return [];
+    }
+
+    return this.db.query.material.findMany({
+      where: inArray(material.id, materialIds),
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            departmentId: true,
+            level: true,
+          },
+        },
+        targetCourse: {
+          columns: {
+            id: true,
+            courseName: true,
+            courseCode: true,
+          },
+        },
+        resource: true,
+        adverts: true,
+        collections: {
+          with: {
+            collection: {
+              with: {
+                creator: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                  },
+                },
+                content: true,
+              },
+            },
+          },
+        },
+      },
+      columns: {
+        searchVector: false, // Exclude search vector from results
+      },
+    });
+  }
+
+  // Batch increment views for multiple materials
+  async batchIncrementViews(materialIds: string[]): Promise<void> {
+    if (materialIds.length === 0) {
+      return;
+    }
+
+    await this.db
+      .update(material)
+      .set({
+        views: sql`${material.views} + 1`,
+      } as any)
+      .where(inArray(material.id, materialIds));
+  }
+
+  // Batch track recent views for a user
+  async batchTrackRecentViews(
+    userId: string,
+    materialIds: string[],
+  ): Promise<void> {
+    if (materialIds.length === 0) {
+      return;
+    }
+
+    // Delete existing records first
+    await this.db
+      .delete(recent)
+      .where(
+        and(eq(recent.userId, userId), inArray(recent.materialId, materialIds)),
+      );
+
+    // Insert new records
+    const recentRecords = materialIds.map((materialId) => ({
+      userId,
+      materialId,
+    }));
+
+    await this.db.insert(recent).values(recentRecords);
+  }
 }

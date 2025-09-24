@@ -37,6 +37,7 @@ import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.
 import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 import { ProcessGDriveUrlDto, PreviewResult } from './dto/preview.dto';
 import { PreviewService } from './services/preview.service';
+import { BatchFindMaterialsDto } from './dto/batch-find-materials.dto';
 @Controller('materials')
 @UseInterceptors(CacheControlInterceptor)
 export class MaterialController {
@@ -222,6 +223,29 @@ export class MaterialController {
     return ResponseDto.createSuccessResponse(
       'Google Drive preview generated successfully',
       result,
+    );
+  }
+
+  @Get('batch')
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false }) // Optional authentication - accessible to both guests and signed-in users
+  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  async findMaterialsBatch(
+    @Query() batchFindDto: BatchFindMaterialsDto,
+    @CurrentUser() user?: UserEntity,
+  ) {
+    const materials = await this.materialService.findManyByIds(
+      batchFindDto.materialIds,
+      user?.id,
+    );
+
+    return ResponseDto.createSuccessResponse(
+      `${materials.length} materials retrieved successfully`,
+      {
+        materials,
+        found: materials.length,
+        requested: batchFindDto.materialIds.length,
+      },
     );
   }
 

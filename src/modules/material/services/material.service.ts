@@ -572,4 +572,39 @@ export class MaterialService {
       },
     };
   }
+
+  /**
+   * Batch find materials by IDs with optimized database query
+   * @param materialIds Array of material IDs to fetch
+   * @param userId Optional user ID for tracking views
+   */
+  async findManyByIds(materialIds: string[], userId?: string) {
+    try {
+      if (materialIds.length === 0) {
+        return [];
+      }
+
+      // Use optimized batch query
+      const materials =
+        await this.materialRepository.findManyByIds(materialIds);
+
+      // Track views if user is provided (batch operation)
+      if (userId && materials.length > 0) {
+        const validMaterialIds = materials.map((m) => m.id);
+        // Run these operations in parallel for better performance
+        await Promise.all([
+          this.materialRepository.batchIncrementViews(validMaterialIds),
+          this.materialRepository.batchTrackRecentViews(
+            userId,
+            validMaterialIds,
+          ),
+        ]);
+      }
+
+      return materials;
+    } catch (error) {
+      logger.error(`Failed to batch find materials: ${error.message}`);
+      throw new InternalServerErrorException('Failed to retrieve materials');
+    }
+  }
 }
