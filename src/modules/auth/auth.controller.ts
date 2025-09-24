@@ -260,12 +260,14 @@ export class AuthController {
     const userFirstName = userGoogleData.given_name;
     const userLastName = userGoogleData.family_name;
     const googleId = userGoogleData.sub;
+    const profilePictureUrl = userGoogleData.picture;
 
     const user = await this.authService.validateUserWithGoogle(
       userEmail,
       userFirstName,
       userLastName,
       googleId,
+      profilePictureUrl,
     );
 
     const accessToken = await this.authService.generateToken(user.id);

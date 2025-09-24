@@ -6,12 +6,18 @@ import { DatabaseModule } from '@app/common/modules/database/database.module';
 import { DepartmentModule } from 'src/modules/department/department.module';
 import { CoursesModule } from '../courses/courses.module';
 import { UsernameGeneratorHelper } from '../../utils/helpers/username-generator.helper';
+import { StorageService } from '../../utils/storage/storage.service';
 
 @Global()
 @Module({
   imports: [DatabaseModule, DepartmentModule, CoursesModule],
   controllers: [UserController],
-  providers: [UserService, UserRepository, UsernameGeneratorHelper],
+  providers: [
+    UserService,
+    UserRepository,
+    UsernameGeneratorHelper,
+    StorageService,
+  ],
   exports: [UserService],
 })
 export class UserModule {}

@@ -16,6 +16,9 @@ import { CoursesRepository } from '../courses/courses.repository';
 import { AddBookmarkDto } from './dto/bookmark.dto';
 import { PaginationDto } from '../../../libs/common/src/dto/pagination.dto';
 import { UserEntity } from '@app/common/types/db.types';
+import { StorageService } from '../../utils/storage/storage.service';
+import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
+import { MulterFile } from '@app/common/types';
 
 @Injectable()
 export class UserService {
@@ -25,6 +28,7 @@ export class UserService {
     private readonly departmentService: DepartmentService,
     private readonly coursesRepository: CoursesRepository,
     private readonly usernameGenerator: UsernameGeneratorHelper,
+    private readonly storageService: StorageService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -551,6 +555,62 @@ export class UserService {
       throw new InternalServerErrorException(
         `Error retrieving bookmark ${bookmarkId} for user ${userId}: ${error.message}`,
       );
+    }
+  }
+
+  // Update user profile picture
+  async updateProfilePicture(
+    userId: string,
+    file: MulterFile,
+  ): Promise<{ profilePicture: string }> {
+    try {
+      // Get current user to check existing profile picture
+      const currentUser = await this.findOne(userId);
+
+      // Upload new profile picture to storage
+      const { publicUrl } = await this.storageService.uploadFile(
+        file,
+        'public',
+        'profile-pictures',
+      );
+
+      // Update user record with new profile picture URL
+      await this.userRepository.update(userId, { profilePicture: publicUrl });
+
+      // Delete old profile picture if it exists
+      if (currentUser.profilePicture) {
+        const oldFileKey = this.extractFileKeyFromUrl(
+          currentUser.profilePicture,
+        );
+        if (oldFileKey) {
+          await this.storageService.deleteFile(oldFileKey, 'public');
+        }
+      }
+
+      return { profilePicture: publicUrl };
+    } catch (error) {
+      this.logger.error(
+        `Error updating profile picture for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error updating profile picture: ${error.message}`,
+      );
+    }
+  }
+
+  // Helper method to extract file key from URL
+  private extractFileKeyFromUrl(url: string): string | null {
+    try {
+      const urlParts = url.split('/');
+      const bucketIndex = urlParts.findIndex((part) => part.includes('uninav'));
+      if (bucketIndex !== -1 && bucketIndex + 1 < urlParts.length) {
+        return urlParts.slice(bucketIndex + 1).join('/');
+      }
+      return null;
+    } catch (error) {
+      this.logger.warn(`Failed to extract file key from URL: ${url}`);
+      return null;
     }
   }
 }

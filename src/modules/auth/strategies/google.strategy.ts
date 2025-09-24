@@ -34,7 +34,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       const userEmail = emails?.[0]?.value;
       const userFirstName = name?.givenName;
       const userLastName = name?.familyName;
-      // const userProfilePhoto = photos?.[0]?.value; // You might want to store this
+      const userProfilePhoto = photos?.[0]?.value; // Google profile picture URL
 
       if (!userEmail) {
         return done(new Error('No email found in Google profile'), false);
@@ -45,6 +45,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         userFirstName,
         userLastName,
         googleId,
+        userProfilePhoto,
       );
       return done(null, user);
     } catch (error) {

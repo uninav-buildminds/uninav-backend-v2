@@ -387,6 +387,7 @@ export class AuthService {
     firstName: string,
     lastName: string,
     googleId: string,
+    profilePictureUrl?: string,
   ): Promise<UserEntity> {
     this.logger.log(
       `Attempting Google validation for email: ${email}, googleId: ${googleId}`,
@@ -409,6 +410,14 @@ export class AuthService {
         );
         // User exists, link their Google ID
         await this.userService.update(user.id, { googleId });
+
+        // Save Google profile picture if provided and user doesn't have one
+        if (profilePictureUrl && user.profilePicture === null) {
+          await this.userService.update(user.id, {
+            profilePicture: profilePictureUrl,
+          });
+        }
+
         // Re-fetch to get potentially updated relations or ensure data consistency
         const updatedUser = await this.userService.findOne(user.id);
         if (!updatedUser) {
@@ -470,6 +479,13 @@ export class AuthService {
     this.logger.log(
       `New user created and auth record established for googleId: ${googleId}`,
     );
+
+    // Save Google profile picture for new user if provided
+    if (profilePictureUrl && createdUser.profilePicture === null) {
+      await this.userService.update(createdUser.id, {
+        profilePicture: profilePictureUrl,
+      });
+    }
 
     this.eventsEmitter.sendEmail({
       to: createdUser.email,

@@ -36,6 +36,7 @@ export const users = pgTable(
     }),
     level: integer('level'),
     role: userRoleEnum('role').default('student'),
+    profilePicture: text('profile_picture'),
     ...timestamps,
   },
   (table) => ({
