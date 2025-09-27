@@ -21,16 +21,18 @@ export class CreateUserDto {
   @IsNotEmpty()
   email: string;
 
+  @IsOptional()
   @IsString()
-  departmentId: string;
+  departmentId?: string;
 
   @IsOptional()
   @IsEnum(UserRoleEnum)
   role?: UserRoleEnum;
 
+  @IsOptional()
   @IsNumber()
   @IsIn([100, 200, 300, 400, 500, 600, 700])
-  level: number;
+  level?: number;
 
   username?: string; // generated from start
 

@@ -103,22 +103,24 @@ export class AuthService {
       );
     }
 
-    // Get department name for the welcome email
-    const department = await this.departmentService.findOne(
-      createStudentDto.departmentId,
-    );
-
-    // Send welcome email
     const welcomeEmailPayload: EmailPayloadDto = {
       to: createStudentDto.email,
       type: EmailType.WELCOME_STUDENT,
       context: {
         firstName: createStudentDto.firstName,
         lastName: createStudentDto.lastName,
-        departmentName: department.name,
         role: createdUser.role,
       },
     };
+
+    // Get department name for the welcome email if departmentId is provided
+    if (createStudentDto.departmentId) {
+      const department = await this.departmentService.findOne(
+        createStudentDto.departmentId,
+      );
+      welcomeEmailPayload.context['departmentName'] = department.name;
+    }
+    // Send welcome email
     this.eventsEmitter.sendEmail(welcomeEmailPayload);
 
     return createdUser;
@@ -503,11 +505,6 @@ export class AuthService {
   async setCookie(res: Response, token: string) {
     // for cookies
     res.cookie('authorization', token, globalCookieOptions);
-    // To let frontend know user is logged in (for UI purposes)
-    res.cookie('logged_in', true, {
-      ...globalCookieOptions,
-      httpOnly: false,
-    });
 
     // for sessions  (if not using cookies)
     res.header('authorization', `Bearer ${token}`);
