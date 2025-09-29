@@ -40,13 +40,14 @@ export class StorageService {
     this.privateBucket = this.configService.get(ENV.IDRIVE_PRIVATE_BUCKET);
   }
 
-  /**
-   * Upload a file to IDrive storage
-   * @param file The file to upload
-   * @param bucketType 'public' or 'private' - determines which bucket to use
-   * @param folder Optional folder path within the bucket (e.g., 'media', 'docs', 'blogs')
-   * @returns The URL of the uploaded file and file key
-   */
+  static generatePublicUrl(
+    endpoint: string,
+    bucket: string,
+    fileKey: string,
+  ): string {
+    return `${endpoint}/${bucket}/${fileKey}`;
+  }
+
   async uploadFile(
     file: MulterFile,
     bucketType: 'public' | 'private' = 'public',
@@ -55,7 +56,6 @@ export class StorageService {
     const bucket =
       bucketType === 'public' ? this.publicBucket : this.privateBucket;
 
-    // Create file key with optional folder structure
     const fileName = `${randomUUID()}-${file.originalname.replace(/\s+/g, '_')}`;
     const fileKey = folder ? `${folder}/${fileName}` : fileName;
 
@@ -76,27 +76,18 @@ export class StorageService {
       );
     }
 
-    // Return the public URL and file key
-    return { publicUrl: `${this.endpoint}/${bucket}/${fileKey}`, fileKey };
+    return {
+      publicUrl: await this.getSignedUrl(fileKey, 3600 * 24 * 7, false),
+      fileKey,
+    };
   }
 
-  /**
-   * Upload a blog image to the public bucket under media folder
-   * @param file The image file to upload
-   * @returns Object containing the public URL and file key
-   */
   async uploadBlogImage(
     file: MulterFile,
   ): Promise<{ publicUrl: string; fileKey: string }> {
     return this.uploadFile(file, 'public', 'media');
   }
 
-  /**
-   * Upload blog content (markdown) to the public bucket under blogs folder
-   * @param content The markdown content as string
-   * @param blogId Optional blog ID to use in the file key
-   * @returns Object containing the public URL and file key
-   */
   async uploadBlogContent(
     content: string,
     blogId?: string,
@@ -118,7 +109,11 @@ export class StorageService {
       });
 
       return {
-        publicUrl: `${this.endpoint}/${this.publicBucket}/${fileKey}`,
+        publicUrl: StorageService.generatePublicUrl(
+          this.endpoint,
+          this.publicBucket,
+          fileKey,
+        ),
         fileKey,
       };
     } catch (error) {
@@ -132,12 +127,6 @@ export class StorageService {
     }
   }
 
-  /**
-   * Update existing blog content in the public bucket
-   * @param content The new markdown content
-   * @param fileKey The existing file key
-   * @returns Object containing the public URL and file key
-   */
   async updateBlogContent(
     content: string,
     fileKey: string,
@@ -154,7 +143,11 @@ export class StorageService {
       });
 
       return {
-        publicUrl: `${this.endpoint}/${this.publicBucket}/${fileKey}`,
+        publicUrl: StorageService.generatePublicUrl(
+          this.endpoint,
+          this.publicBucket,
+          fileKey,
+        ),
         fileKey,
       };
     } catch (error) {
@@ -168,11 +161,6 @@ export class StorageService {
     }
   }
 
-  /**
-   * Fetch blog content from the public bucket
-   * @param fileKey The key of the content file
-   * @returns The markdown content as string
-   */
   async getBlogContent(fileKey: string): Promise<string> {
     try {
       const command = new GetObjectCommand({
@@ -191,14 +179,6 @@ export class StorageService {
     }
   }
 
-  /**
-   * Get a signed URL for a file in the storage
-   * @param fileKey The file key/path in the bucket
-   * @param expiry Expiry time in seconds
-   * @param forDownload Whether the URL is for download (with attachment disposition)
-   * @param bucketType 'public' or 'private' - determines which bucket to use
-   * @returns A signed URL for accessing the file
-   */
   async getSignedUrl(
     fileKey: string,
     expiry: number,
@@ -206,22 +186,18 @@ export class StorageService {
     bucketType: 'public' | 'private' = 'public',
   ): Promise<string> {
     try {
-      // Determine which bucket to use
       const bucketName =
         bucketType === 'public' ? this.publicBucket : this.privateBucket;
 
-      // Create the command with appropriate parameters
       const command = new GetObjectCommand({
         Bucket: bucketName,
         Key: fileKey,
       });
 
-      // Add response content disposition for downloads if needed
       if (forDownload) {
         command.input.ResponseContentDisposition = 'attachment';
       }
 
-      // Generate the signed URL using the AWS SDK
       const url = await getSignedUrl(this.s3, command, { expiresIn: expiry });
       return url;
     } catch (error) {
@@ -233,17 +209,11 @@ export class StorageService {
     }
   }
 
-  /**
-   * Delete a file from IDrive storage
-   * @param fileKey The key of the file in the bucket
-   * @param bucketType 'public' or 'private' - determines which bucket to use
-   * @returns True if deletion was successful
-   */
   async deleteFile(
     fileKey: string,
     bucketType: 'public' | 'private' = 'public',
   ): Promise<boolean> {
-    if (!fileKey) return true; // Skip if no file key
+    if (!fileKey) return true;
 
     const bucket =
       bucketType === 'public' ? this.publicBucket : this.privateBucket;
