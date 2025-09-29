@@ -387,65 +387,64 @@ export class MaterialRepository {
       };
     } else {
       // Use standard search without user preferences
-      // Define order by
-      let orderByFields = [
-        desc(material.createdAt), // Default ordering
-        desc(material.likes),
-        desc(material.downloads),
-        desc(material.views),
-      ];
+      // Destructure unwanted fields from material table columns
+      let { searchVector, ...rest } = getTableColumns(material);
+
+      // Build order by clause
+      const orderByClause = [];
 
       // If query was provided, sort by rank first using the vector index
       if (query && query.trim() !== '') {
-        orderByFields = [
+        orderByClause.push(
           desc(
             sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query}))`,
           ),
-          ...orderByFields,
-        ];
+        );
       }
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      // Add default ordering
+      orderByClause.push(
+        desc(material.createdAt),
+        desc(material.likes),
+        desc(material.downloads),
+        desc(material.views),
+      );
 
-      const data = await this.db.query.material.findMany({
-        where: whereClause,
-        orderBy: orderByFields,
-        with: {
+      const data = await this.db
+        .select({
+          ...rest,
+          // Creator fields
           creator: {
-            columns: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              username: true,
-            },
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            username: users.username,
           },
+          // Target course fields
           targetCourse: {
-            columns: {
-              id: true,
-              courseName: true,
-              courseCode: true,
-            },
+            id: courses.id,
+            courseName: courses.courseName,
+            courseCode: courses.courseCode,
           },
           ...(includeReviewer
             ? {
                 reviewedBy: {
-                  columns: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    username: true,
-                  },
+                  id: users.id,
+                  firstName: users.firstName,
+                  lastName: users.lastName,
+                  username: users.username,
                 },
               }
             : {}),
-        },
-        columns: {
-          searchVector: false,
-        },
-        limit,
-        offset,
-      });
+        })
+        .from(material)
+        .leftJoin(users, eq(material.creatorId, users.id))
+        .leftJoin(courses, eq(material.targetCourseId, courses.id))
+        .where(whereCondition)
+        .orderBy(...orderByClause)
+        .limit(limit)
+        .offset(offset)
+        .execute();
 
       return {
         items: data,
