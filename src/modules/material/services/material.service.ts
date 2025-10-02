@@ -92,8 +92,9 @@ export class MaterialService {
         file,
       );
 
-      // Increment upload count for the user
+      // Increment upload count and allocate upload points (5 points)
       await this.userService.incrementUploadCount(createMaterialDto.creatorId);
+      await this.userService.allocateUploadPoints(createMaterialDto.creatorId);
 
       // Return complete material with resource
       const materialWithResource = await this.materialRepository.findOne(
@@ -612,7 +613,7 @@ export class MaterialService {
   }
 
   /**
-   * Track a material download and increment user's download count
+   * Track a material download, increment user's download count, and allocate points
    */
   async trackDownload(materialId: string, userId: string): Promise<void> {
     try {
@@ -622,8 +623,9 @@ export class MaterialService {
         throw new NotFoundException('Material not found');
       }
 
-      // Increment user's download count
+      // Increment user's download count and allocate download points (5 points)
       await this.userService.incrementDownloadCount(userId);
+      await this.userService.allocateDownloadPoints(userId);
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;

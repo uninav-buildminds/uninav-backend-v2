@@ -8,8 +8,8 @@ import { CoursesModule } from '../courses/courses.module';
 import { UsernameGeneratorHelper } from '../../utils/helpers/username-generator.helper';
 import { StorageService } from '../../utils/storage/storage.service';
 import { PointsController } from './submodules/stats/points.controller';
-import { PointsService } from 'src/modules/user/submodules/stats/points.service';
-import { PointsRepository } from 'src/modules/user/submodules/stats/points.repository';
+import { PointsService } from './submodules/stats/points.service';
+import { PointsRepository } from './submodules/stats/points.repository';
 
 @Global()
 @Module({
@@ -23,6 +23,6 @@ import { PointsRepository } from 'src/modules/user/submodules/stats/points.repos
     UsernameGeneratorHelper,
     StorageService,
   ],
-  exports: [UserService],
+  exports: [UserService, PointsService],
 })
 export class UserModule {}

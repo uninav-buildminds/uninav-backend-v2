@@ -19,6 +19,7 @@ import { UserEntity } from '@app/common/types/db.types';
 import { StorageService } from '../../utils/storage/storage.service';
 import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
 import { MulterFile } from '@app/common/types';
+import { PointsService } from './submodules/stats/points.service';
 
 @Injectable()
 export class UserService {
@@ -28,6 +29,7 @@ export class UserService {
     private readonly departmentService: DepartmentService,
     private readonly coursesRepository: CoursesRepository,
     private readonly usernameGenerator: UsernameGeneratorHelper,
+    private readonly pointsService: PointsService,
     private readonly storageService: StorageService,
   ) {}
 
@@ -620,5 +622,13 @@ export class UserService {
 
   async incrementDownloadCount(userId: string) {
     await this.userRepository.incrementDownloadCount(userId);
+  }
+
+  async allocateUploadPoints(userId: string) {
+    await this.pointsService.allocateUploadPoints(userId);
+  }
+
+  async allocateDownloadPoints(userId: string) {
+    await this.pointsService.allocateDownloadPoints(userId);
   }
 }

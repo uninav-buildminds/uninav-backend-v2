@@ -11,6 +11,7 @@ export const materialTypeEnum = pgEnum('material_type', [
   'pdf',
   'ppt',
   'excel',
+  'youtube',
   'gdrive',
   'image',
   'video',

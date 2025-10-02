@@ -73,4 +73,15 @@ export class PointsRepository {
 
     return Number(result[0]?.total || 0);
   }
+
+  /**
+   * Allocate points immediately without checking daily limits
+   * Used for uploads and downloads
+   */
+  async allocatePointsImmediate(userId: string, amount: number): Promise<void> {
+    await this.db.insert(points).values({
+      userId,
+      amount,
+    } as any);
+  }
 }
