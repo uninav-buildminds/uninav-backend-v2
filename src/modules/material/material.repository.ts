@@ -80,6 +80,7 @@ export class MaterialRepository {
             firstName: true,
             lastName: true,
             username: true,
+            profilePicture: true,
             departmentId: true,
             level: true,
           },
