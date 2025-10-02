@@ -16,3 +16,4 @@ export * from './material-likes.schema';
 export * from './blog-likes.schema';
 export * from './recent.schema';
 export * from './admin.schema';
+export * from './points.schema';

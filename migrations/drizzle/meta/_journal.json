@@ -71,6 +71,13 @@
       "when": 1758681439261,
       "tag": "0009_curious_archangel",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1759367621701,
+      "tag": "0010_skinny_polaris",
+      "breakpoints": true
     }
   ]
 }

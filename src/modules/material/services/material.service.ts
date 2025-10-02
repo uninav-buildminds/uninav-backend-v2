@@ -92,6 +92,9 @@ export class MaterialService {
         file,
       );
 
+      // Increment upload count for the user
+      await this.userService.incrementUploadCount(createMaterialDto.creatorId);
+
       // Return complete material with resource
       const materialWithResource = await this.materialRepository.findOne(
         material.id,
@@ -605,6 +608,28 @@ export class MaterialService {
     } catch (error) {
       logger.error(`Failed to batch find materials: ${error.message}`);
       throw new InternalServerErrorException('Failed to retrieve materials');
+    }
+  }
+
+  /**
+   * Track a material download and increment user's download count
+   */
+  async trackDownload(materialId: string, userId: string): Promise<void> {
+    try {
+      // Verify material exists
+      const material = await this.materialRepository.findOne(materialId);
+      if (!material) {
+        throw new NotFoundException('Material not found');
+      }
+
+      // Increment user's download count
+      await this.userService.incrementDownloadCount(userId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      logger.error(`Failed to track download: ${error.message}`);
+      throw new InternalServerErrorException('Failed to track download');
     }
   }
 }

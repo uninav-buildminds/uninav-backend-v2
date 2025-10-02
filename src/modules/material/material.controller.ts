@@ -102,7 +102,7 @@ export class MaterialController {
   @Get('recent')
   @UseGuards(RolesGuard)
   @Roles() // Requires authentication (strict mode by default)
-  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  @CacheControl({ public: false, maxAge: 0 }) // No cache - user-specific and changes frequently
   async getRecentMaterials(
     @CurrentUser() user: UserEntity,
     @Query('page') page: number = 1,
@@ -127,13 +127,6 @@ export class MaterialController {
       'Resource retrieved successfully',
       resource,
     );
-  }
-
-  @Post('downloaded/:id')
-  @HttpCode(HttpStatus.OK)
-  async trackDownload(@Param('id') id: string) {
-    await this.materialService.incrementDownloads(id);
-    return ResponseDto.createSuccessResponse('Download tracked successfully');
   }
 
   @Get('download/:id')
@@ -246,6 +239,20 @@ export class MaterialController {
         found: materials.length,
         requested: batchFindDto.materialIds.length,
       },
+    );
+  }
+
+  @Post(':id/download')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async trackDownload(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+  ) {
+    await this.materialService.trackDownload(id, user.id);
+    return ResponseDto.createSuccessResponse(
+      'Download tracked successfully',
+      null,
     );
   }
 

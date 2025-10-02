@@ -20,4 +20,5 @@ export const TABLES = {
   MATERIAL_LIKES: 'material_likes',
   RECENT: 'recent',
   ADMIN: 'admin',
+  POINTS: 'points',
 } as const;

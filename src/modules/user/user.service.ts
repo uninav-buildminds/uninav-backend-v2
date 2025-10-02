@@ -613,4 +613,12 @@ export class UserService {
       return null;
     }
   }
+
+  async incrementUploadCount(userId: string) {
+    await this.userRepository.incrementUploadCount(userId);
+  }
+
+  async incrementDownloadCount(userId: string) {
+    await this.userRepository.incrementDownloadCount(userId);
+  }
 }

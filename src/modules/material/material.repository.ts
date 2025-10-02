@@ -639,18 +639,19 @@ export class MaterialRepository {
   }
 
   async trackRecentView(userId: string, materialId: string): Promise<void> {
-    // Delete existing record if it exists
-    await this.db
-      .delete(recent)
-      .where(and(eq(recent.userId, userId), eq(recent.materialId, materialId)))
-      .execute();
-
-    // Insert new record with current timestamp
+    // Use upsert pattern to insert or update the lastViewedAt timestamp
     await this.db
       .insert(recent)
       .values({
         userId,
         materialId,
+        lastViewedAt: new Date(), // Explicitly set to current time
+      })
+      .onConflictDoUpdate({
+        target: [recent.userId, recent.materialId],
+        set: {
+          lastViewedAt: new Date(), // Update to current time on conflict
+        },
       })
       .execute();
   }

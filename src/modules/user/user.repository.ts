@@ -38,7 +38,7 @@ export class UserRepository {
     });
   }
   async getProfile(id: string) {
-    return this.db.query.users.findFirst({
+    const user = await this.db.query.users.findFirst({
       where: (user, { eq }) => eq(user.id, id),
       with: {
         department: true,
@@ -50,6 +50,24 @@ export class UserRepository {
         },
       },
     });
+
+    if (!user) {
+      return null;
+    }
+
+    // Count bookmarks for this user
+    const bookmarkCountResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(bookmarks)
+      .where(eq(bookmarks.userId, id))
+      .execute();
+
+    const bookmarkCount = Number(bookmarkCountResult[0]?.count || 0);
+
+    return {
+      ...user,
+      bookmarkCount,
+    };
   }
 
   async findByEmail(email: string) {
@@ -307,5 +325,19 @@ export class UserRepository {
         eq(bookmarks.materialId, materialId),
       ),
     });
+  }
+
+  async incrementUploadCount(userId: string) {
+    await this.db
+      .update(users)
+      .set({ uploadCount: sql`${users.uploadCount} + 1` } as any)
+      .where(eq(users.id, userId));
+  }
+
+  async incrementDownloadCount(userId: string) {
+    await this.db
+      .update(users)
+      .set({ downloadCount: sql`${users.downloadCount} + 1` } as any)
+      .where(eq(users.id, userId));
   }
 }
