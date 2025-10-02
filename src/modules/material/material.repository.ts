@@ -646,12 +646,12 @@ export class MaterialRepository {
         userId,
         materialId,
         lastViewedAt: new Date(), // Explicitly set to current time
-      })
+      } as any)
       .onConflictDoUpdate({
         target: [recent.userId, recent.materialId],
         set: {
           lastViewedAt: new Date(), // Update to current time on conflict
-        },
+        } as any,
       })
       .execute();
   }
