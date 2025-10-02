@@ -57,6 +57,10 @@ export class CreateMaterialDto extends ResourceDto {
   @IsUUID()
   targetCourseId?: string;
 
+  @IsOptional()
+  @IsString()
+  previewUrl?: string;
+
   creatorId: string;
   reviewStatus?: ApprovalStatus;
   reviewedById?: string;
