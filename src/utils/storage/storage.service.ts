@@ -77,7 +77,12 @@ export class StorageService {
     }
 
     return {
-      publicUrl: await this.getSignedUrl(fileKey, 3600 * 24 * 7, false),
+      publicUrl: await this.getSignedUrl(
+        fileKey,
+        3600 * 24 * 7,
+        false,
+        'private',
+      ),
       fileKey,
     };
   }
