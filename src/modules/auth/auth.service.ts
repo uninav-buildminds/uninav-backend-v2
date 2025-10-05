@@ -20,6 +20,7 @@ import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { cryptoService } from 'src/utils/crypto/crypto.service';
 import { DepartmentService } from 'src/modules/department/department.service';
+import { NotificationsService } from 'src/modules/notifications/notifications.service';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ModeratorService } from 'src/modules/user/submodules/moderator/moderator.service';
@@ -42,6 +43,7 @@ export class AuthService {
     @Inject(JWT_SYMBOL) private jwtService: JwtService,
     private readonly adminService: AdminService,
     private readonly moderatorService: ModeratorService,
+    private readonly notificationsService: NotificationsService,
   ) {
     this.BCRYPT_SALT = bcrypt.genSaltSync(
       +this.configService.get(ENV.BCRYPT_SALT_ROUNDS),
@@ -223,6 +225,14 @@ export class AuthService {
           },
         };
         this.eventsEmitter.sendEmail(successEmailPayload);
+
+        // In-app notification
+        await this.notificationsService.create(
+          auth.userId,
+          'email_verified',
+          'Email Verified',
+          'Your email has been verified successfully.',
+        );
 
         return { verified: true, user };
       } catch (jwtError) {

@@ -23,6 +23,7 @@ import { AdvertModule } from 'src/modules/advert/advert.module';
 import { ReviewModule } from './modules/review/review.module';
 import { CommonModule } from '@app/common';
 import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.middleware';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.mi
     }),
     AdvertModule,
     ReviewModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

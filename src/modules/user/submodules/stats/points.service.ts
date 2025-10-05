@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { NotificationsService } from 'src/modules/notifications/notifications.service';
 import { PointsRepository } from './points.repository';
 
 // Point allocation constants
@@ -10,7 +11,10 @@ export const POINTS_CONFIG = {
 
 @Injectable()
 export class PointsService {
-  constructor(private readonly pointsRepository: PointsRepository) {}
+  constructor(
+    private readonly pointsRepository: PointsRepository,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Allocate reading points to a user (once per day)
@@ -20,6 +24,14 @@ export class PointsService {
       userId,
       POINTS_CONFIG.READING_PER_DAY,
     );
+    if (allocated) {
+      await this.notificationsService.create(
+        userId,
+        'points_awarded',
+        'Points Awarded',
+        `You earned ${POINTS_CONFIG.READING_PER_DAY} point for reading today.`,
+      );
+    }
     return { allocated };
   }
 
@@ -31,6 +43,12 @@ export class PointsService {
       userId,
       POINTS_CONFIG.UPLOAD,
     );
+    await this.notificationsService.create(
+      userId,
+      'points_awarded',
+      'Points Awarded',
+      `You earned ${POINTS_CONFIG.UPLOAD} points for uploading a material.`,
+    );
   }
 
   /**
@@ -40,6 +58,12 @@ export class PointsService {
     await this.pointsRepository.allocatePointsImmediate(
       userId,
       POINTS_CONFIG.DOWNLOAD,
+    );
+    await this.notificationsService.create(
+      userId,
+      'points_awarded',
+      'Points Awarded',
+      `You earned ${POINTS_CONFIG.DOWNLOAD} point(s) for downloading a material.`,
     );
   }
 

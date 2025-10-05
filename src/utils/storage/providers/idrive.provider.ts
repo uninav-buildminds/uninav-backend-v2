@@ -68,7 +68,6 @@ export class IDriveProvider implements IStorageProvider {
         originalName: file.originalname,
         uploadedBy: 'storage-service',
         uploadedAt: new Date().toISOString(),
-        bucketType: bucketType,
       },
     };
 

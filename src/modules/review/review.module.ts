@@ -9,6 +9,7 @@ import { MaterialReviewController } from 'src/modules/review/controllers/materia
 import { BlogReviewController } from 'src/modules/review/controllers/blog-review.controller';
 import { AdvertReviewController } from './controllers/advert-review.controller';
 import { AdvertModule } from 'src/modules/advert/advert.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AdvertModule } from 'src/modules/advert/advert.module';
     MaterialModule,
     BlogModule,
     AdvertModule,
+    NotificationsModule,
   ],
   controllers: [
     CourseReviewController,

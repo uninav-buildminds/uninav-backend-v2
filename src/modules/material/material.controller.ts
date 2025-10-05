@@ -35,7 +35,6 @@ import { MulterFile } from '@app/common/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
 import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
 import { CacheControl } from '@app/common/decorators/cache-control.decorator';
-import { ProcessGDriveUrlDto, PreviewResult } from './dto/preview.dto';
 import { PreviewService } from './services/preview.service';
 import { BatchFindMaterialsDto } from './dto/batch-find-materials.dto';
 @Controller('materials')
@@ -205,19 +204,7 @@ export class MaterialController {
     });
   }
 
-  @Post('test/gdrive/preview')
-  @UseGuards(RolesGuard)
-  async generateGDrivePreview(
-    @Body() processGDriveDto: ProcessGDriveUrlDto,
-  ): Promise<any> {
-    const result = await this.previewService.processGDriveUrl(
-      processGDriveDto.url,
-    );
-    return ResponseDto.createSuccessResponse(
-      'Google Drive preview generated successfully',
-      result,
-    );
-  }
+  // Removed: GDrive preview generation endpoint; previews are now handled on the frontend.
 
   @Get('batch')
   @UseGuards(RolesGuard)

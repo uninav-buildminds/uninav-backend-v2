@@ -34,6 +34,7 @@ export class MaterialReviewController {
     private readonly materialService: MaterialService,
     private readonly userService: UserService,
     private readonly eventsEmitter: EventsEmitter,
+    private readonly notificationsService: import('../../notifications/notifications.service').NotificationsService,
   ) {}
 
   @Get()
@@ -107,6 +108,25 @@ export class MaterialReviewController {
       };
       this.eventsEmitter.sendEmail(emailPayload);
     }
+
+    // Create app notification for creator
+    const actionTitle =
+      reviewActionDto.action === ApprovalStatus.APPROVED
+        ? 'Upload Approved'
+        : 'Upload Rejected';
+    const description =
+      reviewActionDto.action === ApprovalStatus.APPROVED
+        ? `Your upload '${material.label}' has been approved by a reviewer.`
+        : `Your upload '${material.label}' has been rejected${reviewActionDto.comment ? `: ${reviewActionDto.comment}` : ''}.`;
+    await this.notificationsService.create(
+      creator.id,
+      reviewActionDto.action === ApprovalStatus.APPROVED
+        ? 'material_approved'
+        : 'material_rejected',
+      actionTitle,
+      description,
+      material.id,
+    );
 
     return ResponseDto.createSuccessResponse(
       `Material ${reviewActionDto.action} successfully`,

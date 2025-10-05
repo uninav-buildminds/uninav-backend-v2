@@ -21,4 +21,5 @@ export const TABLES = {
   RECENT: 'recent',
   ADMIN: 'admin',
   POINTS: 'points',
+  NOTIFICATIONS: 'notifications',
 } as const;
