@@ -119,6 +119,16 @@ export class MaterialController {
     );
   }
 
+  @Get('popular')
+  @CacheControl({ public: true, maxAge: 300 })
+  async getPopularMaterials() {
+    const items = await this.materialService.getPopularMaterials(10);
+    return ResponseDto.createSuccessResponse(
+      'Popular materials retrieved successfully',
+      items,
+    );
+  }
+
   @Get('resource/:materialId')
   async findMaterialResource(@Param('materialId') id: string) {
     const resource = await this.materialService.findMaterialResource(id);

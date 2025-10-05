@@ -26,6 +26,7 @@ import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';
+import { NotificationsService } from 'src/modules/notifications/notifications.service';
 @Controller('review/materials')
 @UseGuards(RolesGuard)
 @Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
@@ -34,7 +35,7 @@ export class MaterialReviewController {
     private readonly materialService: MaterialService,
     private readonly userService: UserService,
     private readonly eventsEmitter: EventsEmitter,
-    private readonly notificationsService: import('../../notifications/notifications.service').NotificationsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @Get()

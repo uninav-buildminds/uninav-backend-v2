@@ -507,6 +507,10 @@ export class MaterialService {
     return this.materialRepository.getRecommendations(user, page);
   }
 
+  async getPopularMaterials(limit: number = 10) {
+    return this.materialRepository.getPopularMaterials(limit);
+  }
+
   async review(
     materialId: string,
     reviewData: {

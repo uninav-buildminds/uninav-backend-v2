@@ -26,6 +26,7 @@ import { materialLogger } from 'src/modules/material/material.module';
 import {
   users,
   userCourses as uc,
+  bookmarks,
 } from '@app/common/modules/database/schema/user.schema';
 import {
   courses,
@@ -539,6 +540,45 @@ export class MaterialRepository {
         totalPages,
       },
     };
+  }
+
+  async getPopularMaterials(limit: number = 10) {
+    // Weight: saves (bookmarks) 4x, likes 3x, downloads 2x, views 1x
+    const savesCount = sql<number>`(
+      SELECT COUNT(*)::int FROM ${bookmarks}
+      WHERE ${bookmarks.materialId} = ${material.id}
+    )`;
+
+    const score = sql<number>`(
+      4 * (${savesCount}) + 3 * ${material.likes} + 2 * ${material.downloads} + 1 * ${material.views}
+    )`;
+
+    const data = await this.db
+      .select({
+        ...getTableColumns(material),
+        saves: savesCount,
+        popularityScore: score,
+        creator: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+        },
+        targetCourse: {
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+        },
+      })
+      .from(material)
+      .leftJoin(users, eq(material.creatorId, users.id))
+      .leftJoin(courses, eq(material.targetCourseId, courses.id))
+      .where(eq(material.reviewStatus, ApprovalStatus.APPROVED))
+      .orderBy(desc(score), desc(material.createdAt))
+      .limit(limit)
+      .execute();
+
+    return data;
   }
 
   async hasUserLikedMaterial(
