@@ -6,14 +6,14 @@ import { DatabaseModule } from '@app/common/modules/database/database.module';
 import { DepartmentModule } from 'src/modules/department/department.module';
 import { CoursesModule } from '../courses/courses.module';
 import { UsernameGeneratorHelper } from '../../utils/helpers/username-generator.helper';
-import { StorageService } from '../../utils/storage/storage.service';
+import { StorageModule } from '../../utils/storage/storage.module';
 import { PointsController } from './submodules/stats/points.controller';
 import { PointsService } from './submodules/stats/points.service';
 import { PointsRepository } from './submodules/stats/points.repository';
 
 @Global()
 @Module({
-  imports: [DatabaseModule, DepartmentModule, CoursesModule],
+  imports: [DatabaseModule, DepartmentModule, CoursesModule, StorageModule],
   controllers: [PointsController, UserController],
   providers: [
     UserService,
@@ -21,7 +21,6 @@ import { PointsRepository } from './submodules/stats/points.repository';
     PointsRepository,
     UserRepository,
     UsernameGeneratorHelper,
-    StorageService,
   ],
   exports: [UserService, PointsService],
 })

@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { BlogService } from './blog.service';
 import { BlogController } from './blog.controller';
 import { BlogRepository } from './blog.repository';
-import { StorageService } from 'src/utils/storage/storage.service';
+import { StorageModule } from 'src/utils/storage/storage.module';
 import { DatabaseModule } from '@app/common/modules/database/database.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, StorageModule],
   controllers: [BlogController],
-  providers: [BlogService, BlogRepository, StorageService],
+  providers: [BlogService, BlogRepository],
   exports: [BlogService],
 })
 export class BlogModule {}

@@ -63,6 +63,7 @@ export class BlogService {
           3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
           false,
           'public', // Blog images are public
+          'cloudinary',
         );
       }
 

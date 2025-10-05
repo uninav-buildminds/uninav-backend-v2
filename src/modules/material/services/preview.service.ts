@@ -382,11 +382,14 @@ export class PreviewService {
       // Upload using StorageService
       const uploadResult = await this.storageService.uploadFile(
         file,
-        'public',
-        STORAGE_FOLDERS.MEDIA,
+        {
+          bucketType: 'public',
+          folder: STORAGE_FOLDERS.MEDIA,
+          provider: 'cloudinary', // Use Cloudinary for preview images
+        }
       );
 
-      return uploadResult.publicUrl;
+      return uploadResult.url;
     } catch (error) {
       this.logger.error(`Failed to upload preview image: ${error.message}`);
       throw new InternalServerErrorException(

@@ -43,11 +43,6 @@ export class MaterialService {
     return this.materialRepository.countByStatus(departmentId);
   }
 
-  /**
-   * Update material with preview URL
-   * @param materialId Material ID
-   * @param previewUrl Preview URL to associate
-   */
   async updateMaterialPreview(materialId: string, previewUrl: string) {
     try {
       await this.materialRepository.update(materialId, { previewUrl });
@@ -129,11 +124,10 @@ export class MaterialService {
       // Infer resource type based on input
       if (file) {
         resourceType = ResourceType.UPLOAD;
-        const uploadResult = await this.storageService.uploadFile(
-          file,
-          'private', // Store sensitive materials in private bucket
-          STORAGE_FOLDERS.DOCS,
-        );
+        const uploadResult = await this.storageService.uploadFile(file, {
+          bucketType: 'private', // Store sensitive materials in private bucket
+          folder: STORAGE_FOLDERS.DOCS,
+        });
         fileKey = uploadResult.fileKey;
         resourceAddress = await this.storageService.getSignedUrl(
           fileKey,
@@ -347,11 +341,10 @@ export class MaterialService {
         // Infer resource type and handle file/url
         if (file) {
           resourceType = ResourceType.UPLOAD;
-          const uploadResult = await this.storageService.uploadFile(
-            file,
-            'private',
-            STORAGE_FOLDERS.DOCS,
-          );
+          const uploadResult = await this.storageService.uploadFile(file, {
+            bucketType: 'private',
+            folder: STORAGE_FOLDERS.DOCS,
+          });
           fileKey = uploadResult.fileKey;
           const signedUrl = await this.storageService.getSignedUrl(
             fileKey,

@@ -5,18 +5,13 @@ import { MaterialService } from './services/material.service';
 import { MaterialController } from './material.controller';
 import { MaterialRepository } from './material.repository';
 import { DatabaseModule } from '@app/common/modules/database/database.module';
-import { StorageService } from 'src/utils/storage/storage.service';
+import { StorageModule } from 'src/utils/storage/storage.module';
 import { PreviewService } from './services/preview.service';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, StorageModule],
   controllers: [MaterialController],
-  providers: [
-    MaterialService,
-    MaterialRepository,
-    StorageService,
-    PreviewService,
-  ],
+  providers: [MaterialService, MaterialRepository, PreviewService],
   exports: [MaterialService],
 })
 export class MaterialModule {}

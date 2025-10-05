@@ -66,11 +66,12 @@ export class AdvertService {
       }
 
       // Upload image to storage (public bucket since adverts are publicly displayed)
-      const { fileKey } = await this.storageService.uploadFile(
-        image,
-        'public', // Advert images are public
-        STORAGE_FOLDERS.ADVERTS,
-      );
+      const uploadResult = await this.storageService.uploadFile(image, {
+        bucketType: 'public', // Advert images are public
+        folder: STORAGE_FOLDERS.ADVERTS,
+        provider: 'cloudinary', // Use Cloudinary for advert images
+      });
+      const { fileKey } = uploadResult;
 
       // Generate initial signed URL
       const imageUrl = await this.storageService.getSignedUrl(
@@ -78,6 +79,7 @@ export class AdvertService {
         3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS, // 7 days expiration
         false,
         'public',
+        'cloudinary',
       );
 
       let isAdminOrModerator =
@@ -194,11 +196,12 @@ export class AdvertService {
 
       if (image) {
         // Upload new image
-        const { fileKey } = await this.storageService.uploadFile(
-          image,
-          'public',
-          STORAGE_FOLDERS.ADVERTS,
-        );
+        const uploadResult = await this.storageService.uploadFile(image, {
+          bucketType: 'public',
+          folder: STORAGE_FOLDERS.ADVERTS,
+          provider: 'cloudinary', // Use Cloudinary for advert images
+        });
+        const { fileKey } = uploadResult;
 
         // Generate new signed URL
         const imageUrl = await this.storageService.getSignedUrl(
@@ -206,6 +209,7 @@ export class AdvertService {
           3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
           false,
           'public',
+          'cloudinary',
         );
 
         // Delete old image if exists

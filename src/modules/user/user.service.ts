@@ -570,11 +570,12 @@ export class UserService {
       const currentUser = await this.findOne(userId);
 
       // Upload new profile picture to storage
-      const { publicUrl } = await this.storageService.uploadFile(
-        file,
-        'public',
-        'profile-pictures',
-      );
+      const uploadResult = await this.storageService.uploadFile(file, {
+        bucketType: 'public',
+        folder: 'profile-pictures',
+        provider: 'cloudinary', // Use Cloudinary for profile pictures
+      });
+      const { url: publicUrl } = uploadResult;
 
       // Update user record with new profile picture URL
       await this.userRepository.update(userId, { profilePicture: publicUrl });
@@ -585,7 +586,11 @@ export class UserService {
           currentUser.profilePicture,
         );
         if (oldFileKey) {
-          await this.storageService.deleteFile(oldFileKey, 'public');
+          await this.storageService.deleteFile(
+            oldFileKey,
+            'public',
+            'cloudinary',
+          );
         }
       }
 
