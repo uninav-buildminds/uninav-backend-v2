@@ -63,60 +63,23 @@ export class GDriveService {
     throw lastErr || new Error('No available Google Drive API keys');
   }
 
-  async streamThumbnail(fileId: string, sz: string) {
-    const cacheKey = `gdrive:thumb:${fileId}:${sz}`;
-    const cached: { contentType?: string; buffer: Buffer } | undefined =
-      await this.cache.get(cacheKey);
-    if (cached) {
-      return {
-        contentType: cached.contentType,
-        stream: Readable.from(cached.buffer),
-      };
-    }
+  // Return the raw thumbnailLink provided by Google Drive for the file
+  async getThumbnailLink(fileId: string): Promise<string | null> {
+    const cacheKey = `gdrive:thumbUrl:${fileId}`;
+    const cached: string | undefined = await this.cache.get(cacheKey);
+    if (cached) return cached;
 
     const urlBuilder = (key: string) =>
-      `${this.baseUrl}/files/${fileId}?fields=thumbnailLink,mimeType&key=${key}`;
+      `${this.baseUrl}/files/${fileId}?fields=thumbnailLink&key=${key}`;
 
-    // Get metadata to compute thumbnail URL
     const metaRes = await this.fetchWithRotation(urlBuilder);
+    console.log('metaRes', metaRes);
     const meta = metaRes.data;
-    const sizeParam = sz || 's200';
-    // Prefer stable endpoint
-    const thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=${encodeURIComponent(
-      sizeParam,
-    )}`;
-
-    // Fetch the image
-    const imgRes = await axios.get<ArrayBuffer>(thumbnailUrl, {
-      responseType: 'arraybuffer',
-      validateStatus: () => true,
-    });
-    if (imgRes.status < 200 || imgRes.status >= 300) {
-      throw new Error(`Thumbnail fetch failed: ${imgRes.status}`);
+    const url = meta?.thumbnailLink || null;
+    if (url) {
+      // Cache the URL itself for 24h (no bytes stored)
+      await this.cache.set(cacheKey, url, 24 * 60 * 60 * 1000);
     }
-    const contentType = imgRes.headers['content-type'] || 'image/jpeg';
-    const buffer = Buffer.from(imgRes.data as ArrayBuffer);
-
-    // Cache 24h
-    await this.cache.set(
-      cacheKey,
-      { contentType, buffer },
-      24 * 60 * 60 * 1000,
-    );
-
-    return {
-      contentType,
-      stream: Readable.from(buffer),
-    };
-  }
-
-  async getThumbnailUrl(fileId: string, sz: string = 's200') {
-    const sizeParam = sz || 's200';
-    // Optionally, we could validate accessibility via metadata using key rotation,
-    // but return URL directly to avoid server load.
-    const url = `https://drive.google.com/thumbnail?id=${fileId}&sz=${encodeURIComponent(
-      sizeParam,
-    )}`;
     return url;
   }
 }

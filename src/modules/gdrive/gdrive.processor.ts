@@ -12,7 +12,8 @@ export class GDriveProcessor extends WorkerHost {
   async process(job: Job<{ fileId: string; sz?: string }>): Promise<void> {
     if (job.name === 'warm') {
       const { fileId, sz } = job.data;
-      await this.service.streamThumbnail(fileId, sz || 's200');
+      // Warm the cached thumbnail URL by fetching and caching the link only
+      await this.service.getThumbnailLink(fileId);
     }
   }
 }
