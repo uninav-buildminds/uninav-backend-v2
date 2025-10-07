@@ -582,7 +582,7 @@ export class UserService {
 
       // Delete old profile picture if it exists
       if (currentUser.profilePicture) {
-        const oldFileKey = this.extractFileKeyFromUrl(
+        const oldFileKey = this.storageService.extractFileKeyFromUrl(
           currentUser.profilePicture,
         );
         if (oldFileKey) {
@@ -606,20 +606,7 @@ export class UserService {
     }
   }
 
-  // Helper method to extract file key from URL
-  private extractFileKeyFromUrl(url: string): string | null {
-    try {
-      const urlParts = url.split('/');
-      const bucketIndex = urlParts.findIndex((part) => part.includes('uninav'));
-      if (bucketIndex !== -1 && bucketIndex + 1 < urlParts.length) {
-        return urlParts.slice(bucketIndex + 1).join('/');
-      }
-      return null;
-    } catch (error) {
-      this.logger.warn(`Failed to extract file key from URL: ${url}`);
-      return null;
-    }
-  }
+  // Removed local URL key extraction in favor of StorageService.extractFileKeyFromUrl
 
   async incrementUploadCount(userId: string) {
     await this.userRepository.incrementUploadCount(userId);
