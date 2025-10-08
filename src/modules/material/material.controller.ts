@@ -185,6 +185,26 @@ export class MaterialController {
     const result = await this.materialService.likeMaterial(id, user.id);
     return ResponseDto.createSuccessResponse(result.message, result);
   }
+  @Post('preview/upload/temp')
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('preview'))
+  async uploadTempPreview(@UploadedFile() file: MulterFile): Promise<any> {
+    if (!file) {
+      throw new BadRequestException('Preview file is required');
+    }
+
+    // Validate that it's an image
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Preview file must be an image');
+    }
+
+    // Upload the preview image to Cloudinary
+    const uploadResult = await this.previewService.uploadPreviewImage(file);
+
+    return ResponseDto.createSuccessResponse('Preview uploaded successfully', {
+      previewUrl: uploadResult,
+    });
+  }
 
   @Post('preview/upload/:materialId')
   @UseGuards(RolesGuard)
