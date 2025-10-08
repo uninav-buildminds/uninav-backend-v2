@@ -206,6 +206,34 @@ export class MaterialController {
     });
   }
 
+  @Delete('preview/cleanup/temp')
+  @UseGuards(RolesGuard)
+  async cleanupTempPreview(@Body() body: { previewUrl: string }): Promise<any> {
+    if (!body.previewUrl) {
+      throw new BadRequestException('Preview URL is required');
+    }
+
+    try {
+      // Extract file key from Cloudinary URL and delete it
+      const deleted = await this.previewService.deleteTempPreview(
+        body.previewUrl,
+      );
+
+      return ResponseDto.createSuccessResponse(
+        'Temp preview cleaned up successfully',
+        {
+          deleted,
+        },
+      );
+    } catch (error) {
+      // Don't throw error if cleanup fails - just log it
+      console.warn('Failed to cleanup temp preview:', error);
+      return ResponseDto.createSuccessResponse('Cleanup attempted', {
+        deleted: false,
+      });
+    }
+  }
+
   @Post('preview/upload/:materialId')
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('preview'))

@@ -54,6 +54,63 @@ export class PreviewService {
   }
 
   /**
+   * Delete temporary preview image from storage
+   */
+  async deleteTempPreview(previewUrl: string): Promise<boolean> {
+    try {
+      // Extract file key from Cloudinary URL
+      const fileKey = this.extractFileKeyFromCloudinaryUrl(previewUrl);
+      if (!fileKey) {
+        this.logger.warn(
+          'Could not extract file key from preview URL:',
+          previewUrl,
+        );
+        return false;
+      }
+
+      // Delete from Cloudinary
+      const deleted = await this.storageService.deleteFile(
+        fileKey,
+        'public',
+        'cloudinary',
+      );
+
+      this.logger.log(
+        `Temp preview cleanup: ${deleted ? 'success' : 'failed'}`,
+        {
+          fileKey,
+          previewUrl,
+        },
+      );
+
+      return deleted;
+    } catch (error) {
+      this.logger.error(`Failed to delete temp preview: ${error.message}`, {
+        previewUrl,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Extract file key from Cloudinary URL
+   */
+  private extractFileKeyFromCloudinaryUrl(url: string): string | null {
+    try {
+      // Cloudinary URLs typically look like:
+      // https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
+      const match = url.match(/\/image\/upload\/v\d+\/(.+)$/);
+      return match ? match[1] : null;
+    } catch (error) {
+      this.logger.warn(
+        'Failed to extract file key from Cloudinary URL:',
+        error,
+      );
+      return null;
+    }
+  }
+
+  /**
    * Check if file type is a Google Workspace file
    */
   // Removed: Google Workspace mime-type helpers.
