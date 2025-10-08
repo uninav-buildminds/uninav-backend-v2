@@ -41,11 +41,21 @@ export class MaterialService {
     return this.materialRepository.countByStatus(departmentId);
   }
 
-  async updateMaterialPreview(materialId: string, previewUrl: string) {
+  async updateMaterialPreview(
+    materialId: string,
+    previewUrl: string,
+    bypassOwnershipCheck: boolean = false,
+  ) {
     try {
+      // If bypassOwnershipCheck is true, skip ownership validation
+      if (!bypassOwnershipCheck) {
+        // Add ownership check here if needed
+        // For now, we'll allow the update
+      }
+
       await this.materialRepository.update(materialId, { previewUrl });
       logger.log(
-        `Updated material ${materialId} with preview URL: ${previewUrl}`,
+        `Updated material ${materialId} with preview URL: ${previewUrl}${bypassOwnershipCheck ? ' (root access)' : ''}`,
       );
       return { success: true, previewUrl };
     } catch (error) {

@@ -16,6 +16,7 @@ import {
   BadRequestException,
   UsePipes,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { MaterialService } from 'src/modules/material/services/material.service';
 import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
@@ -37,13 +38,24 @@ import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.
 import { CacheControl } from '@app/common/decorators/cache-control.decorator';
 import { PreviewService } from './services/preview.service';
 import { BatchFindMaterialsDto } from './dto/batch-find-materials.dto';
+import { ConfigService } from '@nestjs/config';
+import { ENV } from 'src/utils/config/env.enum';
+import { Request } from 'express';
 @Controller('materials')
 @UseInterceptors(CacheControlInterceptor)
 export class MaterialController {
   constructor(
     private readonly materialService: MaterialService,
     private readonly previewService: PreviewService,
+    private readonly configService: ConfigService,
   ) {}
+
+  // Helper method to check if request has root API key
+  private hasRootApiKey(req: Request): boolean {
+    const rootApiKey = this.configService.get<string>(ENV.ROOT_API_KEY);
+    const providedKey = req.headers['x-root-api-key'] as string;
+    return rootApiKey && providedKey === rootApiKey;
+  }
 
   @Post()
   @UseGuards(RolesGuard)
@@ -240,6 +252,7 @@ export class MaterialController {
   async uploadPreview(
     @UploadedFile() file: MulterFile,
     @Param('materialId') materialId: string,
+    @Req() req: Request,
   ): Promise<any> {
     if (!file) {
       throw new BadRequestException('Preview file is required');
@@ -253,9 +266,13 @@ export class MaterialController {
     // Upload the preview image
     const uploadResult = await this.previewService.uploadPreviewImage(file);
 
+    // Check if request has root API key to bypass ownership checks
+    const hasRootAccess = this.hasRootApiKey(req);
+
     const result = await this.materialService.updateMaterialPreview(
       materialId,
       uploadResult,
+      hasRootAccess, // Pass root access flag
     );
     return ResponseDto.createSuccessResponse('Preview uploaded successfully', {
       previewUrl: uploadResult,
