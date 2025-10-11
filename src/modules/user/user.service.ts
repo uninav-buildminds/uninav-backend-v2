@@ -623,4 +623,13 @@ export class UserService {
   async allocateDownloadPoints(userId: string) {
     await this.pointsService.allocateDownloadPoints(userId);
   }
+
+  async getTotalUsersCount(): Promise<number> {
+    try {
+      return await this.userRepository.countAll();
+    } catch (error) {
+      this.logger.error(`Error getting total users count: ${error.message}`);
+      throw new InternalServerErrorException('Failed to get total users count');
+    }
+  }
 }

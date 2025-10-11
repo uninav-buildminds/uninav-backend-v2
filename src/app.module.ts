@@ -26,6 +26,7 @@ import { ReviewModule } from './modules/review/review.module';
 import { CommonModule } from '@app/common';
 import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.middleware';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ManagementModule } from './modules/management/management.module';
 import { ENV } from 'src/utils/config/env.enum';
 
 @Module({
@@ -74,6 +75,7 @@ import { ENV } from 'src/utils/config/env.enum';
     AdvertModule,
     ReviewModule,
     NotificationsModule,
+    ManagementModule,
     GDriveModule,
   ],
   controllers: [AppController],
