@@ -4,9 +4,9 @@ import { PointsRepository } from './points.repository';
 
 // Point allocation constants
 export const POINTS_CONFIG = {
-  READING_PER_DAY: 1, // Points for reading materials (once per day)
-  UPLOAD: 5, // Points for uploading a material
-  DOWNLOAD: 0.1, // Points for downloading a material
+  READING_PER_DAY: 2, // Points for reading materials (once per day)
+  UPLOAD: 10, // Points for uploading a material
+  DOWNLOAD: 1, // Points for downloading a material
 } as const;
 
 @Injectable()

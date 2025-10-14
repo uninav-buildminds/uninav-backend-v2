@@ -200,7 +200,6 @@ export class StorageService {
   async getSignedUrl(
     fileKey: string,
     expiry: number,
-    forDownload: boolean = false,
     bucketType: 'public' | 'private' = 'public',
     provider?: StorageProviderType,
   ): Promise<string> {
@@ -209,19 +208,7 @@ export class StorageService {
       const bucket = this.getBucketForType(bucketType, provider);
       const providerInstance = this.getProvider(provider);
 
-      // For public files, return direct URL using provider-specific method
-      if (bucketType === 'public') {
-        const publicUrl = providerInstance.getPublicFileUrl(fileKey, bucket);
-
-        this.logger.log('Public file access granted', {
-          fileKey,
-          bucketType: 'public',
-        });
-
-        return publicUrl;
-      }
-
-      // For private files, generate signed URL
+      // Generate signed URL for all for now
       const signedUrl = await providerInstance.getSignedFileUrl(
         fileKey,
         bucket,
@@ -230,8 +217,9 @@ export class StorageService {
 
       this.logger.log('Private file access granted', {
         fileKey,
-        bucketType: 'private',
+        bucketType,
         expiresIn: expiry,
+        signedUrl,
       });
 
       return signedUrl;

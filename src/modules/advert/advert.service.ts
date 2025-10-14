@@ -77,7 +77,6 @@ export class AdvertService {
       const imageUrl = await this.storageService.getSignedUrl(
         fileKey,
         3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS, // 7 days expiration
-        false,
         'public',
         'cloudinary',
       );
@@ -131,7 +130,6 @@ export class AdvertService {
       const newImageUrl = await this.storageService.getSignedUrl(
         advert.fileKey,
         3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
-        false,
         'public',
       );
 
@@ -207,7 +205,6 @@ export class AdvertService {
         const imageUrl = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
-          false,
           'public',
           'cloudinary',
         );
@@ -284,7 +281,6 @@ export class AdvertService {
           const newImageUrl = await this.storageService.getSignedUrl(
             advert.fileKey,
             3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
-            false,
             'public',
           );
 

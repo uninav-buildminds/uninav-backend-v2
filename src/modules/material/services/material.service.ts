@@ -139,7 +139,6 @@ export class MaterialService {
         resourceAddress = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
-          false,
           'private',
         );
       } else if (resourceAddress) {
@@ -225,19 +224,22 @@ export class MaterialService {
 
     const { resource: materialResource } = materialWithResource;
 
+    console.log('materialResource', materialResource);
     // For uploaded resources, generate a signed URL
     if (materialResource.resourceType === ResourceType.UPLOAD) {
       // ? Check if resourceAddress link has expired
-      const isExpired = moment(material.resource.updatedAt).isBefore(
-        moment().subtract(RESOURCE_ADDRESS_EXPIRY_DAYS - 2, 'days'),
-      );
+      const isExpired =
+        true ||
+        moment(material.resource.updatedAt).isBefore(
+          moment().subtract(RESOURCE_ADDRESS_EXPIRY_DAYS - 2, 'days'),
+        );
+      console.log('material is Expired', isExpired);
       if (isExpired) {
         let fileKey = materialResource.fileKey;
         // Generate a signed URL for the file
         const signedUrl = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS, // 7 days expiration
-          false,
         );
         this.materialRepository.updateResource(id, {
           resourceAddress: signedUrl,
@@ -275,7 +277,6 @@ export class MaterialService {
       const signedUrl = await this.storageService.getSignedUrl(
         materialResource.fileKey,
         3600 * 24 * RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS, // 7 days expiration
-        true,
         'private', // Materials are stored in private bucket
       );
       return signedUrl;
@@ -337,7 +338,6 @@ export class MaterialService {
           const signedUrl = await this.storageService.getSignedUrl(
             fileKey,
             3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
-            false,
             'private',
           );
 

@@ -75,13 +75,13 @@ export class IDriveProvider implements IStorageProvider {
     await this.s3Client.send(command);
 
     // Generate URL based on bucket type
-    const url = isPublic
-      ? this.getPublicFileUrl(key, bucket)
-      : await this.getSignedFileUrl(key, bucket);
+    // const url = isPublic
+    //   ? this.getPublicFileUrl(key, bucket)
+    //   : await this.getSignedFileUrl(key, bucket);
 
     return {
       fileKey: key,
-      url,
+      url: await this.getSignedFileUrl(key, bucket),
       bucketType: isPublic ? 'public' : 'private',
       size: file.size,
       mimeType: file.mimetype,
