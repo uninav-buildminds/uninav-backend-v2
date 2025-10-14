@@ -229,7 +229,7 @@ export class MaterialService {
     if (materialResource.resourceType === ResourceType.UPLOAD) {
       // ? Check if resourceAddress link has expired
       const isExpired = moment(material.resource.updatedAt).isBefore(
-        moment().subtract(RESOURCE_ADDRESS_EXPIRY_DAYS, 'days'),
+        moment().subtract(RESOURCE_ADDRESS_EXPIRY_DAYS - 2, 'days'),
       );
       if (isExpired) {
         let fileKey = materialResource.fileKey;
