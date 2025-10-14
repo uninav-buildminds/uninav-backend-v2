@@ -240,6 +240,7 @@ export class MaterialService {
         const signedUrl = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS, // 7 days expiration
+          'private',
         );
         this.materialRepository.updateResource(id, {
           resourceAddress: signedUrl,

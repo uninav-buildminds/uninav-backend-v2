@@ -95,6 +95,8 @@ export class IDriveProvider implements IStorageProvider {
     bucket: string,
     expiresIn = 3600,
   ): Promise<string> {
+    console.log('fileKey', fileKey);
+    console.log('bucket', bucket);
     const command = new GetObjectCommand({
       Bucket: bucket,
       Key: fileKey,
