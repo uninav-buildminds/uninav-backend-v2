@@ -70,14 +70,14 @@ export enum BlogTypeEnum {
 }
 
 export enum MaterialTypeEnum {
-  DOCS = 'docs', //  doc, docx, etc.
-  PDF = 'pdf', // pdf
-  PPT = 'ppt', // ppt, pptx
-  GDRIVE = 'gdrive', // gdrive
-  EXCEL = 'excel', // excel, xls, xlsx
-  // generic
-  IMAGE = 'image', // image, jpg, jpeg, png, gif, svg, etc.
-  VIDEO = 'video', // youtube, vimeo,
+  DOCS = 'docs',
+  PDF = 'pdf',
+  PPT = 'ppt',
+  GDRIVE = 'gdrive',
+  EXCEL = 'excel',
+  IMAGE = 'image',
+  VIDEO = 'video',
+  YOUTUBE = 'youtube',
   ARTICLE = 'article',
   OTHER = 'other',
 }
