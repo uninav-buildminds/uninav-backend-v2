@@ -269,8 +269,12 @@ export class StorageService {
     }
 
     if (file.size > this.storageConfig.maxFileSize) {
+      const maxSizeMB = Math.round(
+        this.storageConfig.maxFileSize / (1024 * 1024),
+      );
+      const fileSizeMB = Math.round(file.size / (1024 * 1024));
       throw new BadRequestException(
-        `File size exceeds maximum allowed size of ${this.storageConfig.maxFileSize} bytes`,
+        `File size (${fileSizeMB}MB) exceeds maximum allowed size of ${maxSizeMB}MB`,
       );
     }
 

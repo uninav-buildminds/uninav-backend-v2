@@ -5,7 +5,7 @@ export const createStorageConfig = (configService: ConfigService) => ({
   provider:
     (configService.get('STORAGE_PROVIDER') as 'idrive' | 'cloudinary') ||
     'idrive',
-  maxFileSize: parseInt(configService.get('MAX_FILE_SIZE', '10485760')), // 10MB
+  maxFileSize: parseInt(configService.get(ENV.MAX_FILE_SIZE, '524288000')), // 500MB
   allowedMimeTypes: [
     'image/jpeg',
     'image/png',
@@ -17,6 +17,8 @@ export const createStorageConfig = (configService: ConfigService) => ({
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/plain',
     'text/markdown',
     'application/zip',
