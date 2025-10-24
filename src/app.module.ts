@@ -27,6 +27,7 @@ import { CommonModule } from '@app/common';
 import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.middleware';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ManagementModule } from './modules/management/management.module';
+import { ErrorReportsModule } from './modules/error-reports/error-reports.module';
 import { ENV } from 'src/utils/config/env.enum';
 
 @Module({
@@ -76,6 +77,7 @@ import { ENV } from 'src/utils/config/env.enum';
     ReviewModule,
     NotificationsModule,
     ManagementModule,
+    ErrorReportsModule,
     GDriveModule,
   ],
   controllers: [AppController],

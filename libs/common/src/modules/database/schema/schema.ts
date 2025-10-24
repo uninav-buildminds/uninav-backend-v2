@@ -1,6 +1,7 @@
 // Re-export all schema definitions
 export * from './user.schema';
 export * from './auth.schema';
+export * from './error-report.schema';
 export * from './moderator.schema';
 export * from './faculty.schema';
 export * from './department.schema';

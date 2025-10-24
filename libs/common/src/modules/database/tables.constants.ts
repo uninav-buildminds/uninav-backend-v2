@@ -22,4 +22,5 @@ export const TABLES = {
   ADMIN: 'admin',
   POINTS: 'points',
   NOTIFICATIONS: 'notifications',
+  ERROR_REPORTS: 'error_reports',
 } as const;
