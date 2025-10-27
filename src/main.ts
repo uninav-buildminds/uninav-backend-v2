@@ -4,10 +4,9 @@ import { EnvValidation } from 'src/utils/env.validation';
 import { AppEnum } from 'src/utils/config/app.config';
 import helmet from 'helmet';
 import { HttpExceptionFilter } from '@app/common/exceptions/http-exception-filter';
-import { StructuredLoggerService } from '@app/common/modules/logger';
-import { LoggerPaths } from 'src/utils/config/constants.config';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   console.log('Server Starting up....');
@@ -16,9 +15,8 @@ async function bootstrap() {
   console.log(`=>     http://localhost:${port}`);
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  // Set up structured logger
-  // const logger = await app.resolve(StructuredLoggerService);
-  // app.useLogger(logger);
+  // Use the pino logger from the NestJS context
+  app.useLogger(app.get(Logger));
 
   app.useGlobalPipes(
     new ValidationPipe({

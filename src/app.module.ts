@@ -24,13 +24,17 @@ import { AdvertModule } from 'src/modules/advert/advert.module';
 import { GDriveModule } from './modules/gdrive/gdrive.module';
 import { ReviewModule } from './modules/review/review.module';
 import { CommonModule } from '@app/common';
-import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.middleware';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ManagementModule } from './modules/management/management.module';
 import { ENV } from 'src/utils/config/env.enum';
+import { LoggerModule } from 'nestjs-pino';
+import { pinoConfig } from '@app/common/modules/logger';
 
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: pinoConfig,
+    }),
     CommonModule,
     DatabaseModule,
     UserModule,
@@ -93,8 +97,4 @@ import { ENV } from 'src/utils/config/env.enum';
     },
   ],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CorrelationMiddleware).forRoutes('*path');
-  }
-}
+export class AppModule {}
