@@ -68,7 +68,7 @@ export class MaterialService {
 
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
     try {
-      const { resourceAddress, metaData, ...materialData } = createMaterialDto;
+      const { resourceAddress,  ...materialData } = createMaterialDto;
 
       // Check if creator is admin/moderator and auto-approve if so
       const creator = await this.userService.findOne(
@@ -90,7 +90,6 @@ export class MaterialService {
         material.id,
         {
           resourceAddress,
-          metaData,
         },
         file,
       );
@@ -116,7 +115,7 @@ export class MaterialService {
     materialId: string,
     resourceDto: {
       resourceAddress?: string;
-      metaData?: string[];
+      metaData?: any;
       fileKey?: string;
     },
     file?: MulterFile,
@@ -127,6 +126,8 @@ export class MaterialService {
       let fileKey = resourceDto.fileKey;
       let materialType: MaterialTypeEnum;
       let gdriveMetadata: Record<string, any> | undefined;
+
+    
 
       // Infer resource type based on input
       if (file) {
@@ -161,13 +162,17 @@ export class MaterialService {
         fileKey,
       };
 
-      // Update material with type if available
+      // Update material with type and metaData if available
       const materialUpdates: any = {};
       if (materialType) {
         materialUpdates.type = materialType;
       }
       if (gdriveMetadata) {
         materialUpdates.metaData = gdriveMetadata;
+      }
+      // Add parsed metaData to material table for easy querying
+      if (Array.isArray(resourceDto.metaData) && resourceDto.metaData.length > 0) {
+        materialUpdates.metaData = resourceDto.metaData;
       }
 
       if (Object.keys(materialUpdates).length > 0) {
@@ -187,7 +192,7 @@ export class MaterialService {
   private async createMaterial(
     materialData: Omit<
       CreateMaterialDto,
-      'resourceType' | 'resourceAddress' | 'metaData'
+      'resourceType' | 'resourceAddress' 
     >,
   ) {
     try {

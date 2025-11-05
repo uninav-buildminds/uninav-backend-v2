@@ -44,7 +44,7 @@ export class MaterialRepository {
   async create(
     createMaterialDto: Omit<
       CreateMaterialDto,
-      'resourceType' | 'resourceAddress' | 'metaData'
+      'resourceType' | 'resourceAddress' 
     >,
   ): Promise<MaterialEntity> {
     const result = await this.db
@@ -200,7 +200,7 @@ export class MaterialRepository {
     resourceData: {
       resourceAddress?: string;
       resourceType?: string;
-      metaData?: string[];
+      metaData?: any;
       fileKey?: string;
     },
   ) {

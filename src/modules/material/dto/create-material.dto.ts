@@ -21,9 +21,7 @@ export class ResourceDto {
   resourceAddress?: string;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  metaData?: string[];
+  metaData?: Object;
 }
 
 export class CreateMaterialDto extends ResourceDto {

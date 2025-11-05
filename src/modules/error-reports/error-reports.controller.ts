@@ -54,7 +54,7 @@ export class ErrorReportsController {
    */
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
+  @Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
   async list(@Query() queryDto: QueryErrorReportsDto) {
     const result = await this.errorReportsService.list(queryDto);
     return ResponseDto.createSuccessResponse(
@@ -69,7 +69,7 @@ export class ErrorReportsController {
    */
   @Get('stats')
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
+  @Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
   async getStats() {
     const stats = await this.errorReportsService.getStats();
     return ResponseDto.createSuccessResponse(
@@ -105,7 +105,7 @@ export class ErrorReportsController {
    */
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
+  @Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
   async findById(@Param('id') id: string) {
     const errorReport = await this.errorReportsService.findById(id);
     return ResponseDto.createSuccessResponse(
@@ -120,7 +120,7 @@ export class ErrorReportsController {
    */
   @Patch(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR)
+  @Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id') id: string,
@@ -146,7 +146,7 @@ export class ErrorReportsController {
    */
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRoleEnum.ADMIN)
+  @Roles([UserRoleEnum.ADMIN])
   @HttpCode(HttpStatus.OK)
   async delete(@Param('id') id: string) {
     await this.errorReportsService.delete(id);
