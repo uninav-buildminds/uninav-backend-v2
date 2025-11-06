@@ -27,6 +27,7 @@ import {
 import * as moment from 'moment-timezone';
 import { UserService } from 'src/modules/user/user.service';
 import { MaterialQueryDto } from '../dto/material-query.dto';
+import { SaveReadingProgressDto } from '../dto/save-reading-progress.dto';
 ('updateMaterialDto');
 
 @Injectable()
@@ -623,6 +624,110 @@ export class MaterialService {
       }
       logger.error(`Failed to track download: ${error.message}`);
       throw new InternalServerErrorException('Failed to track download');
+    }
+  }
+
+  // ============= READING PROGRESS METHODS =============
+
+  /**
+   * Save or update reading progress
+   */
+  async saveReadingProgress(
+    materialId: string,
+    userId: string,
+    progressData: SaveReadingProgressDto,
+  ) {
+    try {
+      // Verify material exists
+      await this.findOne(materialId);
+
+      return await this.materialRepository.saveReadingProgress(
+        userId,
+        materialId,
+        progressData,
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      logger.error(`Failed to save reading progress: ${error.message}`);
+      throw new InternalServerErrorException(
+        'Failed to save reading progress',
+      );
+    }
+  }
+
+  /**
+   * Get reading progress for a material
+   */
+  async getReadingProgress(materialId: string, userId: string) {
+    try {
+      // Verify material exists
+      await this.findOne(materialId);
+
+      return await this.materialRepository.getReadingProgress(
+        userId,
+        materialId,
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      logger.error(`Failed to get reading progress: ${error.message}`);
+      throw new InternalServerErrorException('Failed to get reading progress');
+    }
+  }
+
+  /**
+   * Delete reading progress (reset)
+   */
+  async deleteReadingProgress(materialId: string, userId: string) {
+    try {
+      return await this.materialRepository.deleteReadingProgress(
+        userId,
+        materialId,
+      );
+    } catch (error) {
+      logger.error(`Failed to delete reading progress: ${error.message}`);
+      throw new InternalServerErrorException(
+        'Failed to delete reading progress',
+      );
+    }
+  }
+
+  /**
+   * Get materials with reading progress (Continue Reading list)
+   */
+  async getMaterialsWithProgress(
+    userId: string,
+    limit: number = 10,
+    offset: number = 0,
+  ) {
+    try {
+      return await this.materialRepository.getMaterialsWithProgress(
+        userId,
+        limit,
+        offset,
+      );
+    } catch (error) {
+      logger.error(
+        `Failed to get materials with progress: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to get materials with progress',
+      );
+    }
+  }
+
+  /**
+   * Get reading stats for a user
+   */
+  async getReadingStats(userId: string) {
+    try {
+      return await this.materialRepository.getReadingStats(userId);
+    } catch (error) {
+      logger.error(`Failed to get reading stats: ${error.message}`);
+      throw new InternalServerErrorException('Failed to get reading stats');
     }
   }
 }

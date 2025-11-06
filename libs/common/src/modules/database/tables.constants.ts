@@ -23,4 +23,5 @@ export const TABLES = {
   POINTS: 'points',
   NOTIFICATIONS: 'notifications',
   ERROR_REPORTS: 'error_reports',
+  READING_PROGRESS: 'reading_progress',
 } as const;

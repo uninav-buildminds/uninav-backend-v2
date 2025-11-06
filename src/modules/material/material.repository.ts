@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
+import {
+  DRIZZLE_SYMBOL,
+  MAX_RECENT_ENTRIES_PER_USER,
+} from 'src/utils/config/constants.config';
 import {
   ApprovalStatus,
   DrizzleDB,
@@ -36,6 +39,8 @@ import {
 import { extractCourseCode } from 'src/utils/util';
 import { MaterialQueryDto } from './dto/material-query.dto';
 import { recent } from '@app/common/modules/database/schema/recent.schema';
+import { readingProgress } from '@app/common/modules/database/schema/reading-progress.schema';
+import { SaveReadingProgressDto } from './dto/save-reading-progress.dto';
 
 @Injectable()
 export class MaterialRepository {
@@ -680,6 +685,9 @@ export class MaterialRepository {
   }
 
   async trackRecentView(userId: string, materialId: string): Promise<void> {
+    // First, cleanup old entries if user has more than MAX_RECENT_ENTRIES_PER_USER
+    await this.cleanupOldRecentEntries(userId);
+
     // Use upsert pattern to insert or update the lastViewedAt timestamp
     await this.db
       .insert(recent)
@@ -695,6 +703,48 @@ export class MaterialRepository {
         } as any,
       })
       .execute();
+  }
+
+  // Cleanup old recent entries to maintain only MAX_RECENT_ENTRIES_PER_USER per user
+  private async cleanupOldRecentEntries(userId: string): Promise<void> {
+    // Count current entries for user
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(recent)
+      .where(eq(recent.userId, userId))
+      .execute();
+
+    const currentCount = Number(countResult[0]?.count || 0);
+
+    // If count exceeds or equals max, delete oldest entries
+    if (currentCount >= MAX_RECENT_ENTRIES_PER_USER) {
+      // Get IDs of entries to keep (most recent ones)
+      const entriesToKeep = await this.db
+        .select({ id: recent.id })
+        .from(recent)
+        .where(eq(recent.userId, userId))
+        .orderBy(desc(recent.lastViewedAt))
+        .limit(MAX_RECENT_ENTRIES_PER_USER - 1) // Keep one less to make room for new entry
+        .execute();
+
+      const idsToKeep = entriesToKeep.map((entry) => entry.id);
+
+      // Delete all entries not in the keep list
+      if (idsToKeep.length > 0) {
+        await this.db
+          .delete(recent)
+          .where(
+            and(
+              eq(recent.userId, userId),
+              sql`${recent.id} NOT IN (${sql.join(idsToKeep.map((id) => sql`${id}`), sql`, `)})`
+            )
+          )
+          .execute();
+      } else {
+        // If no entries to keep, delete all
+        await this.db.delete(recent).where(eq(recent.userId, userId)).execute();
+      }
+    }
   }
 
   async getRecentMaterials(
@@ -808,6 +858,9 @@ export class MaterialRepository {
       return;
     }
 
+    // First, cleanup old entries
+    await this.cleanupOldRecentEntries(userId);
+
     // Delete existing records first
     await this.db
       .delete(recent)
@@ -822,5 +875,125 @@ export class MaterialRepository {
     }));
 
     await this.db.insert(recent).values(recentRecords);
+  }
+
+  // ============= READING PROGRESS METHODS =============
+
+  /**
+   * Save or update reading progress for a user on a material
+   */
+  async saveReadingProgress(
+    userId: string,
+    materialId: string,
+    progressData: SaveReadingProgressDto,
+  ) {
+    const now = new Date();
+    const dataToSave = {
+      userId,
+      materialId,
+      ...progressData,
+      lastProgressUpdate: now,
+      ...(progressData.isCompleted && { completedAt: now }),
+      updatedAt: now,
+    };
+
+    // Use INSERT ... ON CONFLICT to upsert
+    const result = await this.db
+      .insert(readingProgress)
+      .values(dataToSave as any)
+      .onConflictDoUpdate({
+        target: [readingProgress.userId, readingProgress.materialId],
+        set: {
+          ...progressData,
+          lastProgressUpdate: now,
+          updatedAt: now,
+          ...(progressData.isCompleted && { completedAt: now }),
+        } as any,
+      })
+      .returning();
+
+    return result[0];
+  }
+
+  /**
+   * Get reading progress for a specific material and user
+   */
+  async getReadingProgress(userId: string, materialId: string) {
+    return this.db.query.readingProgress.findFirst({
+      where: and(
+        eq(readingProgress.userId, userId),
+        eq(readingProgress.materialId, materialId),
+      ),
+    });
+  }
+
+  /**
+   * Delete reading progress (reset progress)
+   */
+  async deleteReadingProgress(userId: string, materialId: string) {
+    const result = await this.db
+      .delete(readingProgress)
+      .where(
+        and(
+          eq(readingProgress.userId, userId),
+          eq(readingProgress.materialId, materialId),
+        ),
+      )
+      .returning();
+
+    return result[0];
+  }
+
+  /**
+   * Get all materials with reading progress for a user (for "Continue Reading" feature)
+   */
+  async getMaterialsWithProgress(
+    userId: string,
+    limit: number = 10,
+    offset: number = 0,
+  ) {
+    return this.db.query.readingProgress.findMany({
+      where: and(
+        eq(readingProgress.userId, userId),
+        eq(readingProgress.isCompleted, false),
+      ),
+      with: {
+        material: {
+          with: {
+            creator: {
+              columns: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                username: true,
+                profilePicture: true,
+              },
+            },
+            targetCourse: true,
+            resource: true,
+          },
+        },
+      },
+      orderBy: [desc(readingProgress.lastProgressUpdate)],
+      limit,
+      offset,
+    });
+  }
+
+  /**
+   * Get reading progress stats for a user
+   */
+  async getReadingStats(userId: string) {
+    const stats = await this.db
+      .select({
+        totalMaterials: sql<number>`count(*)`,
+        completedMaterials: sql<number>`count(*) filter (where ${readingProgress.isCompleted} = true)`,
+        totalReadingTime: sql<number>`sum(${readingProgress.totalReadingTime})`,
+        avgProgress: sql<number>`avg(${readingProgress.progressPercentage})`,
+      })
+      .from(readingProgress)
+      .where(eq(readingProgress.userId, userId));
+
+    return stats[0];
   }
 }

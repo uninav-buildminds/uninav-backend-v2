@@ -19,3 +19,4 @@ export * from './recent.schema';
 export * from './admin.schema';
 export * from './points.schema';
 export * from './notifications.schema';
+export * from './reading-progress.schema';

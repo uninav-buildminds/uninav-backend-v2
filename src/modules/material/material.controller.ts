@@ -41,6 +41,7 @@ import { BatchFindMaterialsDto } from './dto/batch-find-materials.dto';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from 'src/utils/config/env.enum';
 import { Request } from 'express';
+import { SaveReadingProgressDto } from './dto/save-reading-progress.dto';
 @Controller('materials')
 @UseInterceptors(CacheControlInterceptor)
 export class MaterialController {
@@ -326,6 +327,88 @@ export class MaterialController {
     return ResponseDto.createSuccessResponse(
       'Material retrieved successfully',
       material,
+    );
+  }
+
+  // ============= READING PROGRESS ENDPOINTS =============
+
+  @Post(':id/progress')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async saveReadingProgress(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+    @Body() progressData: SaveReadingProgressDto,
+  ) {
+    const progress = await this.materialService.saveReadingProgress(
+      id,
+      user.id,
+      progressData,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Reading progress saved successfully',
+      progress,
+    );
+  }
+
+  @Get(':id/progress')
+  @UseGuards(RolesGuard)
+  async getReadingProgress(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+  ) {
+    const progress = await this.materialService.getReadingProgress(
+      id,
+      user.id,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Reading progress retrieved successfully',
+      progress,
+    );
+  }
+
+  @Delete(':id/progress')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteReadingProgress(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+  ) {
+    const progress = await this.materialService.deleteReadingProgress(
+      id,
+      user.id,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Reading progress reset successfully',
+      progress,
+    );
+  }
+
+  @Get('continue/reading')
+  @UseGuards(RolesGuard)
+  async getContinueReading(
+    @CurrentUser() user: UserEntity,
+    @Query('limit') limit: number = 10,
+    @Query('offset') offset: number = 0,
+  ) {
+    const materials = await this.materialService.getMaterialsWithProgress(
+      user.id,
+      limit,
+      offset,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Continue reading materials retrieved successfully',
+      materials,
+    );
+  }
+
+  @Get('stats/reading')
+  @UseGuards(RolesGuard)
+  async getReadingStats(@CurrentUser() user: UserEntity) {
+    const stats = await this.materialService.getReadingStats(user.id);
+    return ResponseDto.createSuccessResponse(
+      'Reading stats retrieved successfully',
+      stats,
     );
   }
 }
