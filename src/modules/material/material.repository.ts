@@ -868,10 +868,11 @@ export class MaterialRepository {
         and(eq(recent.userId, userId), inArray(recent.materialId, materialIds)),
       );
 
-    // Insert new records
+    // Insert new records with lastViewedAt timestamp
     const recentRecords = materialIds.map((materialId) => ({
       userId,
       materialId,
+      lastViewedAt: new Date(),
     }));
 
     await this.db.insert(recent).values(recentRecords);
