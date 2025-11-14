@@ -53,12 +53,13 @@ ALTER TABLE "collection" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "collection_content" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
 DROP TABLE "collection" CASCADE;--> statement-breakpoint
 DROP TABLE "collection_content" CASCADE;--> statement-breakpoint
-ALTER TABLE "bookmarks" DROP CONSTRAINT "bookmarks_collection_id_collection_id_fk";
+ALTER TABLE "bookmarks" DROP CONSTRAINT IF EXISTS "bookmarks_collection_id_collection_id_fk";
 --> statement-breakpoint
-ALTER TABLE "advert" DROP CONSTRAINT "advert_collection_id_collection_id_fk";
+ALTER TABLE "advert" DROP CONSTRAINT IF EXISTS "advert_collection_id_collection_id_fk";
 --> statement-breakpoint
-ALTER TABLE "bookmarks" ADD COLUMN "folder_id" uuid;--> statement-breakpoint
-ALTER TABLE "advert" ADD COLUMN "folder_id" uuid;--> statement-breakpoint
+-- ALTER TABLE "bookmarks" ADD COLUMN "folder_id" uuid;--> statement-breakpoint
+
+-- ALTER TABLE "advert" ADD COLUMN "folder_id" uuid;--> statement-breakpoint
 ALTER TABLE "folder" ADD CONSTRAINT "folder_creator_id_users_id_fk" FOREIGN KEY ("creator_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "folder" ADD CONSTRAINT "folder_target_course_courses_id_fk" FOREIGN KEY ("target_course") REFERENCES "public"."courses"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "folder_content" ADD CONSTRAINT "folder_content_folder_id_folder_id_fk" FOREIGN KEY ("folder_id") REFERENCES "public"."folder"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -76,4 +77,4 @@ CREATE INDEX "search_history_user_created_at_index" ON "search_history" USING bt
 ALTER TABLE "bookmarks" ADD CONSTRAINT "bookmarks_folder_id_folder_id_fk" FOREIGN KEY ("folder_id") REFERENCES "public"."folder"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "advert" ADD CONSTRAINT "advert_folder_id_folder_id_fk" FOREIGN KEY ("folder_id") REFERENCES "public"."folder"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bookmarks" DROP COLUMN "collection_id";--> statement-breakpoint
-ALTER TABLE "advert" DROP COLUMN "collection_id";
+-- ALTER TABLE "advert" DROP COLUMN "collection_id";
