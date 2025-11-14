@@ -24,6 +24,7 @@ import { courses } from '@app/common/modules/database/schema/course.schema';
 import { TABLES } from '../tables.constants';
 import { materialLikes } from './material-likes.schema';
 import { tsvector } from '@app/common/modules/database/schema/custom-type';
+import { moderator } from './moderator.schema';
 
 export const material = pgTable(
   TABLES.MATERIALS,
@@ -75,6 +76,11 @@ export const materialRelations = relations(material, ({ one, many }) => ({
     fields: [material.reviewedById],
     references: [users.id],
     relationName: 'material_reviewer',
+  }),
+  reviewer: one(moderator, {
+    fields: [material.reviewedById],
+    references: [moderator.userId],
+    relationName: 'reviewer',
   }),
   resource: one(resource, {
     fields: [material.id],
