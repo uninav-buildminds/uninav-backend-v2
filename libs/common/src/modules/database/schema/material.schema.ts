@@ -16,7 +16,7 @@ import {
   approvalStatusEnum,
 } from './enums.schema';
 import { bookmarks, users } from './user.schema';
-import { collectionContent } from './collection.schema';
+import { folderContent } from './folder.schema';
 import { advert } from './advert.schema';
 import { resource } from '@app/common/modules/database/schema/resource.schema';
 import { timestamps } from '@app/common/modules/database/schema/timestamps';
@@ -81,7 +81,7 @@ export const materialRelations = relations(material, ({ one, many }) => ({
     references: [resource.materialId],
   }),
   bookmarks: many(bookmarks),
-  collections: many(collectionContent),
+  folders: many(folderContent),
   adverts: many(advert),
   targetCourse: one(courses, {
     fields: [material.targetCourseId],

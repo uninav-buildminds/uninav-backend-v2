@@ -1,7 +1,7 @@
 import { IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
 import { VisibilityEnum } from '@app/common/types/db.types';
 
-export class CreateCollectionDto {
+export class CreateFolderDto {
   @IsString()
   label: string;
 

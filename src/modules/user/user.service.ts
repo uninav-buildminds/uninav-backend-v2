@@ -419,9 +419,9 @@ export class UserService {
 
   async addBookmark(userId: string, addBookmarkDto: AddBookmarkDto) {
     // Validate bookmark data
-    if (!addBookmarkDto.materialId && !addBookmarkDto.collectionId) {
+    if (!addBookmarkDto.materialId && !addBookmarkDto.folderId) {
       throw new BadRequestException(
-        'Either materialId or collectionId must be provided',
+        'Either materialId or folderId must be provided',
       );
     }
 
@@ -440,16 +440,15 @@ export class UserService {
         }
       }
 
-      // Check if bookmark already exists for collection
-      if (addBookmarkDto.collectionId) {
-        const existingBookmark =
-          await this.userRepository.findBookmarkByCollection(
-            userId,
-            addBookmarkDto.collectionId,
-          );
+      // Check if bookmark already exists for folder
+      if (addBookmarkDto.folderId) {
+        const existingBookmark = await this.userRepository.findBookmarkByFolder(
+          userId,
+          addBookmarkDto.folderId,
+        );
         if (existingBookmark) {
           throw new ConflictException(
-            'Bookmark already exists for this collection',
+            'Bookmark already exists for this folder',
           );
         }
       }

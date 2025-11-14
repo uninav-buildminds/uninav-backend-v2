@@ -9,7 +9,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FacultyModule } from './modules/faculty/faculty.module';
 import { DepartmentModule } from './modules/department/department.module';
 import { MaterialModule } from './modules/material/material.module';
-import { CollectionModule } from './modules/collection/collection.module';
+import { FolderModule } from './modules/folder/folder.module';
 import { BlogModule } from './modules/blog/blog.module';
 import { CoursesModule } from 'src/modules/courses/courses.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -56,7 +56,7 @@ import { ENV } from 'src/utils/config/env.enum';
     FacultyModule,
     DepartmentModule,
     MaterialModule,
-    CollectionModule,
+    FolderModule,
     BlogModule,
     CoursesModule,
     EventEmitterModule.forRoot({

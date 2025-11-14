@@ -49,7 +49,7 @@ export class MaterialRepository {
   async create(
     createMaterialDto: Omit<
       CreateMaterialDto,
-      'resourceType' | 'resourceAddress' 
+      'resourceType' | 'resourceAddress'
     >,
   ): Promise<MaterialEntity> {
     const result = await this.db
@@ -94,9 +94,9 @@ export class MaterialRepository {
         targetCourse: true,
         resource: true,
         adverts: true,
-        collections: {
+        folders: {
           with: {
-            collection: {
+            folder: {
               with: {
                 creator: {
                   columns: {
@@ -736,8 +736,11 @@ export class MaterialRepository {
           .where(
             and(
               eq(recent.userId, userId),
-              sql`${recent.id} NOT IN (${sql.join(idsToKeep.map((id) => sql`${id}`), sql`, `)})`
-            )
+              sql`${recent.id} NOT IN (${sql.join(
+                idsToKeep.map((id) => sql`${id}`),
+                sql`, `,
+              )})`,
+            ),
           )
           .execute();
       } else {
@@ -811,9 +814,9 @@ export class MaterialRepository {
         },
         resource: true,
         adverts: true,
-        collections: {
+        folders: {
           with: {
-            collection: {
+            folder: {
               with: {
                 creator: {
                   columns: {

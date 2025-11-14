@@ -57,11 +57,11 @@ export class AdvertService {
             'You do not have permission to create an advert for this material',
           );
         }
-      } else if (createAdvertDto.collectionId) {
+      } else if (createAdvertDto.folderId) {
         // !handle later
       } else {
         throw new BadRequestException(
-          'Material ID or Collection ID must be provided',
+          'Material ID or Folder ID must be provided',
         );
       }
 
@@ -150,8 +150,8 @@ export class AdvertService {
     return await this.refreshExpiredUrls(adverts);
   }
 
-  async findByCollection(collectionId: string): Promise<AdvertEntity[]> {
-    const adverts = await this.advertRepository.findByCollection(collectionId);
+  async findByFolder(folderId: string): Promise<AdvertEntity[]> {
+    const adverts = await this.advertRepository.findByFolder(folderId);
     return await this.refreshExpiredUrls(adverts);
   }
 

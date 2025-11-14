@@ -7,7 +7,7 @@ export * from './faculty.schema';
 export * from './department.schema';
 export * from './course.schema';
 export * from './material.schema';
-export * from './collection.schema';
+export * from './folder.schema';
 export * from './blog.schema';
 export * from './comments.schema';
 export * from './advert.schema';

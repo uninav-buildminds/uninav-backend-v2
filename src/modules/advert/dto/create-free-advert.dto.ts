@@ -16,7 +16,7 @@ export class CreateFreeAdvertDto {
 
   @IsUUID()
   @IsOptional()
-  collectionId?: string;
+  folderId?: string;
 
   @IsString()
   @IsNotEmpty()

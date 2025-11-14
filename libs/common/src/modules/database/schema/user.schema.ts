@@ -13,7 +13,7 @@ import { department } from './department.schema';
 import { auth } from './auth.schema';
 import { moderator } from './moderator.schema';
 import { material } from './material.schema';
-import { collection } from './collection.schema';
+import { folder } from './folder.schema';
 import { courses } from './course.schema';
 import { comments } from './comments.schema';
 import { blogs } from '@app/common/modules/database/schema/blog.schema';
@@ -73,7 +73,7 @@ export const bookmarks = pgTable(TABLES.BOOKMARKS, {
   materialId: uuid('material_id').references(() => material.id, {
     onDelete: 'cascade',
   }),
-  collectionId: uuid('collection_id').references(() => collection.id, {
+  folderId: uuid('folder_id').references(() => folder.id, {
     onDelete: 'cascade',
   }),
   ...timestamps,
@@ -88,9 +88,9 @@ export const bookmarkRelations = relations(bookmarks, ({ one }) => ({
     fields: [bookmarks.materialId],
     references: [material.id],
   }),
-  collection: one(collection, {
-    fields: [bookmarks.collectionId],
-    references: [collection.id],
+  folder: one(folder, {
+    fields: [bookmarks.folderId],
+    references: [folder.id],
   }),
 }));
 
@@ -125,7 +125,7 @@ export const userRelations = relations(users, ({ one, many }) => ({
   reviewedBlogs: many(blogs, { relationName: 'blog_reviewer' }),
   createdCourses: many(courses, { relationName: 'course_creator' }),
   reviewedCourses: many(courses, { relationName: 'course_reviewer' }),
-  collections: many(collection),
+  folders: many(folder),
   bookmarks: many(bookmarks),
   comments: many(comments),
   auth: one(auth, {

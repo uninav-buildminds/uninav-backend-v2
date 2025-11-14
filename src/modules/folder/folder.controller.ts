@@ -9,34 +9,31 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { CollectionService } from './collection.service';
-import { CreateCollectionDto } from './dto/create-collection.dto';
-import { UpdateCollectionDto } from './dto/update-collection.dto';
-import { AddMaterialToCollectionDto } from './dto/add-material.dto';
+import { FolderService } from './folder.service';
+import { CreateFolderDto } from './dto/create-folder.dto';
+import { UpdateFolderDto } from './dto/update-folder.dto';
+import { AddMaterialToFolderDto } from './dto/add-material.dto';
 import { ResponseDto } from '@app/common/dto/response.dto';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Request } from 'express';
 import { UserEntity } from '@app/common/types/db.types';
-@Controller('collections')
-export class CollectionController {
-  constructor(private readonly collectionService: CollectionService) {}
+@Controller('folders')
+export class FolderController {
+  constructor(private readonly folderService: FolderService) {}
 
   @Post()
   @UseGuards(RolesGuard)
-  async create(
-    @Body() createCollectionDto: CreateCollectionDto,
-    @Req() req: Request,
-  ) {
+  async create(@Body() createFolderDto: CreateFolderDto, @Req() req: Request) {
     // Extract user from request (from auth guard)
     const user = req['user'] as UserEntity;
 
     // Set creatorId if not provided in the DTO
-    createCollectionDto.creatorId = user.id;
+    createFolderDto.creatorId = user.id;
 
-    const collection = await this.collectionService.create(createCollectionDto);
+    const folder = await this.folderService.create(createFolderDto);
     return ResponseDto.createSuccessResponse(
-      'Collection created successfully',
-      collection,
+      'Folder created successfully',
+      folder,
     );
   }
 
@@ -44,29 +41,30 @@ export class CollectionController {
   @UseGuards(RolesGuard)
   async findAll(@Req() req: Request) {
     const user = req['user'] as UserEntity;
-    const collections = await this.collectionService.findAll(user.id);
+    const folders = await this.folderService.findAll(user.id);
     return ResponseDto.createSuccessResponse(
-      'Collections retrieved successfully',
-      collections,
+      'Folders retrieved successfully',
+      folders,
     );
   }
 
   @Get(':id')
   @UseGuards(RolesGuard)
-  async findOne(@Param('id') id: string) {
-    const collection = await this.collectionService.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req: Request) {
+    const user = req['user'] as UserEntity;
+    const folder = await this.folderService.findOne(id, user.id);
     return ResponseDto.createSuccessResponse(
-      'Collection retrieved successfully',
-      collection,
+      'Folder retrieved successfully',
+      folder,
     );
   }
 
   @Get('by-creator/:creatorId')
   async findByCreator(@Param('creatorId') creatorId: string) {
-    const collections = await this.collectionService.findByCreator(creatorId);
+    const folders = await this.folderService.findByCreator(creatorId);
     return ResponseDto.createSuccessResponse(
-      'Collections retrieved successfully',
-      collections,
+      'Folders retrieved successfully',
+      folders,
     );
   }
 
@@ -74,18 +72,18 @@ export class CollectionController {
   @UseGuards(RolesGuard)
   async update(
     @Param('id') id: string,
-    @Body() updateCollectionDto: UpdateCollectionDto,
+    @Body() updateFolderDto: UpdateFolderDto,
     @Req() req: Request,
   ) {
     const user = req['user'] as UserEntity;
-    const collection = await this.collectionService.update(
+    const folder = await this.folderService.update(
       id,
-      updateCollectionDto,
+      updateFolderDto,
       user.id,
     );
     return ResponseDto.createSuccessResponse(
-      'Collection updated successfully',
-      collection,
+      'Folder updated successfully',
+      folder,
     );
   }
 
@@ -93,29 +91,29 @@ export class CollectionController {
   @UseGuards(RolesGuard)
   async remove(@Param('id') id: string, @Req() req: Request) {
     const user = req['user'] as UserEntity;
-    const collection = await this.collectionService.remove(id, user.id);
+    const folder = await this.folderService.remove(id, user.id);
     return ResponseDto.createSuccessResponse(
-      'Collection deleted successfully',
-      collection,
+      'Folder deleted successfully',
+      folder,
     );
   }
 
-  // Material management in collections
+  // Material management in folders
   @Post(':id/materials')
   @UseGuards(RolesGuard)
   async addMaterial(
     @Param('id') id: string,
-    @Body() addMaterialDto: AddMaterialToCollectionDto,
+    @Body() addMaterialDto: AddMaterialToFolderDto,
     @Req() req: Request,
   ) {
     const user = req['user'] as UserEntity;
-    const result = await this.collectionService.addMaterialToCollection(
+    const result = await this.folderService.addMaterialToFolder(
       id,
       addMaterialDto,
       user.id,
     );
     return ResponseDto.createSuccessResponse(
-      'Material added to collection successfully',
+      'Material added to folder successfully',
       result,
     );
   }
@@ -128,52 +126,52 @@ export class CollectionController {
     @Req() req: Request,
   ) {
     const user = req['user'] as UserEntity;
-    const result = await this.collectionService.removeMaterialFromCollection(
+    const result = await this.folderService.removeMaterialFromFolder(
       id,
       materialId,
       user.id,
     );
     return ResponseDto.createSuccessResponse(
-      'Material removed from collection successfully',
+      'Material removed from folder successfully',
       result,
     );
   }
 
-  // Nested collection management
-  @Post(':id/collections')
+  // Nested folder management
+  @Post(':id/folders')
   @UseGuards(RolesGuard)
-  async addNestedCollection(
+  async addNestedFolder(
     @Param('id') id: string,
-    @Body() addCollectionDto: { collectionId: string },
+    @Body() addFolderDto: { folderId: string },
     @Req() req: Request,
   ) {
     const user = req['user'] as UserEntity;
-    const result = await this.collectionService.addNestedCollection(
+    const result = await this.folderService.addNestedFolder(
       id,
-      addCollectionDto.collectionId,
+      addFolderDto.folderId,
       user.id,
     );
     return ResponseDto.createSuccessResponse(
-      'Collection nested successfully',
+      'Folder nested successfully',
       result,
     );
   }
 
-  @Delete(':id/collections/:collectionId')
+  @Delete(':id/folders/:folderId')
   @UseGuards(RolesGuard)
-  async removeNestedCollection(
+  async removeNestedFolder(
     @Param('id') id: string,
-    @Param('collectionId') collectionId: string,
+    @Param('folderId') folderId: string,
     @Req() req: Request,
   ) {
     const user = req['user'] as UserEntity;
-    const result = await this.collectionService.removeNestedCollection(
+    const result = await this.folderService.removeNestedFolder(
       id,
-      collectionId,
+      folderId,
       user.id,
     );
     return ResponseDto.createSuccessResponse(
-      'Nested collection removed successfully',
+      'Nested folder removed successfully',
       result,
     );
   }

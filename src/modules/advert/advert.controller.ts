@@ -73,9 +73,9 @@ export class AdvertController {
     );
   }
 
-  @Get('collection/:collectionId')
-  async findByCollection(@Param('collectionId') collectionId: string) {
-    const adverts = await this.advertService.findByCollection(collectionId);
+  @Get('folder/:folderId')
+  async findByFolder(@Param('folderId') folderId: string) {
+    const adverts = await this.advertService.findByFolder(folderId);
     return ResponseDto.createSuccessResponse(
       'Advertisements retrieved successfully',
       adverts,

@@ -1,6 +1,6 @@
 import { IsUUID } from 'class-validator';
 
-export class AddMaterialToCollectionDto {
+export class AddMaterialToFolderDto {
   @IsUUID()
   materialId: string;
 }

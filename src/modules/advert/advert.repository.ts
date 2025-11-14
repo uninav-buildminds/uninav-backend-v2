@@ -32,7 +32,7 @@ export class AdvertRepository {
     return this.db.query.advert.findMany({
       with: {
         material: true,
-        collection: true,
+        folder: true,
         creator: {
           columns: {
             id: true,
@@ -50,7 +50,7 @@ export class AdvertRepository {
       where: eq(advert.id, id),
       with: {
         material: true,
-        collection: true,
+        folder: true,
         creator: {
           columns: {
             id: true,
@@ -80,11 +80,11 @@ export class AdvertRepository {
     });
   }
 
-  async findByCollection(collectionId: string): Promise<AdvertEntity[]> {
+  async findByFolder(folderId: string): Promise<AdvertEntity[]> {
     return this.db.query.advert.findMany({
-      where: eq(advert.collectionId, collectionId),
+      where: eq(advert.folderId, folderId),
       with: {
-        collection: true,
+        folder: true,
         creator: {
           columns: {
             id: true,
@@ -102,7 +102,7 @@ export class AdvertRepository {
       where: eq(advert.creatorId, creatorId),
       with: {
         material: true,
-        collection: true,
+        folder: true,
         creator: {
           columns: {
             id: true,
@@ -205,7 +205,7 @@ export class AdvertRepository {
       where: whereClause,
       with: {
         material: true,
-        collection: true,
+        folder: true,
         creator: {
           columns: {
             id: true,

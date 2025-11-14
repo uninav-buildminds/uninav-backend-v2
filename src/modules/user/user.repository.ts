@@ -263,7 +263,7 @@ export class UserRepository {
       where: (bookmark) => eq(bookmark.id, bookmarkId),
       with: {
         material: true,
-        collection: true,
+        folder: true,
       },
     });
   }
@@ -295,7 +295,7 @@ export class UserRepository {
             },
           },
         },
-        collection: true,
+        folder: true,
       },
     });
   }
@@ -309,11 +309,11 @@ export class UserRepository {
     });
   }
 
-  async findBookmarkByCollection(userId: string, collectionId: string) {
+  async findBookmarkByFolder(userId: string, folderId: string) {
     return this.db.query.bookmarks.findFirst({
       where: and(
         eq(bookmarks.userId, userId),
-        eq(bookmarks.collectionId, collectionId),
+        eq(bookmarks.folderId, folderId),
       ),
     });
   }
