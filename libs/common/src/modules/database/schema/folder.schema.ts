@@ -34,33 +34,27 @@ export const folder = pgTable(TABLES.FOLDER, {
   ...timestamps,
 });
 
-export const folderContent = pgTable(
-  TABLES.FOLDER_CONTENT,
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    folderId: uuid('folder_id').references(() => folder.id, {
-      onDelete: 'cascade',
-    }),
-    contentMaterialId: uuid('content_material_id').references(
-      () => material.id,
-      {
-        onDelete: 'cascade',
-      },
-    ),
-    contentFolderId: uuid('content_folder_id').references(() => folder.id, {
-      onDelete: 'cascade',
-    }),
-  },
-  () => {
-    return {
-      // Ensure that each row links to EITHER a material OR a folder, but not both, and not neither.
-      contentTypeCheck: check(
-        'content_type_check',
-        sql`(content_material_id IS NOT NULL AND content_folder_id IS NULL) OR (content_material_id IS NULL AND content_folder_id IS NOT NULL)`,
-      ),
-    };
-  },
-);
+export const folderContent = pgTable(TABLES.FOLDER_CONTENT, {
+  id: uuid('id').primaryKey().defaultRandom(),
+  folderId: uuid('folder_id').references(() => folder.id, {
+    onDelete: 'cascade',
+  }),
+  contentMaterialId: uuid('content_material_id').references(() => material.id, {
+    onDelete: 'cascade',
+  }),
+  contentFolderId: uuid('content_folder_id').references(() => folder.id, {
+    onDelete: 'cascade',
+  }),
+});
+// () => {
+//   return {
+//     // Ensure that each row links to EITHER a material OR a folder, but not both, and not neither.
+//     contentTypeCheck: check(
+//       'content_type_check',
+//       sql`(content_material_id IS NOT NULL AND content_folder_id IS NULL) OR (content_material_id IS NULL AND content_folder_id IS NOT NULL)`,
+//     ),
+//   };
+// },
 
 export const folderRelations = relations(folder, ({ one, many }) => ({
   creator: one(users, {

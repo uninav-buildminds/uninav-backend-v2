@@ -20,6 +20,7 @@ import { blogs } from '@app/common/modules/database/schema/blog.schema';
 import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { TABLES } from '../tables.constants';
 import { advert } from './advert.schema';
+import { searchHistory } from './search-history.schema';
 
 // Table Definition with Index on email
 export const users = pgTable(
@@ -133,4 +134,5 @@ export const userRelations = relations(users, ({ one, many }) => ({
     references: [auth.userId],
   }),
   courses: many(userCourses),
+  searchHistory: many(searchHistory, { relationName: 'search_history_user' }),
 }));

@@ -24,4 +24,5 @@ export const TABLES = {
   NOTIFICATIONS: 'notifications',
   ERROR_REPORTS: 'error_reports',
   READING_PROGRESS: 'reading_progress',
+  SEARCH_HISTORY: 'search_history',
 } as const;

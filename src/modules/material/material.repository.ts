@@ -15,6 +15,7 @@ import {
   desc,
   getTableColumns,
   inArray,
+  notInArray,
   ilike,
   or,
 } from 'drizzle-orm';
@@ -41,6 +42,7 @@ import { MaterialQueryDto } from './dto/material-query.dto';
 import { recent } from '@app/common/modules/database/schema/recent.schema';
 import { readingProgress } from '@app/common/modules/database/schema/reading-progress.schema';
 import { SaveReadingProgressDto } from './dto/save-reading-progress.dto';
+import { searchHistory } from '@app/common/modules/database/schema/search-history.schema';
 
 @Injectable()
 export class MaterialRepository {
@@ -223,6 +225,27 @@ export class MaterialRepository {
     });
   }
 
+  // Store search history for authenticated users
+  private async storeSearchHistory(
+    userId: string,
+    query: string,
+  ): Promise<void> {
+    if (!query || !query.trim()) return;
+
+    try {
+      await this.db
+        .insert(searchHistory)
+        .values({
+          userId,
+          query: query.trim(),
+        })
+        .execute();
+    } catch (error) {
+      // Log but don't fail the search if history storage fails
+      materialLogger.warn('Failed to store search history', error);
+    }
+  }
+
   async searchMaterial(
     options: MaterialQueryDto,
     user?: UserEntity,
@@ -235,6 +258,7 @@ export class MaterialRepository {
       pageSize: number;
       totalPages: number;
     };
+    usedAdvanced?: boolean;
   }> {
     let {
       page = 1,
@@ -264,39 +288,46 @@ export class MaterialRepository {
       conditions.push(eq(material.reviewStatus, filters.reviewStatus));
     }
 
+    // Normalize query for case-insensitive search
+    const normalizedQuery = query?.trim() || '';
+    const queryLower = normalizedQuery.toLowerCase();
+
     // Add text search if query is provided
-    if (query && query.trim() !== '') {
-      const courseCodeIfExists = extractCourseCode(query)?.toLowerCase();
+    if (normalizedQuery) {
+      const courseCodeIfExists =
+        extractCourseCode(normalizedQuery)?.toLowerCase();
       if (advancedSearch) {
+        // Advanced search: case-insensitive ILIKE on multiple fields
         const searchCondition = or(
-          ilike(material.label, `%${query}%`),
-          ilike(material.description, `%${query}%`),
-          sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
+          ilike(material.label, `%${normalizedQuery}%`),
+          ilike(material.description, `%${normalizedQuery}%`),
+          sql`${queryLower} ILIKE ANY(${material.tags})`,
           sql`EXISTS (
             SELECT 1 FROM ${courses} 
             WHERE ${courses.id} = ${material.targetCourseId} 
             AND (
-              ${courseCodeIfExists ? sql`${courses.courseCode} ILIKE ${`%${courseCodeIfExists}%`} OR` : sql`FALSE OR`}
-              ${courses.courseName} ILIKE ${`%${query}%`} OR 
-              ${courses.description} ILIKE ${`%${query}%`}
+              ${courseCodeIfExists ? sql`LOWER(${courses.courseCode}) LIKE ${`%${courseCodeIfExists}%`} OR` : sql`FALSE OR`}
+              LOWER(${courses.courseName}) LIKE ${`%${queryLower}%`} OR 
+              LOWER(${courses.description}) LIKE ${`%${queryLower}%`}
             )
           )`,
         );
         conditions.push(searchCondition);
       } else {
+        // Normal search: use pgvector (faster) with case-insensitive tag matching
         conditions.push(
           or(
-            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-            sql`${query.toLowerCase()} ILIKE ANY(${material.tags})`,
+            sql`${material.searchVector} @@ websearch_to_tsquery('english', ${normalizedQuery})`,
+            sql`${queryLower} ILIKE ANY(${material.tags})`,
             courseCodeIfExists
-              ? sql`${courseCodeIfExists} = ANY(${material.tags})`
+              ? sql`LOWER(${courseCodeIfExists}) = ANY(SELECT LOWER(unnest(${material.tags})))`
               : sql`FALSE`,
           ),
         );
       }
     }
 
-    const whereCondition =
+    let whereCondition =
       conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
 
     // Get total count for pagination
@@ -306,11 +337,57 @@ export class MaterialRepository {
       .where(whereCondition)
       .execute();
 
-    const totalItems = Number(countResult[0]?.count || 0);
-    const totalPages = Math.ceil(totalItems / limit);
+    let totalItems = Number(countResult[0]?.count || 0);
+    let totalPages = Math.ceil(totalItems / limit);
+    let usedAdvanced = advancedSearch || false;
+
+    // Automatic fallback to advanced search if normal search returns no results
+    if (!advancedSearch && normalizedQuery && totalItems === 0) {
+      const courseCodeIfExists =
+        extractCourseCode(normalizedQuery)?.toLowerCase();
+
+      // Rebuild conditions with advanced search instead of normal search
+      // Remove the last condition (normal search) and add advanced search
+      const advancedConditions = conditions.slice(0, -1); // Remove last condition (normal search)
+
+      // Add advanced search condition
+      const advancedSearchCondition = or(
+        ilike(material.label, `%${normalizedQuery}%`),
+        ilike(material.description, `%${normalizedQuery}%`),
+        sql`${queryLower} ILIKE ANY(${material.tags})`,
+        sql`EXISTS (
+          SELECT 1 FROM ${courses} 
+          WHERE ${courses.id} = ${material.targetCourseId} 
+          AND (
+            ${courseCodeIfExists ? sql`LOWER(${courses.courseCode}) LIKE ${`%${courseCodeIfExists}%`} OR` : sql`FALSE OR`}
+            LOWER(${courses.courseName}) LIKE ${`%${queryLower}%`} OR 
+            LOWER(${courses.description}) LIKE ${`%${queryLower}%`}
+          )
+        )`,
+      );
+      advancedConditions.push(advancedSearchCondition);
+
+      whereCondition = sql.join(advancedConditions, sql` AND `);
+
+      // Re-count with advanced search
+      const advancedCountResult = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(material)
+        .where(whereCondition)
+        .execute();
+
+      totalItems = Number(advancedCountResult[0]?.count || 0);
+      totalPages = Math.ceil(totalItems / limit);
+      usedAdvanced = true;
+    }
+
+    // Store search history for authenticated users (only on first page)
+    if (user && normalizedQuery && page === 1) {
+      await this.storeSearchHistory(user.id, normalizedQuery);
+    }
 
     // Use preference-based search with user ranking if user is provided and ignorePreference is false
-    if (!ignorePreference && user && query && query.trim() !== '') {
+    if (!ignorePreference && user && normalizedQuery) {
       // Destructure unwanted fields from material table columns
       let { searchVector, ...rest } = getTableColumns(material);
 
@@ -342,7 +419,7 @@ export class MaterialRepository {
             : {}),
 
           rank: sql<number>`
-          ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query})) 
+          ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${normalizedQuery})) 
 
           + CASE 
               -- Boost if the material is for a course the user is actively taking
@@ -391,6 +468,7 @@ export class MaterialRepository {
           pageSize: limit,
           totalPages,
         },
+        usedAdvanced,
       };
     } else {
       // Use standard search without user preferences
@@ -401,10 +479,10 @@ export class MaterialRepository {
       const orderByClause = [];
 
       // If query was provided, sort by rank first using the vector index
-      if (query && query.trim() !== '') {
+      if (normalizedQuery) {
         orderByClause.push(
           desc(
-            sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${query}))`,
+            sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${normalizedQuery}))`,
           ),
         );
       }
@@ -461,6 +539,7 @@ export class MaterialRepository {
           pageSize: limit,
           totalPages,
         },
+        usedAdvanced,
       };
     }
   }
@@ -477,64 +556,202 @@ export class MaterialRepository {
       totalPages: number;
     };
   }> {
-    const limit = 10;
+    const limit = 20; // Increased page size to 20
     const offset = (page - 1) * limit;
+
+    // Get department level courses (priority) - courses in user's department
+    const departmentCourseIds = user.departmentId
+      ? await this.db
+          .select({ courseId: dlc.courseId })
+          .from(dlc)
+          .where(eq(dlc.departmentId, user.departmentId))
+          .execute()
+      : [];
+
+    const deptCourseIds = departmentCourseIds.map((row) => row.courseId);
+
+    // Get user's enrolled course IDs
+    const userCourseIds = await this.db
+      .select({ courseId: uc.courseId })
+      .from(uc)
+      .where(eq(uc.userId, user.id))
+      .execute();
+
+    const enrolledCourseIds = userCourseIds.map((row) => row.courseId);
+
+    // Combine all course IDs (department courses have priority but we include both)
+    const allCourseIds = [...new Set([...deptCourseIds, ...enrolledCourseIds])];
+
+    // Get last 15 recent searches (most recent first)
+    const recentSearches = await this.db
+      .select({ query: searchHistory.query })
+      .from(searchHistory)
+      .where(eq(searchHistory.userId, user.id))
+      .orderBy(desc(searchHistory.createdAt))
+      .limit(15)
+      .execute();
+
+    // Get 5 random older searches (if there are more than 15 total)
+    let olderSearches: { query: string }[] = [];
+    const totalSearchCount = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(searchHistory)
+      .where(eq(searchHistory.userId, user.id))
+      .execute();
+
+    const totalSearches = Number(totalSearchCount[0]?.count || 0);
+    if (totalSearches > 15) {
+      // Get random 5 from older searches (skip first 15, use SQL random ordering)
+      // Get IDs of the first 15 most recent searches to exclude them
+      const recentSearchIds = await this.db
+        .select({ id: searchHistory.id })
+        .from(searchHistory)
+        .where(eq(searchHistory.userId, user.id))
+        .orderBy(desc(searchHistory.createdAt))
+        .limit(15)
+        .execute();
+
+      const recentIds = recentSearchIds.map((row) => row.id);
+
+      if (recentIds.length > 0) {
+        olderSearches = await this.db
+          .select({ query: searchHistory.query })
+          .from(searchHistory)
+          .where(
+            and(
+              eq(searchHistory.userId, user.id),
+              notInArray(searchHistory.id, recentIds),
+            ),
+          )
+          .orderBy(sql`RANDOM()`)
+          .limit(5)
+          .execute();
+      }
+    }
+
+    // Combine all search queries
+    const allSearchQueries = [
+      ...recentSearches.map((row) => row.query.trim()),
+      ...olderSearches.map((row) => row.query.trim()),
+    ].filter(Boolean);
+
+    // Build recommendation conditions: course-based OR search-history-based
+    const recommendationConditions = [];
+
+    // Course-based recommendations (priority)
+    if (allCourseIds.length > 0) {
+      recommendationConditions.push(
+        inArray(material.targetCourseId, allCourseIds),
+      );
+    }
+
+    // Search history-based recommendations (for variation)
+    if (allSearchQueries.length > 0) {
+      const searchConditions = allSearchQueries.map((query) => {
+        const queryLower = query.toLowerCase();
+        return or(
+          ilike(material.label, `%${query}%`),
+          ilike(material.description, `%${query}%`),
+          sql`${queryLower} ILIKE ANY(${material.tags})`,
+          sql`EXISTS (
+            SELECT 1 FROM ${courses} 
+            WHERE ${courses.id} = ${material.targetCourseId} 
+            AND (
+              LOWER(${courses.courseName}) LIKE ${`%${queryLower}%`} OR 
+              LOWER(${courses.courseCode}) LIKE ${`%${queryLower}%`} OR
+              LOWER(${courses.description}) LIKE ${`%${queryLower}%`}
+            )
+          )`,
+        );
+      });
+      recommendationConditions.push(or(...searchConditions));
+    }
+
+    // If no conditions, return empty result
+    if (recommendationConditions.length === 0) {
+      return {
+        items: [],
+        pagination: {
+          total: 0,
+          page,
+          pageSize: limit,
+          totalPages: 0,
+        },
+      };
+    }
+
+    const whereCondition = or(...recommendationConditions);
 
     // Get total count for pagination
     const countResult = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(material)
-      .where(
-        sql`
-        ${material.targetCourseId} IN (
-          SELECT ${uc.courseId}
-          FROM ${uc}
-          WHERE ${uc.userId} = ${user.id}
-        )
-      `,
-      )
+      .where(whereCondition)
       .execute();
 
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
-    // Use query builder to avoid SQL syntax issues
-    const subQuery = this.db
-      .select({ courseId: uc.courseId })
-      .from(uc)
-      .where(eq(uc.userId, user.id));
+    // Fetch recommendations with ranking that prioritizes department level courses
+    // Use raw SQL for better control over ranking
+    let { searchVector, ...rest } = getTableColumns(material);
 
-    const data = await this.db.query.material.findMany({
-      where: inArray(material.targetCourseId, subQuery),
-      orderBy: [
+    // Build ranking using course IDs we already fetched
+    // Use proper parameterized SQL for type safety
+    const deptCourseCondition =
+      deptCourseIds.length > 0
+        ? sql`${material.targetCourseId} = ANY(${sql.raw(`ARRAY[${deptCourseIds.map((id) => `'${id}'::uuid`).join(',')}]`)}::uuid[])`
+        : sql`FALSE`;
+
+    const enrolledCourseCondition =
+      enrolledCourseIds.length > 0
+        ? sql`${material.targetCourseId} = ANY(${sql.raw(`ARRAY[${enrolledCourseIds.map((id) => `'${id}'::uuid`).join(',')}]`)}::uuid[])`
+        : sql`FALSE`;
+
+    const data = await this.db
+      .select({
+        ...rest,
+        // Creator fields
+        creator: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+        },
+        // Target course fields
+        targetCourse: {
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+        },
+        // Ranking: Department courses get highest priority, then enrolled courses, then search history matches
+        rank: sql<number>`
+          CASE 
+            -- Highest priority: Department level courses (if user has department and course matches)
+            WHEN ${deptCourseCondition} THEN 100
+            -- Second priority: User's enrolled courses
+            WHEN ${enrolledCourseCondition} THEN 50
+            -- Lower priority: Search history matches (variation)
+            ELSE 10
+          END
+          + ${material.likes} * 0.1
+          + ${material.downloads} * 0.05
+          + ${material.views} * 0.01 AS rank`,
+      })
+      .from(material)
+      .leftJoin(users, eq(material.creatorId, users.id))
+      .leftJoin(courses, eq(material.targetCourseId, courses.id))
+      .where(whereCondition)
+      .orderBy(
+        desc(sql`rank`),
         desc(material.likes),
         desc(material.downloads),
         desc(material.views),
         desc(material.createdAt),
-      ],
-      with: {
-        creator: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-          },
-        },
-        targetCourse: {
-          columns: {
-            id: true,
-            courseName: true,
-            courseCode: true,
-          },
-        },
-      },
-      columns: {
-        searchVector: false,
-      },
-      limit,
-      offset,
-    });
+      )
+      .limit(limit)
+      .offset(offset)
+      .execute();
 
     return {
       items: data,

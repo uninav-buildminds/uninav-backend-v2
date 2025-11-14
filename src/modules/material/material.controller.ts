@@ -86,14 +86,24 @@ export class MaterialController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false }) // Optional authentication
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
-  async findWithFilters(@Query() queryDto: MaterialQueryDto) {
-    const result = await this.materialService.searchMaterial(queryDto);
-    return ResponseDto.createPaginatedResponse(
+  async findWithFilters(
+    @Query() queryDto: MaterialQueryDto,
+    @CurrentUser() user?: UserEntity,
+  ) {
+    const result = await this.materialService.searchMaterial(queryDto, user);
+    const response = ResponseDto.createPaginatedResponse(
       'Materials retrieved successfully',
       result.items,
       result.pagination,
     );
+    // Add usedAdvanced flag to response data
+    if (result.usedAdvanced !== undefined) {
+      (response.data as any).usedAdvanced = result.usedAdvanced;
+    }
+    return response;
   }
 
   @Get('recommendations')
@@ -357,10 +367,7 @@ export class MaterialController {
     @Param('id') id: string,
     @CurrentUser() user: UserEntity,
   ) {
-    const progress = await this.materialService.getReadingProgress(
-      id,
-      user.id,
-    );
+    const progress = await this.materialService.getReadingProgress(id, user.id);
     return ResponseDto.createSuccessResponse(
       'Reading progress retrieved successfully',
       progress,
