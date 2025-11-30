@@ -24,14 +24,14 @@ export const globalCookieOptions: CookieOptions = {
   httpOnly: true,
   sameSite: 'none',
   secure: true,
-  expires: moment().add(cookie_duration, 'days').toDate(),
-  // maxAge: 60 * 60 * 24 * cookie_duration,
+  // expires: moment().add(cookie_duration, 'days').toDate(),
+  maxAge: 60 * 60 * 24 * cookie_duration,
 };
 
 // Storage bucket types for organizing files within buckets
 export enum STORAGE_FOLDERS {
   MEDIA = 'media',
-  DOCS = 'docs', 
+  DOCS = 'docs',
   BLOGS = 'blogs',
   ADVERTS = 'adverts',
 }
