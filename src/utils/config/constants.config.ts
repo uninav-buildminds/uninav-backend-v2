@@ -19,7 +19,7 @@ export enum LoggerPaths {
 }
 
 // Cookie options
-let cookie_duration = 7; // days
+let cookie_duration = 30; // days
 export const globalCookieOptions: CookieOptions = {
   httpOnly: true,
   sameSite: 'none',

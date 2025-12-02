@@ -31,7 +31,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET,
-        signOptions: { expiresIn: '1d' },
+        signOptions: { expiresIn: '30d' },
       }),
     }),
   ],
