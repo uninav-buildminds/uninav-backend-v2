@@ -68,7 +68,7 @@ export class PointsService {
   }
 
   /**
-   * Calculate points percentage based on last 30 days divided by 10
+   * Calculate points percentage based on last 30 days divided by 8
    * Returns a string with percentage sign
    */
   async getPointsPercentage(userId: string): Promise<string> {
@@ -76,7 +76,7 @@ export class PointsService {
       userId,
       30,
     );
-    const percentage = Math.floor(totalPoints / 10);
+    const percentage = Math.floor(totalPoints / 6);
     return `${percentage}%`;
   }
 
@@ -93,7 +93,7 @@ export class PointsService {
       30,
     );
     const allTime = await this.pointsRepository.getTotalPoints(userId);
-    const percentage = Math.floor(last30Days / 10);
+    const percentage = Math.floor(last30Days / 8);
 
     return {
       last30Days,
