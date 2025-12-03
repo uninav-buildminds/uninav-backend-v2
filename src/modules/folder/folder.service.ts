@@ -47,6 +47,10 @@ export class FolderService {
     return this.folderRepository.findByCreator(creatorId);
   }
 
+  async searchFolders(query: string, limit: number = 10) {
+    return this.folderRepository.searchFolders(query, limit);
+  }
+
   async update(id: string, updateFolderDto: UpdateFolderDto, userId: string) {
     const folder = await this.findOne(id);
 

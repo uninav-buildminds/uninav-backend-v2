@@ -256,4 +256,35 @@ export class FolderRepository {
       .where(eq(folder.id, folderId))
       .execute();
   }
+
+  // Search folders by label or description
+  async searchFolders(query: string, limit: number = 10): Promise<FolderEntity[]> {
+    const normalizedQuery = query.trim().toLowerCase();
+    
+    const folders = await this.db.query.folder.findMany({
+      where: or(
+        sql`LOWER(${folder.label}) LIKE ${`%${normalizedQuery}%`}`,
+        sql`LOWER(${folder.description}) LIKE ${`%${normalizedQuery}%`}`,
+      ),
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
+        content: true,
+      },
+      orderBy: [
+        desc(folder.likes),
+        desc(folder.views),
+        desc(folder.createdAt),
+      ],
+      limit,
+    });
+
+    return folders;
+  }
 }

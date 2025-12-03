@@ -1,4 +1,4 @@
-import { Logger, Module } from '@nestjs/common';
+import { Logger, Module, forwardRef } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import * as multer from 'multer';
 import { MaterialService } from './services/material.service';
@@ -9,11 +9,13 @@ import { StorageModule } from 'src/utils/storage/storage.module';
 import { PreviewService } from './services/preview.service';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from 'src/utils/config/env.enum';
+import { FolderModule } from '../folder/folder.module';
 
 @Module({
   imports: [
     DatabaseModule,
     StorageModule,
+    forwardRef(() => FolderModule),
     MulterModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

@@ -4,6 +4,8 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { MaterialRepository } from 'src/modules/material/material.repository';
 import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
@@ -28,6 +30,7 @@ import * as moment from 'moment-timezone';
 import { UserService } from 'src/modules/user/user.service';
 import { MaterialQueryDto } from '../dto/material-query.dto';
 import { SaveReadingProgressDto } from '../dto/save-reading-progress.dto';
+import { FolderService } from 'src/modules/folder/folder.service';
 ('updateMaterialDto');
 
 @Injectable()
@@ -36,6 +39,8 @@ export class MaterialService {
     private readonly materialRepository: MaterialRepository,
     private readonly storageService: StorageService,
     private readonly userService: UserService,
+    @Inject(forwardRef(() => FolderService))
+    private readonly folderService: FolderService,
   ) {}
 
   async countMaterialsByStatus(departmentId?: string) {
@@ -69,7 +74,7 @@ export class MaterialService {
 
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
     try {
-      const { resourceAddress,  ...materialData } = createMaterialDto;
+      const { resourceAddress, ...materialData } = createMaterialDto;
 
       // Check if creator is admin/moderator and auto-approve if so
       const creator = await this.userService.findOne(
@@ -128,8 +133,6 @@ export class MaterialService {
       let materialType: MaterialTypeEnum;
       let gdriveMetadata: Record<string, any> | undefined;
 
-    
-
       // Infer resource type based on input
       if (file) {
         resourceType = ResourceType.UPLOAD;
@@ -172,7 +175,10 @@ export class MaterialService {
         materialUpdates.metaData = gdriveMetadata;
       }
       // Add parsed metaData to material table for easy querying
-      if (Array.isArray(resourceDto.metaData) && resourceDto.metaData.length > 0) {
+      if (
+        Array.isArray(resourceDto.metaData) &&
+        resourceDto.metaData.length > 0
+      ) {
         materialUpdates.metaData = resourceDto.metaData;
       }
 
@@ -191,10 +197,7 @@ export class MaterialService {
   }
 
   private async createMaterial(
-    materialData: Omit<
-      CreateMaterialDto,
-      'resourceType' | 'resourceAddress' 
-    >,
+    materialData: Omit<CreateMaterialDto, 'resourceType' | 'resourceAddress'>,
   ) {
     try {
       return await this.materialRepository.create(materialData);
@@ -504,7 +507,7 @@ export class MaterialService {
     user?: UserEntity,
     includeReviewer?: boolean,
   ) {
-    return this.materialRepository.searchMaterial(
+    const result = await this.materialRepository.searchMaterial(
       {
         ...filters,
         type: filters.type,
@@ -512,6 +515,43 @@ export class MaterialService {
       user,
       includeReviewer,
     );
+
+    // If materials found are 3 or fewer and query is provided, also search folders
+    if (result.items.length <= 5 && filters.query) {
+      const folders = await this.folderService.searchFolders(
+        filters.query,
+        filters.limit || 10,
+      );
+
+      // If we have materials, append folders; otherwise just return folders
+      if (result.items.length > 0 && folders.length > 0) {
+        // Combine materials and folders
+        return {
+          items: [...result.items, ...folders] as any[],
+          pagination: {
+            total: result.pagination.total + folders.length,
+            page: result.pagination.page,
+            pageSize: result.items.length + folders.length,
+            totalPages: result.pagination.totalPages,
+          },
+          usedAdvanced: result.usedAdvanced,
+        };
+      } else if (result.items.length === 0 && folders.length > 0) {
+        // Only folders found
+        return {
+          items: folders as any[],
+          pagination: {
+            total: folders.length,
+            page: 1,
+            pageSize: folders.length,
+            totalPages: 1,
+          },
+          usedAdvanced: result.usedAdvanced,
+        };
+      }
+    }
+
+    return result;
   }
 
   async getRecommendations(user: UserEntity, page: number = 1) {
@@ -651,9 +691,7 @@ export class MaterialService {
         throw error;
       }
       logger.error(`Failed to save reading progress: ${error.message}`);
-      throw new InternalServerErrorException(
-        'Failed to save reading progress',
-      );
+      throw new InternalServerErrorException('Failed to save reading progress');
     }
   }
 
@@ -710,9 +748,7 @@ export class MaterialService {
         offset,
       );
     } catch (error) {
-      logger.error(
-        `Failed to get materials with progress: ${error.message}`,
-      );
+      logger.error(`Failed to get materials with progress: ${error.message}`);
       throw new InternalServerErrorException(
         'Failed to get materials with progress',
       );
