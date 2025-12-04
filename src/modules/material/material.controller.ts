@@ -41,6 +41,7 @@ import { BatchFindMaterialsDto } from './dto/batch-find-materials.dto';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from 'src/utils/config/env.enum';
 import { Request } from 'express';
+import { BatchCreateMaterialsDto } from './dto/batch-create-material.dto';
 import { SaveReadingProgressDto } from './dto/save-reading-progress.dto';
 @Controller('materials')
 @UseInterceptors(CacheControlInterceptor)
@@ -82,6 +83,33 @@ export class MaterialController {
     return ResponseDto.createSuccessResponse(
       'Material created successfully',
       material,
+    );
+  }
+
+  /**
+   * Batch create materials (for links only)
+   * Files must be uploaded sequentially through the regular create endpoint
+   */
+  @Post('batch')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async batchCreate(
+    @CurrentUser() user: UserEntity,
+    @Body() batchCreateDto: BatchCreateMaterialsDto,
+  ) {
+    logger.debug('Batch upload attempt:', {
+      userId: user.id,
+      materialsCount: batchCreateDto.materials.length,
+    });
+
+    const result = await this.materialService.batchCreate(
+      batchCreateDto.materials,
+      user.id,
+    );
+
+    return ResponseDto.createSuccessResponse(
+      `Batch upload completed: ${result.totalSucceeded}/${result.totalRequested} materials created`,
+      result,
     );
   }
 

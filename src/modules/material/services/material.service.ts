@@ -117,6 +117,116 @@ export class MaterialService {
     }
   }
 
+  /**
+   * Batch create materials (for links only - files must be uploaded sequentially)
+   * This is optimized for batch link uploads where previews are URLs, not files
+   */
+  async batchCreate(
+    materials: Array<{
+      label: string;
+      description?: string;
+      type: MaterialTypeEnum;
+      resourceAddress: string;
+      previewUrl?: string;
+      tags?: string[];
+      visibility?: string;
+      restriction?: string;
+      targetCourseId?: string;
+      metaData?: Record<string, any>;
+    }>,
+    creatorId: string,
+  ): Promise<{
+    totalRequested: number;
+    totalSucceeded: number;
+    totalFailed: number;
+    results: Array<{
+      index: number;
+      success: boolean;
+      materialId?: string;
+      label: string;
+      error?: string;
+    }>;
+  }> {
+    const results: Array<{
+      index: number;
+      success: boolean;
+      materialId?: string;
+      label: string;
+      error?: string;
+    }> = [];
+
+    // Check if creator is admin/moderator for auto-approval
+    const creator = await this.userService.findOne(creatorId);
+    const shouldAutoApprove =
+      creator.role === UserRoleEnum.ADMIN ||
+      creator.role === UserRoleEnum.MODERATOR;
+
+    for (let i = 0; i < materials.length; i++) {
+      const item = materials[i];
+      try {
+        // Create material
+        const materialData: any = {
+          label: item.label,
+          description: item.description || '',
+          type: item.type,
+          tags: item.tags || [],
+          visibility: item.visibility,
+          restriction: item.restriction,
+          targetCourseId: item.targetCourseId,
+          previewUrl: item.previewUrl,
+          creatorId,
+        };
+
+        if (shouldAutoApprove) {
+          materialData.reviewStatus = ApprovalStatus.APPROVED;
+          materialData.reviewedById = creator.id;
+        }
+
+        const material = await this.createMaterial(materialData);
+
+        // Create resource for link
+        await this.createResource(material.id, {
+          resourceAddress: item.resourceAddress,
+          metaData: item.metaData ? [JSON.stringify(item.metaData)] : [],
+        });
+
+        results.push({
+          index: i,
+          success: true,
+          materialId: material.id,
+          label: item.label,
+        });
+
+        logger.log(`Batch create: Successfully created material ${i + 1}/${materials.length}: ${item.label}`);
+      } catch (error) {
+        logger.error(`Batch create: Failed to create material ${i + 1}/${materials.length}: ${error.message}`);
+        results.push({
+          index: i,
+          success: false,
+          label: item.label,
+          error: error.message || 'Unknown error',
+        });
+      }
+    }
+
+    // Allocate points for successful uploads
+    const successCount = results.filter((r) => r.success).length;
+    if (successCount > 0) {
+      // Increment upload count and points for each successful upload
+      for (let i = 0; i < successCount; i++) {
+        await this.userService.incrementUploadCount(creatorId);
+        await this.userService.allocateUploadPoints(creatorId);
+      }
+    }
+
+    return {
+      totalRequested: materials.length,
+      totalSucceeded: successCount,
+      totalFailed: materials.length - successCount,
+      results,
+    };
+  }
+
   private async createResource(
     materialId: string,
     resourceDto: {
