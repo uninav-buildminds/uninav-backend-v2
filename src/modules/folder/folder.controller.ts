@@ -68,6 +68,15 @@ export class FolderController {
     );
   }
 
+  @Get('by-material/:materialId')
+  async findByMaterial(@Param('materialId') materialId: string) {
+    const folders = await this.folderService.getFoldersByMaterial(materialId);
+    return ResponseDto.createSuccessResponse(
+      'Folders containing material retrieved successfully',
+      folders,
+    );
+  }
+
   @Patch(':id')
   @UseGuards(RolesGuard)
   async update(

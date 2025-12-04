@@ -287,4 +287,43 @@ export class FolderRepository {
 
     return folders;
   }
+
+  // Find folders containing a specific material
+  async findFoldersByMaterial(materialId: string): Promise<FolderEntity[]> {
+    const folderContents = await this.db.query.folderContent.findMany({
+      where: eq(folderContent.contentMaterialId, materialId),
+      with: {
+        folder: {
+          with: {
+            creator: {
+              columns: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                username: true,
+              },
+            },
+            content: {
+              with: {
+                material: {
+                  with: {
+                    creator: {
+                      columns: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        username: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return folderContents.map((fc) => fc.folder).filter(Boolean);
+  }
 }
