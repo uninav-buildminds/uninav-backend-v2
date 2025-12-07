@@ -55,6 +55,7 @@ export const material = pgTable(
     previewUrl: text('preview_url'),
     metaData: jsonb('meta_data'),
     searchVector: tsvector('search_vector'),
+    slug: text('slug').unique().notNull(),
     ...timestamps,
   },
   (table) => {
@@ -62,6 +63,7 @@ export const material = pgTable(
       searchVectorIdx: index('material_search_vector_idx').on(
         table.searchVector,
       ),
+      slugIdx: index('material_slug_idx').on(table.slug),
     };
   },
 );
