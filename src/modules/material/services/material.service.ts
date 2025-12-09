@@ -324,6 +324,15 @@ export class MaterialService {
     }
     return material;
   }
+
+  async findBySlug(slug: string) {
+    const material = await this.materialRepository.findBySlug(slug);
+    if (!material) {
+      throw new NotFoundException(`Material with slug ${slug} not found`);
+    }
+    return material;
+  }
+
   async findMaterialResource(id: string) {
     const resource = await this.materialRepository.findMaterialResource(id);
     if (!resource) {
@@ -332,8 +341,18 @@ export class MaterialService {
     return resource;
   }
 
-  async getMaterial(id: string, userId?: string) {
-    const material = await this.findOne(id);
+  async getMaterial(idOrSlug: string, userId?: string) {
+    // Check if input is a UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+    
+    let material;
+    if (isUuid) {
+      material = await this.findOne(idOrSlug);
+    } else {
+      material = await this.findBySlug(idOrSlug);
+    }
+    
+    const id = material.id;
 
     // Get the associated resource
     const materialWithResource = await this.materialRepository.findOne(id);

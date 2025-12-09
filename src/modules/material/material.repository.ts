@@ -117,6 +117,45 @@ export class MaterialRepository {
     });
   }
 
+  async findBySlug(slug: string) {
+    return this.db.query.material.findFirst({
+      where: eq(material.slug, slug),
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            profilePicture: true,
+            departmentId: true,
+            level: true,
+          },
+        },
+        targetCourse: true,
+        resource: true,
+        adverts: true,
+        folders: {
+          with: {
+            folder: {
+              with: {
+                creator: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                  },
+                },
+                content: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async findMaterialResource(id: string) {
     return this.db.query.resource.findFirst({
       where: eq(resource.materialId, id),
