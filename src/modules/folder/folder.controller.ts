@@ -15,6 +15,7 @@ import { UpdateFolderDto } from './dto/update-folder.dto';
 import { AddMaterialToFolderDto } from './dto/add-material.dto';
 import { ResponseDto } from '@app/common/dto/response.dto';
 import { RolesGuard } from '@app/common/guards/roles.guard';
+import { Roles } from '@app/common/decorators/roles.decorator';
 import { Request } from 'express';
 import { UserEntity } from '@app/common/types/db.types';
 @Controller('folders')
@@ -50,9 +51,10 @@ export class FolderController {
 
   @Get(':id')
   @UseGuards(RolesGuard)
+  @Roles([], { strict: false }) // Allow guest access for public folders
   async findOne(@Param('id') id: string, @Req() req: Request) {
-    const user = req['user'] as UserEntity;
-    const folder = await this.folderService.findOne(id, user.id);
+    const user = req['user'] as UserEntity | undefined;
+    const folder = await this.folderService.findOne(id, user?.id);
     return ResponseDto.createSuccessResponse(
       'Folder retrieved successfully',
       folder,

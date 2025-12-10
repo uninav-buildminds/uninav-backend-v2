@@ -31,9 +31,8 @@ export class FolderService {
       throw new NotFoundException(`Folder with ID ${id} not found`);
     }
 
-    // Track folder view in non-blocking fashion
-    if (userId && folder.creatorId === userId) {
-      // Only track views for folder owner
+    // Track folder view in non-blocking fashion (for authenticated users)
+    if (userId) {
       this.folderRepository.trackFolderView(id).catch((error) => {
         console.error('Failed to track folder view:', error);
         // Silently fail - don't block the request
