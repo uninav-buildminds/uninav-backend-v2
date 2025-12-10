@@ -31,11 +31,6 @@ export class FolderService {
       throw new NotFoundException(`Folder with ID ${id} not found`);
     }
 
-    // Check visibility - if private and user is not the creator, deny access
-    if (folder.visibility === 'private' && (!userId || folder.creatorId !== userId)) {
-      throw new ForbiddenException('This folder is private');
-    }
-
     // Track folder view in non-blocking fashion (for authenticated users)
     if (userId) {
       this.folderRepository.trackFolderView(id).catch((error) => {
@@ -44,64 +39,7 @@ export class FolderService {
       });
     }
 
-    // Serialize to prevent circular reference errors
-    return this.serializeFolder(folder);
-  }
-
-  // Helper method to serialize folder and prevent circular references
-  private serializeFolder(folder: any): any {
-    const seen = new WeakSet();
-    
-    const deepClone = (obj: any): any => {
-      // Handle primitives
-      if (obj === null || typeof obj !== 'object') {
-        return obj;
-      }
-      
-      // Handle Date
-      if (obj instanceof Date) {
-        return obj.toISOString();
-      }
-      
-      // Handle arrays
-      if (Array.isArray(obj)) {
-        return obj.map(item => deepClone(item));
-      }
-      
-      // Check for circular reference
-      if (seen.has(obj)) {
-        return undefined; // Skip circular reference
-      }
-      seen.add(obj);
-      
-      // Handle plain objects
-      const cloned: any = {};
-      for (const key in obj) {
-        // Only copy own enumerable properties
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          try {
-            const value = obj[key];
-            // Skip functions and undefined
-            if (typeof value !== 'function' && value !== undefined) {
-              cloned[key] = deepClone(value);
-            }
-          } catch (error) {
-            // Skip problematic properties
-            continue;
-          }
-        }
-      }
-      
-      return cloned;
-    };
-    
-    try {
-      return deepClone(folder);
-    } catch (error) {
-      console.error('Error serializing folder:', error);
-      // Fallback: return folder as-is
-      return folder;
-    }
+    return folder;
   }
 
   async findBySlug(slug: string, userId?: string) {
