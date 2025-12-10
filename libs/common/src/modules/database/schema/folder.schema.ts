@@ -6,6 +6,7 @@ import {
   check,
   integer,
   timestamp,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { visibilityEnum } from './enums.schema';
@@ -16,23 +17,32 @@ import { TABLES } from '../tables.constants';
 import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { courses } from '@app/common/modules/database/schema/course.schema';
 
-export const folder = pgTable(TABLES.FOLDER, {
-  id: uuid('id').primaryKey().defaultRandom(),
-  creatorId: uuid('creator_id').references(() => users.id, {
-    onDelete: 'cascade',
-  }),
-  label: text('label').notNull(),
-  description: text('description'),
-  visibility: visibilityEnum('visibility').default('public'),
-  targetCourseId: uuid('target_course').references(() => courses.id, {
-    onDelete: 'set null',
-  }),
+export const folder = pgTable(
+  TABLES.FOLDER,
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    creatorId: uuid('creator_id').references(() => users.id, {
+      onDelete: 'cascade',
+    }),
+    label: text('label').notNull(),
+    description: text('description'),
+    visibility: visibilityEnum('visibility').default('public'),
+    targetCourseId: uuid('target_course').references(() => courses.id, {
+      onDelete: 'set null',
+    }),
 
-  likes: integer('likes').default(0),
-  views: integer('views').default(0),
-  lastViewedAt: timestamp('last_viewed_at', { withTimezone: true }),
-  ...timestamps,
-});
+    likes: integer('likes').default(0),
+    views: integer('views').default(0),
+    lastViewedAt: timestamp('last_viewed_at', { withTimezone: true }),
+    slug: text('slug').unique(),
+    ...timestamps,
+  },
+  (table) => {
+    return {
+      slugIdx: index('folder_slug_idx').on(table.slug),
+    };
+  },
+);
 
 export const folderContent = pgTable(TABLES.FOLDER_CONTENT, {
   id: uuid('id').primaryKey().defaultRandom(),

@@ -54,7 +54,7 @@ export class FolderController {
   @Roles([], { strict: false }) // Allow guest access for public folders
   async findOne(@Param('id') id: string, @Req() req: Request) {
     const user = req['user'] as UserEntity | undefined;
-    const folder = await this.folderService.findOne(id, user?.id);
+    const folder = await this.folderService.getFolder(id, user?.id);
     return ResponseDto.createSuccessResponse(
       'Folder retrieved successfully',
       folder,

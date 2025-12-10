@@ -90,6 +90,50 @@ export class FolderRepository {
     });
   }
 
+  async findBySlug(slug: string): Promise<FolderEntity | null> {
+    return this.db.query.folder.findFirst({
+      where: eq(folder.slug, slug),
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
+        content: {
+          with: {
+            material: {
+              with: {
+                creator: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                  },
+                },
+              },
+            },
+            nestedFolder: {
+              with: {
+                creator: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async findByCreator(creatorId: string): Promise<FolderEntity[]> {
     return this.db.query.folder.findMany({
       where: eq(folder.creatorId, creatorId),
@@ -258,9 +302,12 @@ export class FolderRepository {
   }
 
   // Search folders by label or description
-  async searchFolders(query: string, limit: number = 10): Promise<FolderEntity[]> {
+  async searchFolders(
+    query: string,
+    limit: number = 10,
+  ): Promise<FolderEntity[]> {
     const normalizedQuery = query.trim().toLowerCase();
-    
+
     const folders = await this.db.query.folder.findMany({
       where: or(
         sql`LOWER(${folder.label}) LIKE ${`%${normalizedQuery}%`}`,
@@ -277,11 +324,7 @@ export class FolderRepository {
         },
         content: true,
       },
-      orderBy: [
-        desc(folder.likes),
-        desc(folder.views),
-        desc(folder.createdAt),
-      ],
+      orderBy: [desc(folder.likes), desc(folder.views), desc(folder.createdAt)],
       limit,
     });
 

@@ -31,12 +31,108 @@ export class FolderService {
       throw new NotFoundException(`Folder with ID ${id} not found`);
     }
 
+    // Check visibility - if private and user is not the creator, deny access
+    if (folder.visibility === 'private' && (!userId || folder.creatorId !== userId)) {
+      throw new ForbiddenException('This folder is private');
+    }
+
     // Track folder view in non-blocking fashion (for authenticated users)
     if (userId) {
       this.folderRepository.trackFolderView(id).catch((error) => {
         console.error('Failed to track folder view:', error);
         // Silently fail - don't block the request
       });
+    }
+
+    // Serialize to prevent circular reference errors
+    return this.serializeFolder(folder);
+  }
+
+  // Helper method to serialize folder and prevent circular references
+  private serializeFolder(folder: any): any {
+    const seen = new WeakSet();
+    
+    const deepClone = (obj: any): any => {
+      // Handle primitives
+      if (obj === null || typeof obj !== 'object') {
+        return obj;
+      }
+      
+      // Handle Date
+      if (obj instanceof Date) {
+        return obj.toISOString();
+      }
+      
+      // Handle arrays
+      if (Array.isArray(obj)) {
+        return obj.map(item => deepClone(item));
+      }
+      
+      // Check for circular reference
+      if (seen.has(obj)) {
+        return undefined; // Skip circular reference
+      }
+      seen.add(obj);
+      
+      // Handle plain objects
+      const cloned: any = {};
+      for (const key in obj) {
+        // Only copy own enumerable properties
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          try {
+            const value = obj[key];
+            // Skip functions and undefined
+            if (typeof value !== 'function' && value !== undefined) {
+              cloned[key] = deepClone(value);
+            }
+          } catch (error) {
+            // Skip problematic properties
+            continue;
+          }
+        }
+      }
+      
+      return cloned;
+    };
+    
+    try {
+      return deepClone(folder);
+    } catch (error) {
+      console.error('Error serializing folder:', error);
+      // Fallback: return folder as-is
+      return folder;
+    }
+  }
+
+  async findBySlug(slug: string, userId?: string) {
+    const folder = await this.folderRepository.findBySlug(slug);
+    if (!folder) {
+      throw new NotFoundException(`Folder with slug ${slug} not found`);
+    }
+
+    // Track folder view in non-blocking fashion (for authenticated users)
+    if (userId) {
+      this.folderRepository.trackFolderView(folder.id).catch((error) => {
+        console.error('Failed to track folder view:', error);
+        // Silently fail - don't block the request
+      });
+    }
+
+    return folder;
+  }
+
+  async getFolder(idOrSlug: string, userId?: string) {
+    // Check if input is a UUID
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        idOrSlug,
+      );
+
+    let folder;
+    if (isUuid) {
+      folder = await this.findOne(idOrSlug, userId);
+    } else {
+      folder = await this.findBySlug(idOrSlug, userId);
     }
 
     return folder;
