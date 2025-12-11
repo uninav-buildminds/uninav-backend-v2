@@ -117,9 +117,11 @@ export class FolderService {
   ) {
     const folder = await this.findOne(folderId);
 
-    // Check ownership
-    if (folder.creatorId !== userId) {
-      throw new ForbiddenException('You can only modify your own folders');
+    // Check permissions: allow if user is creator OR folder is public
+    if (folder.creatorId !== userId && folder.visibility !== 'public') {
+      throw new ForbiddenException(
+        'You can only add materials to your own folders or public folders',
+      );
     }
 
     // Check if material is already in folder
