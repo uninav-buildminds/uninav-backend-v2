@@ -31,6 +31,7 @@ import { UserService } from 'src/modules/user/user.service';
 import { MaterialQueryDto } from '../dto/material-query.dto';
 import { SaveReadingProgressDto } from '../dto/save-reading-progress.dto';
 import { FolderService } from 'src/modules/folder/folder.service';
+import { AddMaterialToFolderDto } from 'src/modules/folder/dto/add-material.dto';
 ('updateMaterialDto');
 
 @Injectable()
@@ -74,7 +75,7 @@ export class MaterialService {
 
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
     try {
-      const { resourceAddress, ...materialData } = createMaterialDto;
+      const { resourceAddress, folderId, ...materialData } = createMaterialDto;
 
       // Check if creator is admin/moderator and auto-approve if so
       const creator = await this.userService.findOne(
@@ -99,6 +100,22 @@ export class MaterialService {
         },
         file,
       );
+
+      // Add material to folder if folderId is provided
+      if (folderId) {
+        try {
+          await this.folderService.addMaterialToFolder(
+            folderId,
+            { materialId: material.id },
+            createMaterialDto.creatorId,
+          );
+        } catch (error) {
+          // Log error but don't fail material creation if folder addition fails
+          logger.warn(
+            `Failed to add material ${material.id} to folder ${folderId}: ${error.message}`,
+          );
+        }
+      }
 
       // Increment upload count and allocate upload points (5 points)
       await this.userService.incrementUploadCount(createMaterialDto.creatorId);

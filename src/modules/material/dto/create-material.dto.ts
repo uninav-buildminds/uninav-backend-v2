@@ -56,6 +56,10 @@ export class CreateMaterialDto extends ResourceDto {
   targetCourseId?: string;
 
   @IsOptional()
+  @IsUUID()
+  folderId?: string;
+
+  @IsOptional()
   @IsString()
   previewUrl?: string;
 
