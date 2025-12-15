@@ -49,6 +49,17 @@ export class FolderController {
     );
   }
 
+  @Get('stats/:id')
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false }) // Allow guest access for public folders
+  async getStats(@Param('id') id: string) {
+    const stats = await this.folderService.getFolderStats(id);
+    return ResponseDto.createSuccessResponse(
+      'Folder stats retrieved successfully',
+      stats,
+    );
+  }
+
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles([], { strict: false }) // Allow guest access for public folders

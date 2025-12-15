@@ -94,6 +94,10 @@ export class FolderService {
     return this.folderRepository.findFoldersByMaterial(materialId);
   }
 
+  async getFolderStats(folderId: string) {
+    return this.folderRepository.getFolderStats(folderId);
+  }
+
   async update(id: string, updateFolderDto: UpdateFolderDto, userId: string) {
     const folder = await this.findOne(id);
 

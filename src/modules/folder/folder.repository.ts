@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { FolderEntity, DrizzleDB } from '@app/common/types/db.types';
-import { and, eq, sql, desc, or, isNull } from 'drizzle-orm';
+import { and, eq, sql, desc, or, isNull, inArray } from 'drizzle-orm';
 import {
   folder,
   folderContent,
@@ -43,11 +43,25 @@ export class FolderRepository {
         desc(folder.createdAt), // Secondary sort by creation date
       ],
     });
-    return folders;
+    // Attach lightweight stats for each folder based on already-loaded content
+    return folders.map((f) => {
+      const materialCount =
+        f.content?.filter((c) => c.contentMaterialId !== null).length || 0;
+      const nestedFolderCount =
+        f.content?.filter((c) => c.contentFolderId !== null).length || 0;
+      return {
+        ...f,
+        materialCount,
+        nestedFolderCount,
+      } as FolderEntity & {
+        materialCount: number;
+        nestedFolderCount: number;
+      };
+    });
   }
 
   async findOne(id: string): Promise<FolderEntity | null> {
-    return this.db.query.folder.findFirst({
+    const found = await this.db.query.folder.findFirst({
       where: eq(folder.id, id),
       with: {
         creator: {
@@ -88,10 +102,62 @@ export class FolderRepository {
         },
       },
     });
+    if (!found) {
+      return found;
+    }
+
+    // Compute stats for this folder
+    const materialCount =
+      found.content?.filter((c) => c.contentMaterialId !== null).length || 0;
+    const nestedFolderCount =
+      found.content?.filter((c) => c.contentFolderId !== null).length || 0;
+
+    // Compute one-level-down material counts for nested folders in a single query
+    const childFolderIds =
+      found.content
+        ?.map((c) => c.contentFolderId)
+        .filter((id): id is string => !!id) || [];
+
+    if (childFolderIds.length > 0) {
+      const childCounts = await this.db
+        .select({
+          folderId: folderContent.folderId,
+          count: sql<number>`count(*)`,
+        })
+        .from(folderContent)
+        .where(
+          and(
+            inArray(folderContent.folderId, childFolderIds),
+            sql`${folderContent.contentMaterialId} IS NOT NULL`,
+          ),
+        )
+        .groupBy(folderContent.folderId);
+
+      const countsMap = new Map<string, number>(
+        childCounts.map((row) => [row.folderId, Number(row.count)]),
+      );
+
+      // Attach materialCount to each nested folder entity
+      found.content?.forEach((c) => {
+        if (c.contentFolderId && c.nestedFolder) {
+          (c.nestedFolder as any).materialCount =
+            countsMap.get(c.contentFolderId) || 0;
+        }
+      });
+    }
+
+    return {
+      ...found,
+      materialCount,
+      nestedFolderCount,
+    } as FolderEntity & {
+      materialCount: number;
+      nestedFolderCount: number;
+    };
   }
 
   async findBySlug(slug: string): Promise<FolderEntity | null> {
-    return this.db.query.folder.findFirst({
+    const found = await this.db.query.folder.findFirst({
       where: eq(folder.slug, slug),
       with: {
         creator: {
@@ -132,6 +198,55 @@ export class FolderRepository {
         },
       },
     });
+    if (!found) {
+      return found;
+    }
+
+    const materialCount =
+      found.content?.filter((c) => c.contentMaterialId !== null).length || 0;
+    const nestedFolderCount =
+      found.content?.filter((c) => c.contentFolderId !== null).length || 0;
+
+    const childFolderIds =
+      found.content
+        ?.map((c) => c.contentFolderId)
+        .filter((id): id is string => !!id) || [];
+
+    if (childFolderIds.length > 0) {
+      const childCounts = await this.db
+        .select({
+          folderId: folderContent.folderId,
+          count: sql<number>`count(*)`,
+        })
+        .from(folderContent)
+        .where(
+          and(
+            inArray(folderContent.folderId, childFolderIds),
+            sql`${folderContent.contentMaterialId} IS NOT NULL`,
+          ),
+        )
+        .groupBy(folderContent.folderId);
+
+      const countsMap = new Map<string, number>(
+        childCounts.map((row) => [row.folderId, Number(row.count)]),
+      );
+
+      found.content?.forEach((c) => {
+        if (c.contentFolderId && c.nestedFolder) {
+          (c.nestedFolder as any).materialCount =
+            countsMap.get(c.contentFolderId) || 0;
+        }
+      });
+    }
+
+    return {
+      ...found,
+      materialCount,
+      nestedFolderCount,
+    } as FolderEntity & {
+      materialCount: number;
+      nestedFolderCount: number;
+    };
   }
 
   async findByCreator(creatorId: string): Promise<FolderEntity[]> {
