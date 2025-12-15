@@ -59,6 +59,10 @@ export class BatchMaterialItemDto {
   targetCourseId?: string;
 
   @IsOptional()
+  @IsUUID()
+  folderId?: string;
+
+  @IsOptional()
   @IsObject()
   metaData?: Record<string, any>;
 }

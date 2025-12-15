@@ -149,6 +149,7 @@ export class MaterialService {
       visibility?: string;
       restriction?: string;
       targetCourseId?: string;
+      folderId?: string;
       metaData?: Record<string, any>;
     }>,
     creatorId: string,
@@ -207,6 +208,21 @@ export class MaterialService {
           metaData: item.metaData ? [JSON.stringify(item.metaData)] : [],
         });
 
+        // Add material to folder if folderId is provided for this item
+        if (item.folderId) {
+          try {
+            await this.folderService.addMaterialToFolder(
+              item.folderId,
+              { materialId: material.id },
+              creatorId,
+            );
+          } catch (error) {
+            logger.warn(
+              `Failed to add material ${material.id} to folder ${item.folderId}: ${error.message}`,
+            );
+          }
+        }
+
         results.push({
           index: i,
           success: true,
@@ -214,9 +230,13 @@ export class MaterialService {
           label: item.label,
         });
 
-        logger.log(`Batch create: Successfully created material ${i + 1}/${materials.length}: ${item.label}`);
+        logger.log(
+          `Batch create: Successfully created material ${i + 1}/${materials.length}: ${item.label}`,
+        );
       } catch (error) {
-        logger.error(`Batch create: Failed to create material ${i + 1}/${materials.length}: ${error.message}`);
+        logger.error(
+          `Batch create: Failed to create material ${i + 1}/${materials.length}: ${error.message}`,
+        );
         results.push({
           index: i,
           success: false,
@@ -360,15 +380,18 @@ export class MaterialService {
 
   async getMaterial(idOrSlug: string, userId?: string) {
     // Check if input is a UUID
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
-    
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        idOrSlug,
+      );
+
     let material;
     if (isUuid) {
       material = await this.findOne(idOrSlug);
     } else {
       material = await this.findBySlug(idOrSlug);
     }
-    
+
     const id = material.id;
 
     // Get the associated resource

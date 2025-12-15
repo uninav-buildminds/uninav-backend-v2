@@ -9,6 +9,7 @@ import { UpdateFolderDto } from './dto/update-folder.dto';
 import { FolderRepository } from './folder.repository';
 import { AddMaterialToFolderDto } from './dto/add-material.dto';
 import { UserService } from '../user/user.service';
+import { VisibilityEnum } from '@app/common/types/db.types';
 
 @Injectable()
 export class FolderService {
@@ -17,7 +18,12 @@ export class FolderService {
     private readonly userService: UserService,
   ) {}
 
+  // Create a new folder, ensuring visibility defaults to public
   async create(createFolderDto: CreateFolderDto) {
+    // Ensure visibility is set to public if not provided
+    if (!createFolderDto.visibility) {
+      createFolderDto.visibility = VisibilityEnum.PUBLIC;
+    }
     return this.folderRepository.create(createFolderDto);
   }
 
