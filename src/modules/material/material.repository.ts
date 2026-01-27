@@ -842,6 +842,102 @@ export class MaterialRepository {
     return data;
   }
 
+  /**
+   * Get general recommendations for users without department - based on recent and engaging materials
+   * Scoring: saves (4x) + likes (3x) + downloads (2x) + views (1x) + recency bonus
+   * Recency bonus: 20 points (last 7 days), 10 points (last 30 days), 5 points (last 90 days)
+   */
+  async getGeneralRecommendations(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{
+    items: Partial<MaterialEntity>[];
+    pagination: {
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+    };
+  }> {
+    const offset = (page - 1) * limit;
+
+    // Calculate engagement score: saves (bookmarks) 4x, likes 3x, downloads 2x, views 1x
+    const savesCount = sql<number>`(
+      SELECT COUNT(*)::int FROM ${bookmarks}
+      WHERE ${bookmarks.materialId} = ${material.id}
+    )`;
+
+    const engagementScore = sql<number>`(
+      4 * (${savesCount}) + 3 * ${material.likes} + 2 * ${material.downloads} + 1 * ${material.views}
+    )`;
+
+    // Add recency bonus - materials from last 30 days get bonus points
+    const recencyBonus = sql<number>`
+      CASE 
+        WHEN ${material.createdAt} > NOW() - INTERVAL '7 days' THEN 20
+        WHEN ${material.createdAt} > NOW() - INTERVAL '30 days' THEN 10
+        WHEN ${material.createdAt} > NOW() - INTERVAL '90 days' THEN 5
+        ELSE 0
+      END
+    `;
+
+    // Get total count for pagination
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(material)
+      .where(eq(material.reviewStatus, ApprovalStatus.APPROVED))
+      .execute();
+
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Fetch recommendations with engagement + recency scoring
+    let { searchVector, ...rest } = getTableColumns(material);
+
+    const data = await this.db
+      .select({
+        ...rest,
+        // Creator fields
+        creator: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+        },
+        // Target course fields
+        targetCourse: {
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+        },
+        rank: sql<number>`(${engagementScore} + ${recencyBonus}) AS rank`,
+      })
+      .from(material)
+      .leftJoin(users, eq(material.creatorId, users.id))
+      .leftJoin(courses, eq(material.targetCourseId, courses.id))
+      .where(eq(material.reviewStatus, ApprovalStatus.APPROVED))
+      .orderBy(
+        desc(sql`rank`),
+        desc(material.likes),
+        desc(material.downloads),
+        desc(material.views),
+        desc(material.createdAt),
+      )
+      .limit(limit)
+      .offset(offset)
+      .execute();
+
+    return {
+      items: data,
+      pagination: {
+        total: totalItems,
+        page,
+        pageSize: limit,
+        totalPages,
+      },
+    };
+  }
+
   async hasUserLikedMaterial(
     materialId: string,
     userId: string,

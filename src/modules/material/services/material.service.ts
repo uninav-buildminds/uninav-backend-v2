@@ -723,13 +723,18 @@ export class MaterialService {
     return result;
   }
 
+  /**
+   * Get material recommendations for a user
+   * - Users with departments get personalized recommendations based on their department and enrolled courses
+   * - Users without departments get general recommendations based on recent and most engaging materials
+   */
   async getRecommendations(user: UserEntity, page: number = 1) {
+    // If user has no department, provide general recommendations based on engagement and recency
     if (!user.departmentId) {
-      throw new BadRequestException(
-        'User must have a department to get recommendations',
-      );
+      return this.materialRepository.getGeneralRecommendations(page);
     }
 
+    // Use department-based recommendations for users with departments
     return this.materialRepository.getRecommendations(user, page);
   }
 
