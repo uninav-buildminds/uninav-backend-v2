@@ -257,14 +257,19 @@ export class MaterialRepository {
       page: number;
       pageSize: number;
       totalPages: number;
+      hasMore: boolean;
+      hasPrev: boolean;
+      normalSearchPages?: number;
     };
     usedAdvanced?: boolean;
+    isAdvancedSearch?: boolean;
   }> {
     let {
       page = 1,
       query,
       advancedSearch,
       ignorePreference = false,
+      excludeIds = [],
       ...filters
     } = options;
     let conditions = [];
@@ -288,15 +293,27 @@ export class MaterialRepository {
       conditions.push(eq(material.reviewStatus, filters.reviewStatus));
     }
 
+    // Add exclusion condition if excludeIds are provided
+    if (excludeIds && excludeIds.length > 0) {
+      conditions.push(notInArray(material.id, excludeIds));
+    }
+
     // Normalize query for case-insensitive search
     const normalizedQuery = query?.trim() || '';
     const queryLower = normalizedQuery.toLowerCase();
+
+    // Determine if this should be advanced search based on:
+    // 1. Explicit advancedSearch parameter (for specific use cases)
+    // 2. excludeIds presence (seamless advanced search when normal search exhausted)
+    const shouldUseAdvancedSearch =
+      advancedSearch || (excludeIds && excludeIds.length > 0);
 
     // Add text search if query is provided
     if (normalizedQuery) {
       const courseCodeIfExists =
         extractCourseCode(normalizedQuery)?.toLowerCase();
-      if (advancedSearch) {
+
+      if (shouldUseAdvancedSearch) {
         // Advanced search: case-insensitive ILIKE on multiple fields
         const searchCondition = or(
           ilike(material.label, `%${normalizedQuery}%`),
@@ -339,10 +356,20 @@ export class MaterialRepository {
 
     let totalItems = Number(countResult[0]?.count || 0);
     let totalPages = Math.ceil(totalItems / limit);
-    let usedAdvanced = advancedSearch || false;
+    let usedAdvanced = shouldUseAdvancedSearch;
+    let isAdvancedSearch = shouldUseAdvancedSearch;
 
-    // Automatic fallback to advanced search if normal search returns no results
-    if (!advancedSearch && normalizedQuery && totalItems === 0) {
+    // Automatic fallback/supplement with advanced search when:
+    // 1. Normal search returns no results OR
+    // 2. Normal search returns less than a full page (for first page only, no excludeIds)
+    const shouldTryAdvancedSearch =
+      !shouldUseAdvancedSearch &&
+      normalizedQuery &&
+      !excludeIds?.length &&
+      page === 1 &&
+      totalItems < limit;
+
+    if (shouldTryAdvancedSearch) {
       const courseCodeIfExists =
         extractCourseCode(normalizedQuery)?.toLowerCase();
 
@@ -379,10 +406,11 @@ export class MaterialRepository {
       totalItems = Number(advancedCountResult[0]?.count || 0);
       totalPages = Math.ceil(totalItems / limit);
       usedAdvanced = true;
+      isAdvancedSearch = true;
     }
 
-    // Store search history for authenticated users (only on first page)
-    if (user && normalizedQuery && page === 1) {
+    // Store search history for authenticated users (only on first page and not advanced search)
+    if (user && normalizedQuery && page === 1 && !shouldUseAdvancedSearch) {
       await this.storeSearchHistory(user.id, normalizedQuery);
     }
 
@@ -467,8 +495,11 @@ export class MaterialRepository {
           page,
           pageSize: limit,
           totalPages,
+          hasMore: page < totalPages,
+          hasPrev: page > 1,
         },
         usedAdvanced,
+        isAdvancedSearch,
       };
     } else {
       // Use standard search without user preferences
@@ -478,8 +509,8 @@ export class MaterialRepository {
       // Build order by clause
       const orderByClause = [];
 
-      // If query was provided, sort by rank first using the vector index
-      if (normalizedQuery) {
+      // If query was provided and not using advanced search, sort by rank first using the vector index
+      if (normalizedQuery && !shouldUseAdvancedSearch) {
         orderByClause.push(
           desc(
             sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${normalizedQuery}))`,
@@ -538,8 +569,11 @@ export class MaterialRepository {
           page,
           pageSize: limit,
           totalPages,
+          hasMore: page < totalPages,
+          hasPrev: page > 1,
         },
         usedAdvanced,
+        isAdvancedSearch,
       };
     }
   }
@@ -554,6 +588,8 @@ export class MaterialRepository {
       page: number;
       pageSize: number;
       totalPages: number;
+      hasMore: boolean;
+      hasPrev: boolean;
     };
   }> {
     const limit = 20; // Increased page size to 20
@@ -676,6 +712,8 @@ export class MaterialRepository {
           page,
           pageSize: limit,
           totalPages: 0,
+          hasMore: false,
+          hasPrev: false,
         },
       };
     }
@@ -760,6 +798,8 @@ export class MaterialRepository {
         page,
         pageSize: limit,
         totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
       },
     };
   }
@@ -801,6 +841,106 @@ export class MaterialRepository {
       .execute();
 
     return data;
+  }
+
+  /**
+   * Get general recommendations for users without department - based on recent and engaging materials
+   * Scoring: saves (4x) + likes (3x) + downloads (2x) + views (1x) + recency bonus
+   * Recency bonus: 20 points (last 7 days), 10 points (last 30 days), 5 points (last 90 days)
+   */
+  async getGeneralRecommendations(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{
+    items: Partial<MaterialEntity>[];
+    pagination: {
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+      hasMore: boolean;
+      hasPrev: boolean;
+    };
+  }> {
+    const offset = (page - 1) * limit;
+
+    // Calculate engagement score: saves (bookmarks) 4x, likes 3x, downloads 2x, views 1x
+    const savesCount = sql<number>`(
+      SELECT COUNT(*)::int FROM ${bookmarks}
+      WHERE ${bookmarks.materialId} = ${material.id}
+    )`;
+
+    const engagementScore = sql<number>`(
+      4 * (${savesCount}) + 3 * ${material.likes} + 2 * ${material.downloads} + 1 * ${material.views}
+    )`;
+
+    // Add recency bonus - materials from last 30 days get bonus points
+    const recencyBonus = sql<number>`
+      CASE 
+        WHEN ${material.createdAt} > NOW() - INTERVAL '7 days' THEN 20
+        WHEN ${material.createdAt} > NOW() - INTERVAL '30 days' THEN 10
+        WHEN ${material.createdAt} > NOW() - INTERVAL '90 days' THEN 5
+        ELSE 0
+      END
+    `;
+
+    // Get total count for pagination
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(material)
+      .where(eq(material.reviewStatus, ApprovalStatus.APPROVED))
+      .execute();
+
+    const totalItems = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Fetch recommendations with engagement + recency scoring
+    let { searchVector, ...rest } = getTableColumns(material);
+
+    const data = await this.db
+      .select({
+        ...rest,
+        // Creator fields
+        creator: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+        },
+        // Target course fields
+        targetCourse: {
+          id: courses.id,
+          courseName: courses.courseName,
+          courseCode: courses.courseCode,
+        },
+        rank: sql<number>`(${engagementScore} + ${recencyBonus}) AS rank`,
+      })
+      .from(material)
+      .leftJoin(users, eq(material.creatorId, users.id))
+      .leftJoin(courses, eq(material.targetCourseId, courses.id))
+      .where(eq(material.reviewStatus, ApprovalStatus.APPROVED))
+      .orderBy(
+        desc(sql`rank`),
+        desc(material.likes),
+        desc(material.downloads),
+        desc(material.views),
+        desc(material.createdAt),
+      )
+      .limit(limit)
+      .offset(offset)
+      .execute();
+
+    return {
+      items: data,
+      pagination: {
+        total: totalItems,
+        page,
+        pageSize: limit,
+        totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 
   async hasUserLikedMaterial(

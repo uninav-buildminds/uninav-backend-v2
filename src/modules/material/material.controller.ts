@@ -99,10 +99,16 @@ export class MaterialController {
       result.items,
       result.pagination,
     );
-    // Add usedAdvanced flag to response data
+
+    // Add search metadata to response data
+    const responseData = response.data as any;
     if (result.usedAdvanced !== undefined) {
-      (response.data as any).usedAdvanced = result.usedAdvanced;
+      responseData.usedAdvanced = result.usedAdvanced;
     }
+    if (result.isAdvancedSearch !== undefined) {
+      responseData.isAdvancedSearch = result.isAdvancedSearch;
+    }
+
     return response;
   }
 
