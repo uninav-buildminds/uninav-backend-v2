@@ -296,14 +296,19 @@ export class MaterialRepository {
       page: number;
       pageSize: number;
       totalPages: number;
+      hasMore: boolean;
+      hasPrev: boolean;
+      normalSearchPages?: number;
     };
     usedAdvanced?: boolean;
+    isAdvancedSearch?: boolean;
   }> {
     let {
       page = 1,
       query,
       advancedSearch,
       ignorePreference = false,
+      excludeIds = [],
       ...filters
     } = options;
     let conditions = [];
@@ -327,15 +332,27 @@ export class MaterialRepository {
       conditions.push(eq(material.reviewStatus, filters.reviewStatus));
     }
 
+    // Add exclusion condition if excludeIds are provided
+    if (excludeIds && excludeIds.length > 0) {
+      conditions.push(notInArray(material.id, excludeIds));
+    }
+
     // Normalize query for case-insensitive search
     const normalizedQuery = query?.trim() || '';
     const queryLower = normalizedQuery.toLowerCase();
+
+    // Determine if this should be advanced search based on:
+    // 1. Explicit advancedSearch parameter (for specific use cases)
+    // 2. excludeIds presence (seamless advanced search when normal search exhausted)
+    const shouldUseAdvancedSearch =
+      advancedSearch || (excludeIds && excludeIds.length > 0);
 
     // Add text search if query is provided
     if (normalizedQuery) {
       const courseCodeIfExists =
         extractCourseCode(normalizedQuery)?.toLowerCase();
-      if (advancedSearch) {
+
+      if (shouldUseAdvancedSearch) {
         // Advanced search: case-insensitive ILIKE on multiple fields
         const searchCondition = or(
           ilike(material.label, `%${normalizedQuery}%`),
@@ -378,10 +395,20 @@ export class MaterialRepository {
 
     let totalItems = Number(countResult[0]?.count || 0);
     let totalPages = Math.ceil(totalItems / limit);
-    let usedAdvanced = advancedSearch || false;
+    let usedAdvanced = shouldUseAdvancedSearch;
+    let isAdvancedSearch = shouldUseAdvancedSearch;
 
-    // Automatic fallback to advanced search if normal search returns no results
-    if (!advancedSearch && normalizedQuery && totalItems === 0) {
+    // Automatic fallback/supplement with advanced search when:
+    // 1. Normal search returns no results OR
+    // 2. Normal search returns less than a full page (for first page only, no excludeIds)
+    const shouldTryAdvancedSearch =
+      !shouldUseAdvancedSearch &&
+      normalizedQuery &&
+      !excludeIds?.length &&
+      page === 1 &&
+      totalItems < limit;
+
+    if (shouldTryAdvancedSearch) {
       const courseCodeIfExists =
         extractCourseCode(normalizedQuery)?.toLowerCase();
 
@@ -418,10 +445,11 @@ export class MaterialRepository {
       totalItems = Number(advancedCountResult[0]?.count || 0);
       totalPages = Math.ceil(totalItems / limit);
       usedAdvanced = true;
+      isAdvancedSearch = true;
     }
 
-    // Store search history for authenticated users (only on first page)
-    if (user && normalizedQuery && page === 1) {
+    // Store search history for authenticated users (only on first page and not advanced search)
+    if (user && normalizedQuery && page === 1 && !shouldUseAdvancedSearch) {
       await this.storeSearchHistory(user.id, normalizedQuery);
     }
 
@@ -506,8 +534,11 @@ export class MaterialRepository {
           page,
           pageSize: limit,
           totalPages,
+          hasMore: page < totalPages,
+          hasPrev: page > 1,
         },
         usedAdvanced,
+        isAdvancedSearch,
       };
     } else {
       // Use standard search without user preferences
@@ -517,8 +548,8 @@ export class MaterialRepository {
       // Build order by clause
       const orderByClause = [];
 
-      // If query was provided, sort by rank first using the vector index
-      if (normalizedQuery) {
+      // If query was provided and not using advanced search, sort by rank first using the vector index
+      if (normalizedQuery && !shouldUseAdvancedSearch) {
         orderByClause.push(
           desc(
             sql`ts_rank_cd(${material.searchVector}, websearch_to_tsquery('english', ${normalizedQuery}))`,
@@ -577,8 +608,11 @@ export class MaterialRepository {
           page,
           pageSize: limit,
           totalPages,
+          hasMore: page < totalPages,
+          hasPrev: page > 1,
         },
         usedAdvanced,
+        isAdvancedSearch,
       };
     }
   }
@@ -593,6 +627,8 @@ export class MaterialRepository {
       page: number;
       pageSize: number;
       totalPages: number;
+      hasMore: boolean;
+      hasPrev: boolean;
     };
   }> {
     const limit = 20; // Increased page size to 20
@@ -715,6 +751,8 @@ export class MaterialRepository {
           page,
           pageSize: limit,
           totalPages: 0,
+          hasMore: false,
+          hasPrev: false,
         },
       };
     }
@@ -799,6 +837,8 @@ export class MaterialRepository {
         page,
         pageSize: limit,
         totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
       },
     };
   }
@@ -857,6 +897,8 @@ export class MaterialRepository {
       page: number;
       pageSize: number;
       totalPages: number;
+      hasMore: boolean;
+      hasPrev: boolean;
     };
   }> {
     const offset = (page - 1) * limit;
@@ -934,6 +976,8 @@ export class MaterialRepository {
         page,
         pageSize: limit,
         totalPages,
+        hasMore: page < totalPages,
+        hasPrev: page > 1,
       },
     };
   }
