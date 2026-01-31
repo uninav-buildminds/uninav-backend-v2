@@ -32,6 +32,7 @@ import { MaterialQueryDto } from '../dto/material-query.dto';
 import { SaveReadingProgressDto } from '../dto/save-reading-progress.dto';
 import { FolderService } from 'src/modules/folder/folder.service';
 import { AddMaterialToFolderDto } from 'src/modules/folder/dto/add-material.dto';
+import { RedisCacheService } from 'src/utils/cache/redis-cache.service';
 ('updateMaterialDto');
 
 @Injectable()
@@ -42,6 +43,7 @@ export class MaterialService {
     private readonly userService: UserService,
     @Inject(forwardRef(() => FolderService))
     private readonly folderService: FolderService,
+    private readonly cacheService: RedisCacheService,
   ) {}
 
   async countMaterialsByStatus(departmentId?: string) {
@@ -642,6 +644,10 @@ export class MaterialService {
         // User already liked the material, so unlike it
         await this.materialRepository.removeUserLike(id, userId);
         await this.materialRepository.decrementLikes(id);
+
+        // Invalidate recommendation cache (likes affect engagement scoring)
+        await this.invalidateUserRecommendationsCache(userId);
+
         return {
           liked: false,
           message: 'Material unliked successfully',
@@ -652,6 +658,10 @@ export class MaterialService {
         await this.materialRepository.addUserLike(id, userId);
         const updatedMaterial =
           await this.materialRepository.incrementLikes(id);
+
+        // Invalidate recommendation cache (likes affect engagement scoring)
+        await this.invalidateUserRecommendationsCache(userId);
+
         return {
           liked: true,
           message: 'Material liked successfully',
@@ -676,6 +686,7 @@ export class MaterialService {
     user?: UserEntity,
     includeReviewer?: boolean,
   ) {
+    // Search only materials - folder search is handled separately on client side
     const result = await this.materialRepository.searchMaterial(
       {
         ...filters,
@@ -685,57 +696,61 @@ export class MaterialService {
       includeReviewer,
     );
 
-    // If materials found are 3 or fewer and query is provided, also search folders
-    if (result.items.length <= 5 && filters.query) {
-      const folders = await this.folderService.searchFolders(
-        filters.query,
-        filters.limit || 10,
-      );
-
-      // If we have materials, append folders; otherwise just return folders
-      if (result.items.length > 0 && folders.length > 0) {
-        // Combine materials and folders
-        return {
-          items: [...result.items, ...folders] as any[],
-          pagination: {
-            total: result.pagination.total + folders.length,
-            page: result.pagination.page,
-            pageSize: result.items.length + folders.length,
-            totalPages: result.pagination.totalPages,
-          },
-          usedAdvanced: result.usedAdvanced,
-        };
-      } else if (result.items.length === 0 && folders.length > 0) {
-        // Only folders found
-        return {
-          items: folders as any[],
-          pagination: {
-            total: folders.length,
-            page: 1,
-            pageSize: folders.length,
-            totalPages: 1,
-          },
-          usedAdvanced: result.usedAdvanced,
-        };
-      }
+    // Invalidate user's recommendation cache when they search (search history affects recommendations)
+    if (user && filters.query) {
+      await this.invalidateUserRecommendationsCache(user.id);
     }
 
     return result;
   }
 
+  // Helper method to invalidate all cached recommendations for a user
+  private async invalidateUserRecommendationsCache(userId: string) {
+    try {
+      const pattern = `recommendations:user:${userId}:*`;
+      const deletedCount = await this.cacheService.deletePattern(pattern);
+      if (deletedCount > 0) {
+        logger.debug(
+          `Invalidated ${deletedCount} recommendation cache entries for user ${userId}`,
+        );
+      }
+    } catch (error) {
+      logger.error('Error invalidating recommendation cache:', error);
+    }
+  }
+
   /**
-   * Get material recommendations for a user
-   * - Users with departments get personalized recommendations based on their department and enrolled courses
+   * Get material recommendations for a user with Redis caching (1 hour TTL)
+   * - Users with departments get personalized recommendations based on search history, department, and enrolled courses
    * - Users without departments get general recommendations based on recent and most engaging materials
+   * - Recommendations are cached per user for 1 hour to improve performance
    */
   async getRecommendations(user: UserEntity, page: number = 1) {
-    // If user has no department, provide general recommendations based on engagement and recency
-    if (!user.departmentId) {
-      return this.materialRepository.getGeneralRecommendations(page);
+    const cacheKey = `recommendations:user:${user.id}:page:${page}`;
+    const cacheTTL = 3600; // 1 hour in seconds
+
+    // Try to get from cache first
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached) {
+      logger.debug(`Cache hit for recommendations: ${cacheKey}`);
+      return cached;
     }
 
-    // Use department-based recommendations for users with departments
-    return this.materialRepository.getRecommendations(user, page);
+    logger.debug(`Cache miss for recommendations: ${cacheKey}`);
+
+    // If user has no department, provide general recommendations based on engagement and recency
+    let result;
+    if (!user.departmentId) {
+      result = await this.materialRepository.getGeneralRecommendations(page);
+    } else {
+      // Use enhanced search-history-based recommendations for users with departments
+      result = await this.materialRepository.getRecommendations(user, page);
+    }
+
+    // Cache the result for 1 hour
+    await this.cacheService.set(cacheKey, result, cacheTTL);
+
+    return result;
   }
 
   async getPopularMaterials(limit: number = 10) {

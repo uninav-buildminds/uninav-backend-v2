@@ -142,7 +142,7 @@ export class MaterialController {
 
   @Get('recommendations')
   @UseGuards(RolesGuard)
-  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  // Redis caching handled in service layer (1 hour TTL per user)
   async getRecommendations(
     @CurrentUser() user: UserEntity,
     @Query('page') page: number = 1,

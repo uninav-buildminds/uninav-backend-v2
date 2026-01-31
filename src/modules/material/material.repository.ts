@@ -634,7 +634,7 @@ export class MaterialRepository {
     const limit = 20; // Increased page size to 20
     const offset = (page - 1) * limit;
 
-    // Get department level courses (priority) - courses in user's department
+    // Get department level courses - courses in user's department
     const departmentCourseIds = user.departmentId
       ? await this.db
           .select({ courseId: dlc.courseId })
@@ -657,17 +657,27 @@ export class MaterialRepository {
     // Combine all course IDs (department courses have priority but we include both)
     const allCourseIds = [...new Set([...deptCourseIds, ...enrolledCourseIds])];
 
-    // Get last 15 recent searches (most recent first)
+    // Get last 20 recent searches with timestamps for recency scoring
     const recentSearches = await this.db
-      .select({ query: searchHistory.query })
+      .select({
+        query: searchHistory.query,
+        createdAt: searchHistory.createdAt,
+      })
       .from(searchHistory)
       .where(eq(searchHistory.userId, user.id))
       .orderBy(desc(searchHistory.createdAt))
-      .limit(15)
+      .limit(20)
       .execute();
 
-    // Get 5 random older searches (if there are more than 15 total)
-    let olderSearches: { query: string }[] = [];
+    // Calculate search query frequency (how many times each query appears)
+    const searchFrequency = new Map<string, number>();
+    recentSearches.forEach((search) => {
+      const query = search.query.trim().toLowerCase();
+      searchFrequency.set(query, (searchFrequency.get(query) || 0) + 1);
+    });
+
+    // Get 5 random older searches for diversity (if there are more than 20 total)
+    let olderSearches: { query: string; createdAt: Date }[] = [];
     const totalSearchCount = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(searchHistory)
@@ -675,22 +685,23 @@ export class MaterialRepository {
       .execute();
 
     const totalSearches = Number(totalSearchCount[0]?.count || 0);
-    if (totalSearches > 15) {
-      // Get random 5 from older searches (skip first 15, use SQL random ordering)
-      // Get IDs of the first 15 most recent searches to exclude them
+    if (totalSearches > 20) {
       const recentSearchIds = await this.db
         .select({ id: searchHistory.id })
         .from(searchHistory)
         .where(eq(searchHistory.userId, user.id))
         .orderBy(desc(searchHistory.createdAt))
-        .limit(15)
+        .limit(20)
         .execute();
 
       const recentIds = recentSearchIds.map((row) => row.id);
 
       if (recentIds.length > 0) {
         olderSearches = await this.db
-          .select({ query: searchHistory.query })
+          .select({
+            query: searchHistory.query,
+            createdAt: searchHistory.createdAt,
+          })
           .from(searchHistory)
           .where(
             and(
@@ -704,23 +715,16 @@ export class MaterialRepository {
       }
     }
 
-    // Combine all search queries
-    const allSearchQueries = [
-      ...recentSearches.map((row) => row.query.trim()),
-      ...olderSearches.map((row) => row.query.trim()),
-    ].filter(Boolean);
+    // Combine all searches
+    const allSearches = [...recentSearches, ...olderSearches];
+    const allSearchQueries = allSearches
+      .map((row) => row.query.trim())
+      .filter(Boolean);
 
-    // Build recommendation conditions: course-based OR search-history-based
+    // Build recommendation conditions: search-history-based OR course-based
     const recommendationConditions = [];
 
-    // Course-based recommendations (priority)
-    if (allCourseIds.length > 0) {
-      recommendationConditions.push(
-        inArray(material.targetCourseId, allCourseIds),
-      );
-    }
-
-    // Search history-based recommendations (for variation)
+    // Search history-based recommendations (HIGHEST PRIORITY)
     if (allSearchQueries.length > 0) {
       const searchConditions = allSearchQueries.map((query) => {
         const queryLower = query.toLowerCase();
@@ -740,6 +744,13 @@ export class MaterialRepository {
         );
       });
       recommendationConditions.push(or(...searchConditions));
+    }
+
+    // Course-based recommendations (secondary priority)
+    if (allCourseIds.length > 0) {
+      recommendationConditions.push(
+        inArray(material.targetCourseId, allCourseIds),
+      );
     }
 
     // If no conditions, return empty result
@@ -769,12 +780,66 @@ export class MaterialRepository {
     const totalItems = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalItems / limit);
 
-    // Fetch recommendations with ranking that prioritizes department level courses
-    // Use raw SQL for better control over ranking
-    let { searchVector, ...rest } = getTableColumns(material);
+    // Build search match scoring SQL
+    // For each material, calculate how many search queries it matches
+    const searchMatchScoreSQL =
+      allSearchQueries.length > 0
+        ? sql`(
+          ${sql.join(
+            allSearchQueries.map((query) => {
+              const queryLower = query.toLowerCase();
+              const frequency = searchFrequency.get(queryLower) || 1;
+              // Weight by frequency: more searched terms get higher scores
+              return sql`
+                CASE WHEN (
+                  LOWER(${material.label}) LIKE ${`%${queryLower}%`} OR
+                  LOWER(${material.description}) LIKE ${`%${queryLower}%`} OR
+                  ${queryLower} ILIKE ANY(${material.tags}) OR
+                  EXISTS (
+                    SELECT 1 FROM ${courses} 
+                    WHERE ${courses.id} = ${material.targetCourseId} 
+                    AND (
+                      LOWER(${courses.courseName}) LIKE ${`%${queryLower}%`} OR 
+                      LOWER(${courses.courseCode}) LIKE ${`%${queryLower}%`}
+                    )
+                  )
+                ) THEN ${frequency} ELSE 0 END
+              `;
+            }),
+            sql` + `,
+          )}
+        )`
+        : sql`0`;
 
-    // Build ranking using course IDs we already fetched
-    // Use proper parameterized SQL for type safety
+    // Calculate search recency bonus (recent searches matter more)
+    const now = new Date();
+    const searchRecencyBonus =
+      recentSearches.length > 0
+        ? sql`(
+          ${sql.join(
+            recentSearches.slice(0, 10).map((search, index) => {
+              const queryLower = search.query.trim().toLowerCase();
+              const daysAgo = Math.floor(
+                (now.getTime() - new Date(search.createdAt).getTime()) /
+                  (1000 * 60 * 60 * 24),
+              );
+              // Recent searches get higher bonus: 20 points (today), 15 (last 3 days), 10 (last 7 days), 5 (last 14 days)
+              const recencyMultiplier =
+                daysAgo === 0 ? 20 : daysAgo <= 3 ? 15 : daysAgo <= 7 ? 10 : 5;
+              return sql`
+                CASE WHEN (
+                  LOWER(${material.label}) LIKE ${`%${queryLower}%`} OR
+                  LOWER(${material.description}) LIKE ${`%${queryLower}%`} OR
+                  ${queryLower} ILIKE ANY(${material.tags})
+                ) THEN ${recencyMultiplier} ELSE 0 END
+              `;
+            }),
+            sql` + `,
+          )}
+        )`
+        : sql`0`;
+
+    // Build course match conditions
     const deptCourseCondition =
       deptCourseIds.length > 0
         ? sql`${material.targetCourseId} = ANY(${sql.raw(`ARRAY[${deptCourseIds.map((id) => `'${id}'::uuid`).join(',')}]`)}::uuid[])`
@@ -784,6 +849,8 @@ export class MaterialRepository {
       enrolledCourseIds.length > 0
         ? sql`${material.targetCourseId} = ANY(${sql.raw(`ARRAY[${enrolledCourseIds.map((id) => `'${id}'::uuid`).join(',')}]`)}::uuid[])`
         : sql`FALSE`;
+
+    let { searchVector, ...rest } = getTableColumns(material);
 
     const data = await this.db
       .select({
@@ -801,19 +868,27 @@ export class MaterialRepository {
           courseName: courses.courseName,
           courseCode: courses.courseCode,
         },
-        // Ranking: Department courses get highest priority, then enrolled courses, then search history matches
+        // ENHANCED RANKING: Prioritizes search history > department > engagement
         rank: sql<number>`
-          CASE 
-            -- Highest priority: Department level courses (if user has department and course matches)
-            WHEN ${deptCourseCondition} THEN 100
-            -- Second priority: User's enrolled courses
-            WHEN ${enrolledCourseCondition} THEN 50
-            -- Lower priority: Search history matches (variation)
-            ELSE 10
-          END
-          + ${material.likes} * 0.1
-          + ${material.downloads} * 0.05
-          + ${material.views} * 0.01 AS rank`,
+          (
+            -- PRIORITY 1: Search history match score (50-150 points based on frequency)
+            (${searchMatchScoreSQL}) * 10
+            
+            -- -- PRIORITY 2: Search recency bonus (0-200 points for recent searches)
+            -- + (${searchRecencyBonus})
+            
+            -- PRIORITY 3: Department/enrollment match (30-50 points)
+            + CASE 
+                WHEN ${deptCourseCondition} THEN 50
+                WHEN ${enrolledCourseCondition} THEN 30
+                ELSE 0
+              END
+            
+            -- PRIORITY 4: Engagement metrics (weighted lower)
+            + ${material.likes} * 10
+            + ${material.downloads} * 15
+            + ${material.views} * 5
+          ) AS rank`,
       })
       .from(material)
       .leftJoin(users, eq(material.creatorId, users.id))
@@ -821,10 +896,7 @@ export class MaterialRepository {
       .where(whereCondition)
       .orderBy(
         desc(sql`rank`),
-        desc(material.likes),
-        desc(material.downloads),
-        desc(material.views),
-        desc(material.createdAt),
+        desc(material.createdAt), // Tiebreaker: newer materials
       )
       .limit(limit)
       .offset(offset)

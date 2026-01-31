@@ -29,11 +29,13 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ManagementModule } from './modules/management/management.module';
 import { ErrorReportsModule } from './modules/error-reports/error-reports.module';
 import { ENV } from 'src/utils/config/env.enum';
+import { CacheModule } from './utils/cache/cache.module';
 
 @Module({
   imports: [
     CommonModule,
     DatabaseModule,
+    CacheModule,
     UserModule,
     AuthModule,
     ConfigModule.forRoot({
