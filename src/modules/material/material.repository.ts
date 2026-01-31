@@ -715,8 +715,10 @@ export class MaterialRepository {
       }
     }
 
-    // Combine all searches
-    const allSearches = [...recentSearches, ...olderSearches];
+    // Combine all searches and randomize them
+    const allSearches = [...recentSearches, ...olderSearches].sort(
+      () => Math.random() - 0.5,
+    );
     const allSearchQueries = allSearches
       .map((row) => row.query.trim())
       .filter(Boolean);
@@ -852,6 +854,17 @@ export class MaterialRepository {
 
     let { searchVector, ...rest } = getTableColumns(material);
 
+    // Build individual scoring components
+    // const searchRecencyScore = sql<number>`(${searchRecencyBonus}) * 10`;
+    const searchHistoryScore = sql<number>`(${searchMatchScoreSQL}) * 10`;
+    const departmentScore = sql<number>`CASE WHEN ${deptCourseCondition} THEN 50 WHEN ${enrolledCourseCondition} THEN 70 ELSE 0 END`;
+    const likesScore = sql<number>`${material.likes} * 10`;
+    const downloadsScore = sql<number>`${material.downloads} * 15`;
+    const viewsScore = sql<number>`${material.views} * 5`;
+
+    // Complete rank calculation (reused in SELECT and ORDER BY)
+    const rankCalculation = sql<number>`(${searchHistoryScore} + ${departmentScore} + ${likesScore} + ${downloadsScore} + ${viewsScore})`;
+
     const data = await this.db
       .select({
         ...rest,
@@ -869,33 +882,14 @@ export class MaterialRepository {
           courseCode: courses.courseCode,
         },
         // ENHANCED RANKING: Prioritizes search history > department > engagement
-        rank: sql<number>`
-          (
-            -- PRIORITY 1: Search history match score (50-150 points based on frequency)
-            (${searchMatchScoreSQL}) * 10
-            
-            -- -- PRIORITY 2: Search recency bonus (0-200 points for recent searches)
-            -- + (${searchRecencyBonus})
-            
-            -- PRIORITY 3: Department/enrollment match (30-50 points)
-            + CASE 
-                WHEN ${deptCourseCondition} THEN 50
-                WHEN ${enrolledCourseCondition} THEN 30
-                ELSE 0
-              END
-            
-            -- PRIORITY 4: Engagement metrics (weighted lower)
-            + ${material.likes} * 10
-            + ${material.downloads} * 15
-            + ${material.views} * 5
-          ) AS rank`,
+        rank: rankCalculation,
       })
       .from(material)
       .leftJoin(users, eq(material.creatorId, users.id))
       .leftJoin(courses, eq(material.targetCourseId, courses.id))
       .where(whereCondition)
       .orderBy(
-        desc(sql`rank`),
+        desc(rankCalculation),
         desc(material.createdAt), // Tiebreaker: newer materials
       )
       .limit(limit)
