@@ -71,4 +71,9 @@ export class MaterialQueryDto extends PaginationDto {
     return undefined;
   })
   excludeIds?: string[]; // Material IDs to exclude from search results (sent by client to avoid duplicates)
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  saveHistory?: boolean = false; // Whether to save this search to user's search history (false for autocomplete, true for explicit searches)
 }
