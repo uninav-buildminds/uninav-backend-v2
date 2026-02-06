@@ -420,6 +420,7 @@ export class FolderRepository {
   async searchFolders(
     query: string,
     limit: number = 10,
+    offset: number = 0,
   ): Promise<FolderEntity[]> {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -441,6 +442,7 @@ export class FolderRepository {
       },
       orderBy: [desc(folder.likes), desc(folder.views), desc(folder.createdAt)],
       limit,
+      offset,
     });
 
     return folders;

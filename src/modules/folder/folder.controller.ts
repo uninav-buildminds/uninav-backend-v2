@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { FolderService } from './folder.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
@@ -47,6 +48,55 @@ export class FolderController {
       'Folders retrieved successfully',
       folders,
     );
+  }
+
+  @Get('search')
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false }) // Allow guest access for public folders
+  async searchFolders(
+    @Query('query') query: string,
+    @Query('limit') limit: number = 10,
+    @Query('page') page: number = 1,
+  ) {
+    if (!query || query.trim().length < 3) {
+      return ResponseDto.createSuccessResponse(
+        'Folders searched successfully',
+        {
+          items: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            pageSize: limit,
+            totalPages: 0,
+            hasMore: false,
+            hasPrev: false,
+          },
+        },
+      );
+    }
+
+    const offset = (page - 1) * limit;
+    const results = await this.folderService.searchFolders(
+      query.trim(),
+      limit + 1, // Get one extra to check if there are more
+      offset,
+    );
+
+    const hasMore = results.length > limit;
+    const items = hasMore ? results.slice(0, limit) : results;
+    const total = hasMore ? offset + results.length : offset + items.length;
+
+    return ResponseDto.createSuccessResponse('Folders searched successfully', {
+      items,
+      pagination: {
+        total,
+        page,
+        pageSize: limit,
+        totalPages: hasMore ? page + 1 : page, // Approximate total pages
+        hasMore,
+        hasPrev: page > 1,
+      },
+    });
   }
 
   @Get('stats/:id')

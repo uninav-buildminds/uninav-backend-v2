@@ -86,8 +86,8 @@ export class FolderService {
     return this.folderRepository.findByCreator(creatorId);
   }
 
-  async searchFolders(query: string, limit: number = 10) {
-    return this.folderRepository.searchFolders(query, limit);
+  async searchFolders(query: string, limit: number = 10, offset: number = 0) {
+    return this.folderRepository.searchFolders(query, limit, offset);
   }
 
   async getFoldersByMaterial(materialId: string) {
