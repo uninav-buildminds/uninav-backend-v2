@@ -64,6 +64,12 @@ export const material = pgTable(
         table.searchVector,
       ),
       slugIdx: index('material_slug_idx').on(table.slug),
+      // Indexes to speed up common filters and joins
+      creatorIdIdx: index('material_creator_id_idx').on(table.creatorId),
+      targetCourseIdIdx: index('material_target_course_id_idx').on(
+        table.targetCourseId,
+      ),
+      tagsIdx: index('material_tags_idx').on(table.tags),
     };
   },
 );
