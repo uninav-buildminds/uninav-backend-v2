@@ -381,6 +381,40 @@ export class AuthService {
     return await this.jwtService.signAsync({ sub: userId });
   }
 
+  // one-line comment: checks if a decoded JWT is close enough to expiry to warrant refresh
+  private shouldRefreshToken(decodedToken: any): boolean {
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const secondsToExpiry = decodedToken.exp - nowInSeconds;
+
+    // one-line comment: threshold defines how many seconds before expiry we start refreshing (15 days here)
+    const refreshThresholdSeconds = 15 * 24 * 60 * 60;
+
+    return secondsToExpiry > 0 && secondsToExpiry < refreshThresholdSeconds;
+  }
+
+  // one-line comment: verifies a JWT and optionally refreshes it plus the cookie when close to expiry
+  async verifyAndRefreshTokenIfNeeded(
+    token: string,
+    res?: Response,
+  ): Promise<{ valid: boolean; refreshedToken?: string }> {
+    try {
+      const decoded: any = await this.jwtService.verifyAsync(token);
+
+      // one-line comment: if no response or token not near expiry, simply mark it as valid
+      if (!res || !this.shouldRefreshToken(decoded)) {
+        return { valid: true };
+      }
+
+      // one-line comment: issue a new token with the same subject and update the cookie
+      const newToken = await this.generateToken(decoded.sub);
+      await this.setCookie(res, newToken);
+
+      return { valid: true, refreshedToken: newToken };
+    } catch {
+      return { valid: false };
+    }
+  }
+
   async validateUser(
     emailOrMatricNo: string,
     password: string,

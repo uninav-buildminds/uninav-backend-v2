@@ -49,10 +49,11 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
+  // one-line comment: checks authentication status and refreshes token/cookie when close to expiry
   @Get('check')
   async checkAuthStatus(
     @Req() req: Request,
-    // @Res({ passthrough: true }) res: Response,
+    @Res({ passthrough: true }) res: Response,
   ) {
     let token = req.cookies?.authorization;
 
@@ -67,16 +68,22 @@ export class AuthController {
       });
     }
 
-    try {
-      this.jwtService.verify(token);
-      return ResponseDto.createSuccessResponse('User is logged in', {
-        loggedIn: true,
-      });
-    } catch (error) {
+    // one-line comment: verify current token and refresh it (and cookie) when near expiry
+    const result = await this.authService.verifyAndRefreshTokenIfNeeded(
+      token,
+      res,
+    );
+
+    if (!result.valid) {
       return ResponseDto.createSuccessResponse('Invalid JWT token', {
         loggedIn: false,
       });
     }
+
+    return ResponseDto.createSuccessResponse('User is logged in', {
+      loggedIn: true,
+      refreshed: !!result.refreshedToken,
+    });
   }
 
   @Post('student')

@@ -25,7 +25,8 @@ export const globalCookieOptions: CookieOptions = {
   sameSite: 'none',
   secure: true,
   // expires: moment().add(cookie_duration, 'days').toDate(),
-  maxAge: 60 * 60 * 24 * cookie_duration,
+  // maxAge expects milliseconds, so we convert days -> seconds -> ms
+  maxAge: 1000 * 60 * 60 * 24 * cookie_duration,
 };
 
 // Storage bucket types for organizing files within buckets
