@@ -76,6 +76,19 @@ export class FolderController {
     );
   }
 
+  @Get('material-ids')
+  @UseGuards(RolesGuard)
+  async getMaterialIdsInFolders(@Req() req: Request) {
+    const user = req['user'] as UserEntity;
+    const materialIds = await this.folderService.getMaterialIdsInUserFolders(
+      user.id,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Material IDs in folders retrieved successfully',
+      { materialIds },
+    );
+  }
+
   @Get('search')
   @UseGuards(RolesGuard)
   @Roles([], { strict: false }) // Allow guest access for public folders

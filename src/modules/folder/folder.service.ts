@@ -31,6 +31,11 @@ export class FolderService {
     return this.folderRepository.findAll(userId);
   }
 
+  /** Material IDs in any folder owned by the user (for list UIs) */
+  async getMaterialIdsInUserFolders(userId: string): Promise<string[]> {
+    return this.folderRepository.getMaterialIdsInUserFolders(userId);
+  }
+
   // Fetch folders with pagination for library UIs
   async findAllPaginated(userId: string, page: number, limit: number) {
     const offset = (page - 1) * limit;

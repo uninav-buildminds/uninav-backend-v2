@@ -6,6 +6,7 @@ import {
   folder,
   folderContent,
 } from '@app/common/modules/database/schema/folder.schema';
+import { users } from '@app/common/modules/database/schema/user.schema';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { AddMaterialToFolderDto } from './dto/add-material.dto';
@@ -22,9 +23,27 @@ export class FolderRepository {
     return result[0];
   }
 
-  async findAll(userId: string): Promise<FolderEntity[]> {
-    // Fetch lightweight folder rows with aggregated content counts
-    const rows = await this.db
+  /** List folders with materialCount/nestedFolderCount from SQL (no content), optional limit/offset */
+  private async findFoldersWithCountsAndCreator(
+    userId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<(FolderEntity & { materialCount: number; nestedFolderCount: number })[]> {
+    const countSubquery = this.db
+      .select({
+        folderId: folderContent.folderId,
+        materialCount: sql<number>`count(*) filter (where ${folderContent.contentMaterialId} is not null)`.as(
+          'materialCount',
+        ),
+        nestedFolderCount: sql<number>`count(*) filter (where ${folderContent.contentFolderId} is not null)`.as(
+          'nestedFolderCount',
+        ),
+      })
+      .from(folderContent)
+      .groupBy(folderContent.folderId)
+      .as('counts');
+
+    let query = this.db
       .select({
         id: folder.id,
         creatorId: folder.creatorId,
@@ -38,43 +57,60 @@ export class FolderRepository {
         slug: folder.slug,
         createdAt: folder.createdAt,
         updatedAt: folder.updatedAt,
-        materialCount: sql<number>`
-          sum(
-            case when ${folderContent.contentMaterialId} is not null
-                 then 1 else 0 end
-          )
-        `.as('materialCount'),
-        nestedFolderCount: sql<number>`
-          sum(
-            case when ${folderContent.contentFolderId} is not null
-                 then 1 else 0 end
-          )
-        `.as('nestedFolderCount'),
+        materialCount: countSubquery.materialCount,
+        nestedFolderCount: countSubquery.nestedFolderCount,
+        creatorIdUser: users.id,
+        creatorFirstName: users.firstName,
+        creatorLastName: users.lastName,
+        creatorUsername: users.username,
       })
       .from(folder)
-      .leftJoin(folderContent, eq(folder.id, folderContent.folderId))
+      .leftJoin(countSubquery, eq(folder.id, countSubquery.folderId))
+      .leftJoin(users, eq(folder.creatorId, users.id))
       .where(eq(folder.creatorId, userId))
-      .groupBy(
-        folder.id,
-        folder.creatorId,
-        folder.label,
-        folder.description,
-        folder.visibility,
-        folder.targetCourseId,
-        folder.likes,
-        folder.views,
-        folder.lastViewedAt,
-        folder.slug,
-        folder.createdAt,
-        folder.updatedAt,
-      )
       .orderBy(desc(folder.lastViewedAt), desc(folder.createdAt));
 
-    // Cast into FolderEntity-compatible objects enriched with counts
-    return rows as unknown as (FolderEntity & {
-      materialCount: number;
-      nestedFolderCount: number;
-    })[];
+    if (limit != null) query = query.limit(limit) as typeof query;
+    if (offset != null) query = query.offset(offset) as typeof query;
+
+    const rows = await query;
+
+    return rows.map((row) => {
+      const { creatorIdUser, creatorFirstName, creatorLastName, creatorUsername, ...rest } =
+        row;
+      return {
+        ...rest,
+        materialCount: Number(rest.materialCount ?? 0),
+        nestedFolderCount: Number(rest.nestedFolderCount ?? 0),
+        creator: creatorIdUser
+          ? {
+              id: creatorIdUser,
+              firstName: creatorFirstName,
+              lastName: creatorLastName,
+              username: creatorUsername,
+            }
+          : undefined,
+      } as FolderEntity & { materialCount: number; nestedFolderCount: number };
+    });
+  }
+
+  async findAll(userId: string): Promise<FolderEntity[]> {
+    return this.findFoldersWithCountsAndCreator(userId, undefined, undefined);
+  }
+
+  /** Material IDs that appear in any folder owned by the user (for list UIs) */
+  async getMaterialIdsInUserFolders(userId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ materialId: folderContent.contentMaterialId })
+      .from(folderContent)
+      .innerJoin(folder, eq(folderContent.folderId, folder.id))
+      .where(
+        and(
+          eq(folder.creatorId, userId),
+          sql`${folderContent.contentMaterialId} IS NOT NULL`,
+        ),
+      );
+    return rows.map((r) => r.materialId).filter((id): id is string => !!id);
   }
 
   async findAllPaginated(
@@ -82,58 +118,7 @@ export class FolderRepository {
     limit: number,
     offset: number,
   ): Promise<FolderEntity[]> {
-    const rows = await this.db
-      .select({
-        id: folder.id,
-        creatorId: folder.creatorId,
-        label: folder.label,
-        description: folder.description,
-        visibility: folder.visibility,
-        targetCourseId: folder.targetCourseId,
-        likes: folder.likes,
-        views: folder.views,
-        lastViewedAt: folder.lastViewedAt,
-        slug: folder.slug,
-        createdAt: folder.createdAt,
-        updatedAt: folder.updatedAt,
-        materialCount: sql<number>`
-          sum(
-            case when ${folderContent.contentMaterialId} is not null
-                 then 1 else 0 end
-          )
-        `.as('materialCount'),
-        nestedFolderCount: sql<number>`
-          sum(
-            case when ${folderContent.contentFolderId} is not null
-                 then 1 else 0 end
-          )
-        `.as('nestedFolderCount'),
-      })
-      .from(folder)
-      .leftJoin(folderContent, eq(folder.id, folderContent.folderId))
-      .where(eq(folder.creatorId, userId))
-      .groupBy(
-        folder.id,
-        folder.creatorId,
-        folder.label,
-        folder.description,
-        folder.visibility,
-        folder.targetCourseId,
-        folder.likes,
-        folder.views,
-        folder.lastViewedAt,
-        folder.slug,
-        folder.createdAt,
-        folder.updatedAt,
-      )
-      .orderBy(desc(folder.lastViewedAt), desc(folder.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    return rows as unknown as (FolderEntity & {
-      materialCount: number;
-      nestedFolderCount: number;
-    })[];
+    return this.findFoldersWithCountsAndCreator(userId, limit, offset);
   }
 
   async findOne(id: string): Promise<FolderEntity | null> {
@@ -492,36 +477,80 @@ export class FolderRepository {
       .execute();
   }
 
-  // Search folders by label or description
+  // Search folders by label or description; returns counts from SQL, no content
   async searchFolders(
-    query: string,
+    searchQuery: string,
     limit: number = 10,
     offset: number = 0,
-  ): Promise<FolderEntity[]> {
-    const normalizedQuery = query.trim().toLowerCase();
+  ): Promise<(FolderEntity & { materialCount: number; nestedFolderCount: number })[]> {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const pattern = `%${normalizedQuery}%`;
 
-    const folders = await this.db.query.folder.findMany({
-      where: or(
-        sql`LOWER(${folder.label}) LIKE ${`%${normalizedQuery}%`}`,
-        sql`LOWER(${folder.description}) LIKE ${`%${normalizedQuery}%`}`,
-      ),
-      with: {
-        creator: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-          },
-        },
-        content: true,
-      },
-      orderBy: [desc(folder.likes), desc(folder.views), desc(folder.createdAt)],
-      limit,
-      offset,
+    const countSubquery = this.db
+      .select({
+        folderId: folderContent.folderId,
+        materialCount: sql<number>`count(*) filter (where ${folderContent.contentMaterialId} is not null)`.as(
+          'materialCount',
+        ),
+        nestedFolderCount: sql<number>`count(*) filter (where ${folderContent.contentFolderId} is not null)`.as(
+          'nestedFolderCount',
+        ),
+      })
+      .from(folderContent)
+      .groupBy(folderContent.folderId)
+      .as('counts');
+
+    const rows = await this.db
+      .select({
+        id: folder.id,
+        creatorId: folder.creatorId,
+        label: folder.label,
+        description: folder.description,
+        visibility: folder.visibility,
+        targetCourseId: folder.targetCourseId,
+        likes: folder.likes,
+        views: folder.views,
+        lastViewedAt: folder.lastViewedAt,
+        slug: folder.slug,
+        createdAt: folder.createdAt,
+        updatedAt: folder.updatedAt,
+        materialCount: countSubquery.materialCount,
+        nestedFolderCount: countSubquery.nestedFolderCount,
+        creatorIdUser: users.id,
+        creatorFirstName: users.firstName,
+        creatorLastName: users.lastName,
+        creatorUsername: users.username,
+      })
+      .from(folder)
+      .leftJoin(countSubquery, eq(folder.id, countSubquery.folderId))
+      .leftJoin(users, eq(folder.creatorId, users.id))
+      .where(
+        or(
+          sql`LOWER(${folder.label}) LIKE ${pattern}`,
+          sql`LOWER(${folder.description}) LIKE ${pattern}`,
+        ),
+      )
+      .orderBy(desc(folder.likes), desc(folder.views), desc(folder.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return rows.map((row) => {
+      const { creatorIdUser, creatorFirstName, creatorLastName, creatorUsername, ...rest } =
+        row;
+      return {
+        ...rest,
+        materialCount: Number(rest.materialCount ?? 0),
+        nestedFolderCount: Number(rest.nestedFolderCount ?? 0),
+        creator: creatorIdUser
+          ? {
+              id: creatorIdUser,
+              firstName: creatorFirstName,
+              lastName: creatorLastName,
+              username: creatorUsername,
+            }
+          : undefined,
+      } as FolderEntity & { materialCount: number; nestedFolderCount: number };
     });
-
-    return folders;
   }
 
   // Find folders containing a specific material
