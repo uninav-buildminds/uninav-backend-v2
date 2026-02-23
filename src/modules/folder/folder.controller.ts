@@ -41,8 +41,34 @@ export class FolderController {
 
   @Get()
   @UseGuards(RolesGuard)
-  async findAll(@Req() req: Request) {
+  async findAll(
+    @Req() req: Request,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     const user = req['user'] as UserEntity;
+
+    // Support pagination when query params are provided
+    if (page !== undefined || limit !== undefined) {
+      const pageNum = Math.max(1, Number.parseInt(page || '1', 10) || 1);
+      const limitNum = Math.min(
+        50,
+        Math.max(1, Number.parseInt(limit || '10', 10) || 10),
+      );
+
+      const result = await this.folderService.findAllPaginated(
+        user.id,
+        pageNum,
+        limitNum,
+      );
+
+      return ResponseDto.createSuccessResponse(
+        'Folders retrieved successfully',
+        result,
+      );
+    }
+
+    // Legacy: return full list when pagination params are absent
     const folders = await this.folderService.findAll(user.id);
     return ResponseDto.createSuccessResponse(
       'Folders retrieved successfully',

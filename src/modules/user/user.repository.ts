@@ -4,7 +4,7 @@ import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { DrizzleDB } from '@app/common/types/db.types';
-import { eq, or, and, inArray, isNull, ilike } from 'drizzle-orm';
+import { eq, or, and, inArray, isNull, ilike, desc } from 'drizzle-orm';
 import {
   userCourses,
   bookmarks,
@@ -297,6 +297,51 @@ export class UserRepository {
         },
         folder: true,
       },
+    });
+  }
+
+  async getUserBookmarksLite(userId: string) {
+    return this.db.query.bookmarks.findMany({
+      where: eq(bookmarks.userId, userId),
+      with: {
+        folder: true,
+      },
+      orderBy: (bookmarks, { desc }) => [desc(bookmarks.createdAt)],
+    });
+  }
+
+  async getUserBookmarksPaginated(
+    userId: string,
+    limit: number,
+    offset: number,
+    includeMaterial: boolean,
+  ) {
+    return this.db.query.bookmarks.findMany({
+      where: eq(bookmarks.userId, userId),
+      with: includeMaterial
+        ? {
+            material: {
+              with: {
+                creator: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                    level: true,
+                    departmentId: true,
+                  },
+                },
+              },
+            },
+            folder: true,
+          }
+        : {
+            folder: true,
+          },
+      orderBy: (bookmarks, { desc }) => [desc(bookmarks.createdAt)],
+      limit,
+      offset,
     });
   }
 

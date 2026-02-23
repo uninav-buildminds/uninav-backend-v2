@@ -31,6 +31,32 @@ export class FolderService {
     return this.folderRepository.findAll(userId);
   }
 
+  // Fetch folders with pagination for library UIs
+  async findAllPaginated(userId: string, page: number, limit: number) {
+    const offset = (page - 1) * limit;
+    const results = await this.folderRepository.findAllPaginated(
+      userId,
+      limit + 1,
+      offset,
+    );
+
+    const hasMore = results.length > limit;
+    const items = hasMore ? results.slice(0, limit) : results;
+    const total = hasMore ? offset + results.length : offset + items.length;
+
+    return {
+      items,
+      pagination: {
+        total,
+        page,
+        pageSize: limit,
+        totalPages: hasMore ? page + 1 : page, // Approximate total pages
+        hasMore,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
   async findOne(id: string, userId?: string) {
     const folder = await this.folderRepository.findOne(id);
     if (!folder) {

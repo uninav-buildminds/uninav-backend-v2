@@ -448,7 +448,13 @@ export class MaterialRepository {
     }
 
     // Store search history for authenticated users (only on first page, not advanced search, and when saveHistory is true)
-    if (user && normalizedQuery && page === 1 && !shouldUseAdvancedSearch && options.saveHistory) {
+    if (
+      user &&
+      normalizedQuery &&
+      page === 1 &&
+      !shouldUseAdvancedSearch &&
+      options.saveHistory
+    ) {
       await this.storeSearchHistory(user.id, normalizedQuery);
     }
 

@@ -23,41 +23,117 @@ export class FolderRepository {
   }
 
   async findAll(userId: string): Promise<FolderEntity[]> {
-    const folders = await this.db.query.folder.findMany({
-      where: eq(folder.creatorId, userId),
-      with: {
-        creator: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-          },
-        },
-        content: true,
-      },
-      orderBy: (folder, { desc }) => [
-        // Sort by lastViewedAt descending (most recently viewed first)
-        // Folders without lastViewedAt go to the end
-        desc(folder.lastViewedAt),
-        desc(folder.createdAt), // Secondary sort by creation date
-      ],
-    });
-    // Attach lightweight stats for each folder based on already-loaded content
-    return folders.map((f) => {
-      const materialCount =
-        f.content?.filter((c) => c.contentMaterialId !== null).length || 0;
-      const nestedFolderCount =
-        f.content?.filter((c) => c.contentFolderId !== null).length || 0;
-      return {
-        ...f,
-        materialCount,
-        nestedFolderCount,
-      } as FolderEntity & {
-        materialCount: number;
-        nestedFolderCount: number;
-      };
-    });
+    // Fetch lightweight folder rows with aggregated content counts
+    const rows = await this.db
+      .select({
+        id: folder.id,
+        creatorId: folder.creatorId,
+        label: folder.label,
+        description: folder.description,
+        visibility: folder.visibility,
+        targetCourseId: folder.targetCourseId,
+        likes: folder.likes,
+        views: folder.views,
+        lastViewedAt: folder.lastViewedAt,
+        slug: folder.slug,
+        createdAt: folder.createdAt,
+        updatedAt: folder.updatedAt,
+        materialCount: sql<number>`
+          sum(
+            case when ${folderContent.contentMaterialId} is not null
+                 then 1 else 0 end
+          )
+        `.as('materialCount'),
+        nestedFolderCount: sql<number>`
+          sum(
+            case when ${folderContent.contentFolderId} is not null
+                 then 1 else 0 end
+          )
+        `.as('nestedFolderCount'),
+      })
+      .from(folder)
+      .leftJoin(folderContent, eq(folder.id, folderContent.folderId))
+      .where(eq(folder.creatorId, userId))
+      .groupBy(
+        folder.id,
+        folder.creatorId,
+        folder.label,
+        folder.description,
+        folder.visibility,
+        folder.targetCourseId,
+        folder.likes,
+        folder.views,
+        folder.lastViewedAt,
+        folder.slug,
+        folder.createdAt,
+        folder.updatedAt,
+      )
+      .orderBy(desc(folder.lastViewedAt), desc(folder.createdAt));
+
+    // Cast into FolderEntity-compatible objects enriched with counts
+    return rows as unknown as (FolderEntity & {
+      materialCount: number;
+      nestedFolderCount: number;
+    })[];
+  }
+
+  async findAllPaginated(
+    userId: string,
+    limit: number,
+    offset: number,
+  ): Promise<FolderEntity[]> {
+    const rows = await this.db
+      .select({
+        id: folder.id,
+        creatorId: folder.creatorId,
+        label: folder.label,
+        description: folder.description,
+        visibility: folder.visibility,
+        targetCourseId: folder.targetCourseId,
+        likes: folder.likes,
+        views: folder.views,
+        lastViewedAt: folder.lastViewedAt,
+        slug: folder.slug,
+        createdAt: folder.createdAt,
+        updatedAt: folder.updatedAt,
+        materialCount: sql<number>`
+          sum(
+            case when ${folderContent.contentMaterialId} is not null
+                 then 1 else 0 end
+          )
+        `.as('materialCount'),
+        nestedFolderCount: sql<number>`
+          sum(
+            case when ${folderContent.contentFolderId} is not null
+                 then 1 else 0 end
+          )
+        `.as('nestedFolderCount'),
+      })
+      .from(folder)
+      .leftJoin(folderContent, eq(folder.id, folderContent.folderId))
+      .where(eq(folder.creatorId, userId))
+      .groupBy(
+        folder.id,
+        folder.creatorId,
+        folder.label,
+        folder.description,
+        folder.visibility,
+        folder.targetCourseId,
+        folder.likes,
+        folder.views,
+        folder.lastViewedAt,
+        folder.slug,
+        folder.createdAt,
+        folder.updatedAt,
+      )
+      .orderBy(desc(folder.lastViewedAt), desc(folder.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return rows as unknown as (FolderEntity & {
+      materialCount: number;
+      nestedFolderCount: number;
+    })[];
   }
 
   async findOne(id: string): Promise<FolderEntity | null> {

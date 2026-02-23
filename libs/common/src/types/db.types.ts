@@ -81,6 +81,7 @@ export enum MaterialTypeEnum {
   VIDEO = 'video',
   YOUTUBE = 'youtube',
   ARTICLE = 'article',
+  GUIDE = 'guide',
   OTHER = 'other',
 }
 
