@@ -20,4 +20,9 @@ export const TABLES = {
   MATERIAL_LIKES: 'material_likes',
   RECENT: 'recent',
   ADMIN: 'admin',
+  CLUBS: 'clubs',
+  CLUB_TARGET_DEPARTMENTS: 'club_target_departments',
+  CLUB_CLICKS: 'club_clicks',
+  CLUB_FLAGS: 'club_flags',
+  CLUB_REQUESTS: 'club_requests',
 } as const;
