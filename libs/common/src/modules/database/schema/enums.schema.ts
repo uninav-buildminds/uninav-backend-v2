@@ -47,3 +47,27 @@ export const userIdTypeEnum = pgEnum('user_id_type', [
   'id_card',
   'admission_letter',
 ]);
+
+export const clubStatusEnum = pgEnum('club_status', [
+  'live',
+  'flagged',
+  'hidden',
+]);
+
+export const clubTargetingEnum = pgEnum('club_targeting', [
+  'public',
+  'specific',
+  'exclude',
+]);
+
+export const clubFlagStatusEnum = pgEnum('club_flag_status', [
+  'pending',
+  'reviewed',
+  'dismissed',
+]);
+
+export const clubRequestStatusEnum = pgEnum('club_request_status', [
+  'pending',
+  'fulfilled',
+  'dismissed',
+]);
