@@ -261,14 +261,14 @@ export class ClubsService {
 
   async trackClick(
     clubId: string,
-    user?: UserEntity,
+    user: UserEntity,
   ): Promise<{ externalLink: string; clickCount: number }> {
     const club = await this.findOne(clubId);
 
     await this.clubsRepository.createClick({
       clubId,
-      userId: user?.id,
-      departmentId: user?.departmentId,
+      userId: user.id,
+      departmentId: user.departmentId,
     });
 
     const clickCount = await this.clubsRepository.getClickCount(clubId);
