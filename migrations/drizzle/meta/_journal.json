@@ -141,6 +141,13 @@
       "when": 1772120454566,
       "tag": "0019_peaceful_thunderball",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1772120845350,
+      "tag": "0020_hesitant_blade",
+      "breakpoints": true
     }
   ]
 }
