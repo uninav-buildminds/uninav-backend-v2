@@ -28,6 +28,7 @@ import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.mi
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ManagementModule } from './modules/management/management.module';
 import { ErrorReportsModule } from './modules/error-reports/error-reports.module';
+import { ClubsModule } from './modules/clubs/clubs.module';
 import { ENV } from 'src/utils/config/env.enum';
 import { CacheModule } from './utils/cache/cache.module';
 
@@ -81,6 +82,7 @@ import { CacheModule } from './utils/cache/cache.module';
     ManagementModule,
     ErrorReportsModule,
     GDriveModule,
+    ClubsModule,
   ],
   controllers: [AppController],
   providers: [
