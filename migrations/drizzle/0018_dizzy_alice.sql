@@ -1,0 +1,1 @@
+ALTER TYPE "public"."material_type" ADD VALUE 'guide' BEFORE 'other';

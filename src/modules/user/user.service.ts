@@ -523,6 +523,67 @@ export class UserService {
     }
   }
 
+  // Fetch user bookmarks without material relation (for quick bookmark state checks)
+  async getUserBookmarksLite(userId: string) {
+    try {
+      return this.userRepository.getUserBookmarksLite(userId);
+    } catch (error) {
+      this.logger.error(
+        `Error getting bookmarks (lite) for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      throw new InternalServerErrorException(
+        `Error getting bookmarks: ${error.message}`,
+      );
+    }
+  }
+
+  // Fetch user bookmarks with pagination (optionally excluding material relation)
+  async getUserBookmarksPaginated(
+    userId: string,
+    page: number,
+    limit: number,
+    includeMaterial: boolean,
+    query?: string,
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+      const results = await this.userRepository.getUserBookmarksPaginated(
+        userId,
+        limit + 1,
+        offset,
+        includeMaterial,
+        query,
+      );
+
+      const hasMore = results.length > limit;
+      const items = hasMore ? results.slice(0, limit) : results;
+      const total = hasMore ? offset + results.length : offset + items.length;
+
+      return {
+        items,
+        pagination: {
+          total,
+          page,
+          pageSize: limit,
+          totalPages: hasMore ? page + 1 : page, // Approximate total pages
+          hasMore,
+          hasPrev: page > 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting bookmarks (paginated) for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      throw new InternalServerErrorException(
+        `Error getting bookmarks: ${error.message}`,
+      );
+    }
+  }
+
   async getBookmarkById(userId: string, bookmarkId: string) {
     try {
       // Find the bookmark

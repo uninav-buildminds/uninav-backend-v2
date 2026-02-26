@@ -41,13 +41,101 @@ export class FolderController {
 
   @Get()
   @UseGuards(RolesGuard)
-  async findAll(@Req() req: Request) {
+  async findAll(
+    @Req() req: Request,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     const user = req['user'] as UserEntity;
+
+    // Support pagination when query params are provided
+    if (page !== undefined || limit !== undefined) {
+      const pageNum = Math.max(1, Number.parseInt(page || '1', 10) || 1);
+      const limitNum = Math.min(
+        50,
+        Math.max(1, Number.parseInt(limit || '10', 10) || 10),
+      );
+
+      const result = await this.folderService.findAllPaginated(
+        user.id,
+        pageNum,
+        limitNum,
+      );
+
+      return ResponseDto.createSuccessResponse(
+        'Folders retrieved successfully',
+        result,
+      );
+    }
+
+    // Legacy: return full list when pagination params are absent
     const folders = await this.folderService.findAll(user.id);
     return ResponseDto.createSuccessResponse(
       'Folders retrieved successfully',
       folders,
     );
+  }
+
+  @Get('material-ids')
+  @UseGuards(RolesGuard)
+  async getMaterialIdsInFolders(@Req() req: Request) {
+    const user = req['user'] as UserEntity;
+    const materialIds = await this.folderService.getMaterialIdsInUserFolders(
+      user.id,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Material IDs in folders retrieved successfully',
+      { materialIds },
+    );
+  }
+
+  @Get('search')
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false }) // Allow guest access for public folders
+  async searchFolders(
+    @Query('query') query: string,
+    @Query('limit') limit: number = 10,
+    @Query('page') page: number = 1,
+  ) {
+    if (!query || query.trim().length < 3) {
+      return ResponseDto.createSuccessResponse(
+        'Folders searched successfully',
+        {
+          items: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            pageSize: limit,
+            totalPages: 0,
+            hasMore: false,
+            hasPrev: false,
+          },
+        },
+      );
+    }
+
+    const offset = (page - 1) * limit;
+    const results = await this.folderService.searchFolders(
+      query.trim(),
+      limit + 1, // Get one extra to check if there are more
+      offset,
+    );
+
+    const hasMore = results.length > limit;
+    const items = hasMore ? results.slice(0, limit) : results;
+    const total = hasMore ? offset + results.length : offset + items.length;
+
+    return ResponseDto.createSuccessResponse('Folders searched successfully', {
+      items,
+      pagination: {
+        total,
+        page,
+        pageSize: limit,
+        totalPages: hasMore ? page + 1 : page, // Approximate total pages
+        hasMore,
+        hasPrev: page > 1,
+      },
+    });
   }
 
   @Get('stats/:id')

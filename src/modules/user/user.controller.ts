@@ -173,7 +173,46 @@ export class UserController {
   @Get('bookmarks')
   @UseGuards(RolesGuard)
   @CacheControl({ maxAge: 300, private: true }) // Cache for 5 minutes
-  async getUserBookmarks(@CurrentUser() user: UserEntity) {
+  async getUserBookmarks(
+    @CurrentUser() user: UserEntity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('includeMaterial') includeMaterial?: string,
+    @Query('query') query?: string,
+  ) {
+    // Support pagination when query params are provided
+    if (page !== undefined || limit !== undefined) {
+      const pageNum = Math.max(1, Number.parseInt(page || '1', 10) || 1);
+      const limitNum = Math.min(
+        50,
+        Math.max(1, Number.parseInt(limit || '10', 10) || 10),
+      );
+      const include = includeMaterial !== 'false';
+
+      const result = await this.userService.getUserBookmarksPaginated(
+        user.id,
+        pageNum,
+        limitNum,
+        include,
+        query,
+      );
+
+      return ResponseDto.createSuccessResponse(
+        'Bookmarks retrieved successfully',
+        result,
+      );
+    }
+
+    // Support lightweight bookmarks when includeMaterial=false
+    if (includeMaterial === 'false') {
+      const bookmarks = await this.userService.getUserBookmarksLite(user.id);
+      return ResponseDto.createSuccessResponse(
+        'Bookmarks retrieved successfully',
+        bookmarks,
+      );
+    }
+
+    // Legacy: return full list (with material) when pagination params are absent
     const bookmarks = await this.userService.getUserBookmarks(user.id);
     return ResponseDto.createSuccessResponse(
       'Bookmarks retrieved successfully',

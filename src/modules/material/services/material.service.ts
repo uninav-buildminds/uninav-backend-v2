@@ -46,6 +46,29 @@ export class MaterialService {
     private readonly cacheService: RedisCacheService,
   ) {}
 
+  // Helper to mark that a user's search results should bypass cache briefly
+  // Used after uploads/updates so the creator immediately sees fresh results
+  private async markUserSearchStale(userId: string) {
+    try {
+      const key = `search:materials:recentUpload:user:${userId}`;
+      // 60 seconds is enough for immediate follow-up searches after an upload/update
+      await this.cacheService.set(key, { stale: true }, 60);
+    } catch (error) {
+      logger.error('Error marking user search as stale:', error);
+    }
+  }
+
+  // Helper to clear all cached material search results
+  // Conservative but safe – trade some cache hit rate for strong freshness guarantees
+  private async invalidateSearchCache() {
+    try {
+      const pattern = 'search:materials:*';
+      await this.cacheService.deletePattern(pattern);
+    } catch (error) {
+      logger.error('Error invalidating material search cache:', error);
+    }
+  }
+
   async countMaterialsByStatus(departmentId?: string) {
     return this.materialRepository.countByStatus(departmentId);
   }
@@ -122,6 +145,10 @@ export class MaterialService {
       // Increment upload count and allocate upload points (5 points)
       await this.userService.incrementUploadCount(createMaterialDto.creatorId);
       await this.userService.allocateUploadPoints(createMaterialDto.creatorId);
+
+      // Ensure fresh search results for the creator and other users
+      await this.markUserSearchStale(createMaterialDto.creatorId);
+      await this.invalidateSearchCache();
 
       // Return complete material with resource
       const materialWithResource = await this.materialRepository.findOne(
@@ -256,6 +283,10 @@ export class MaterialService {
         await this.userService.incrementUploadCount(creatorId);
         await this.userService.allocateUploadPoints(creatorId);
       }
+
+      // Mark creator's search results as stale and clear shared search cache
+      await this.markUserSearchStale(creatorId);
+      await this.invalidateSearchCache();
     }
 
     return {
@@ -575,6 +606,10 @@ export class MaterialService {
         await this.materialRepository.update(id, materialData);
       }
 
+      // Invalidate search cache so updates are reflected in subsequent searches
+      await this.invalidateSearchCache();
+      await this.markUserSearchStale(userId);
+
       // Return updated material with resource
       return this.materialRepository.findOne(id);
     } catch (error) {
@@ -620,7 +655,13 @@ export class MaterialService {
       }
     }
 
-    return this.materialRepository.remove(id);
+    const removed = await this.materialRepository.remove(id);
+
+    // Invalidate search cache after deletions so removed materials disappear from results
+    await this.invalidateSearchCache();
+    await this.markUserSearchStale(userId);
+
+    return removed;
   }
 
   /**
@@ -686,15 +727,78 @@ export class MaterialService {
     user?: UserEntity,
     includeReviewer?: boolean,
   ) {
-    // Search only materials - folder search is handled separately on client side
-    const result = await this.materialRepository.searchMaterial(
-      {
-        ...filters,
-        type: filters.type,
-      },
-      user,
-      includeReviewer,
-    );
+    // Normalize filters so cache keys remain stable
+    const normalizedFilters: MaterialQueryDto = {
+      ...filters,
+      type: filters.type,
+    };
+
+    const userKey = user?.id ?? 'anon';
+    const cachePayload = {
+      userId: userKey,
+      filters: normalizedFilters,
+      includeReviewer: !!includeReviewer,
+    };
+
+    const cacheKey = `search:materials:${JSON.stringify(cachePayload)}`;
+    const recentUploadKey = user
+      ? `search:materials:recentUpload:user:${user.id}`
+      : null;
+
+    // If user recently uploaded/updated materials, bypass cache to ensure freshness
+    let shouldBypassCache = false;
+    if (recentUploadKey) {
+      try {
+        shouldBypassCache = await this.cacheService.exists(recentUploadKey);
+      } catch (error) {
+        logger.error('Error checking recent upload key for search cache:', error);
+      }
+    }
+
+    let result;
+
+    // Try cache first when allowed
+    if (!shouldBypassCache) {
+      try {
+        const cached = await this.cacheService.get<{
+          items: any[];
+          pagination: any;
+          usedAdvanced?: boolean;
+          isAdvancedSearch?: boolean;
+        }>(cacheKey);
+
+        if (cached) {
+          logger.debug(`Cache hit for material search: ${cacheKey}`);
+          result = cached;
+        }
+      } catch (error) {
+        logger.error('Error reading material search cache:', error);
+      }
+    }
+
+    // Fallback to repository search when cache miss or bypass
+    if (!result) {
+      logger.debug(`Cache miss for material search: ${cacheKey}`);
+
+      // Search only materials - folder search is handled separately on client side
+      result = await this.materialRepository.searchMaterial(
+        normalizedFilters,
+        user,
+        includeReviewer,
+      );
+
+      // Short TTL to balance freshness and performance
+      const cacheTTLSeconds = 60;
+
+      // Only cache when not explicitly bypassing cache for this user
+      if (!shouldBypassCache) {
+        try {
+          await this.cacheService.set(cacheKey, result, cacheTTLSeconds);
+        } catch (error) {
+          logger.error('Error writing material search cache:', error);
+        }
+      }
+    }
 
     // Invalidate user's recommendation cache when they search (search history affects recommendations)
     if (user && filters.query) {

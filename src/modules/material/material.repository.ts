@@ -399,14 +399,13 @@ export class MaterialRepository {
     let isAdvancedSearch = shouldUseAdvancedSearch;
 
     // Automatic fallback/supplement with advanced search when:
-    // 1. Normal search returns no results OR
-    // 2. Normal search returns less than a full page (for first page only, no excludeIds)
+    // Normal search returns very few results (for first page only, no excludeIds)
     const shouldTryAdvancedSearch =
       !shouldUseAdvancedSearch &&
       normalizedQuery &&
       !excludeIds?.length &&
       page === 1 &&
-      totalItems < limit;
+      totalItems < 5;
 
     if (shouldTryAdvancedSearch) {
       const courseCodeIfExists =
@@ -449,7 +448,13 @@ export class MaterialRepository {
     }
 
     // Store search history for authenticated users (only on first page, not advanced search, and when saveHistory is true)
-    if (user && normalizedQuery && page === 1 && !shouldUseAdvancedSearch && options.saveHistory) {
+    if (
+      user &&
+      normalizedQuery &&
+      page === 1 &&
+      !shouldUseAdvancedSearch &&
+      options.saveHistory
+    ) {
       await this.storeSearchHistory(user.id, normalizedQuery);
     }
 
