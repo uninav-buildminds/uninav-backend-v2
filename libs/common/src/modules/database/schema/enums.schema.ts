@@ -11,11 +11,12 @@ export const materialTypeEnum = pgEnum('material_type', [
   'pdf',
   'ppt',
   'excel',
+  'youtube',
   'gdrive',
-  // generic
   'image',
   'video',
   'article',
+  'guide',
   'other',
 ]);
 export const resourceTypeEnum = pgEnum('resource_type', ['url', 'upload']);

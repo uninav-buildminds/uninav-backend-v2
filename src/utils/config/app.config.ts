@@ -10,15 +10,20 @@ const HELMET_OPTIONS: HelmetOptions = {
 const CORS_OPTIONS: CorsOptions = {
   origin: [
     'http://localhost:3000',
+    'http://localhost:3200',
     'https://uninav-buildminds.vercel.app',
     'https://uninav.live',
     'https://uninav-landing.vercel.app',
+    'https://dev.uninav.live',
+    'https://www.uninav.live',
+    'https://www.dev.uninav.live',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
     'Access-Control-Expose-Headers',
+    'X-Root-API-Key',
     'ROOT-API-KEY',
   ],
   credentials: true,

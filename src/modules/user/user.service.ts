@@ -16,6 +16,10 @@ import { CoursesRepository } from '../courses/courses.repository';
 import { AddBookmarkDto } from './dto/bookmark.dto';
 import { PaginationDto } from '../../../libs/common/src/dto/pagination.dto';
 import { UserEntity } from '@app/common/types/db.types';
+import { StorageService } from '../../utils/storage/storage.service';
+import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
+import { MulterFile } from '@app/common/types';
+import { PointsService } from './submodules/stats/points.service';
 
 @Injectable()
 export class UserService {
@@ -25,6 +29,8 @@ export class UserService {
     private readonly departmentService: DepartmentService,
     private readonly coursesRepository: CoursesRepository,
     private readonly usernameGenerator: UsernameGeneratorHelper,
+    private readonly pointsService: PointsService,
+    private readonly storageService: StorageService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -413,9 +419,9 @@ export class UserService {
 
   async addBookmark(userId: string, addBookmarkDto: AddBookmarkDto) {
     // Validate bookmark data
-    if (!addBookmarkDto.materialId && !addBookmarkDto.collectionId) {
+    if (!addBookmarkDto.materialId && !addBookmarkDto.folderId) {
       throw new BadRequestException(
-        'Either materialId or collectionId must be provided',
+        'Either materialId or folderId must be provided',
       );
     }
 
@@ -434,16 +440,15 @@ export class UserService {
         }
       }
 
-      // Check if bookmark already exists for collection
-      if (addBookmarkDto.collectionId) {
-        const existingBookmark =
-          await this.userRepository.findBookmarkByCollection(
-            userId,
-            addBookmarkDto.collectionId,
-          );
+      // Check if bookmark already exists for folder
+      if (addBookmarkDto.folderId) {
+        const existingBookmark = await this.userRepository.findBookmarkByFolder(
+          userId,
+          addBookmarkDto.folderId,
+        );
         if (existingBookmark) {
           throw new ConflictException(
-            'Bookmark already exists for this collection',
+            'Bookmark already exists for this folder',
           );
         }
       }
@@ -518,6 +523,65 @@ export class UserService {
     }
   }
 
+  // Fetch user bookmarks without material relation (for quick bookmark state checks)
+  async getUserBookmarksLite(userId: string) {
+    try {
+      return this.userRepository.getUserBookmarksLite(userId);
+    } catch (error) {
+      this.logger.error(
+        `Error getting bookmarks (lite) for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      throw new InternalServerErrorException(
+        `Error getting bookmarks: ${error.message}`,
+      );
+    }
+  }
+
+  // Fetch user bookmarks with pagination (optionally excluding material relation)
+  async getUserBookmarksPaginated(
+    userId: string,
+    page: number,
+    limit: number,
+    includeMaterial: boolean,
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+      const results = await this.userRepository.getUserBookmarksPaginated(
+        userId,
+        limit + 1,
+        offset,
+        includeMaterial,
+      );
+
+      const hasMore = results.length > limit;
+      const items = hasMore ? results.slice(0, limit) : results;
+      const total = hasMore ? offset + results.length : offset + items.length;
+
+      return {
+        items,
+        pagination: {
+          total,
+          page,
+          pageSize: limit,
+          totalPages: hasMore ? page + 1 : page, // Approximate total pages
+          hasMore,
+          hasPrev: page > 1,
+        },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting bookmarks (paginated) for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+
+      throw new InternalServerErrorException(
+        `Error getting bookmarks: ${error.message}`,
+      );
+    }
+  }
+
   async getBookmarkById(userId: string, bookmarkId: string) {
     try {
       // Find the bookmark
@@ -551,6 +615,79 @@ export class UserService {
       throw new InternalServerErrorException(
         `Error retrieving bookmark ${bookmarkId} for user ${userId}: ${error.message}`,
       );
+    }
+  }
+
+  // Update user profile picture
+  async updateProfilePicture(
+    userId: string,
+    file: MulterFile,
+  ): Promise<{ profilePicture: string }> {
+    try {
+      // Get current user to check existing profile picture
+      const currentUser = await this.findOne(userId);
+
+      // Upload new profile picture to storage
+      const uploadResult = await this.storageService.uploadFile(file, {
+        bucketType: 'public',
+        folder: 'profile-pictures',
+        provider: 'cloudinary', // Use Cloudinary for profile pictures
+      });
+      const { url: publicUrl } = uploadResult;
+
+      // Update user record with new profile picture URL
+      await this.userRepository.update(userId, { profilePicture: publicUrl });
+
+      // Delete old profile picture if it exists
+      if (currentUser.profilePicture) {
+        const oldFileKey = this.storageService.extractFileKeyFromUrl(
+          currentUser.profilePicture,
+        );
+        if (oldFileKey) {
+          await this.storageService.deleteFile(
+            oldFileKey,
+            'public',
+            'cloudinary',
+          );
+        }
+      }
+
+      return { profilePicture: publicUrl };
+    } catch (error) {
+      this.logger.error(
+        `Error updating profile picture for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Error updating profile picture: ${error.message}`,
+      );
+    }
+  }
+
+  // Removed local URL key extraction in favor of StorageService.extractFileKeyFromUrl
+
+  async incrementUploadCount(userId: string) {
+    await this.userRepository.incrementUploadCount(userId);
+  }
+
+  async incrementDownloadCount(userId: string) {
+    await this.userRepository.incrementDownloadCount(userId);
+  }
+
+  async allocateUploadPoints(userId: string) {
+    await this.pointsService.allocateUploadPoints(userId);
+  }
+
+  async allocateDownloadPoints(userId: string) {
+    await this.pointsService.allocateDownloadPoints(userId);
+  }
+
+  async getTotalUsersCount(): Promise<number> {
+    try {
+      return await this.userRepository.countAll();
+    } catch (error) {
+      this.logger.error(`Error getting total users count: ${error.message}`);
+      throw new InternalServerErrorException('Failed to get total users count');
     }
   }
 }

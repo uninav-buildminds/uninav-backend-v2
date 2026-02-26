@@ -26,6 +26,7 @@ import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ResponseDto } from '@app/common/dto/response.dto';
+import { NotificationsService } from 'src/modules/notifications/notifications.service';
 @Controller('review/moderators')
 @UseGuards(RolesGuard)
 @Roles([UserRoleEnum.ADMIN])
@@ -34,6 +35,7 @@ export class ModeratorReviewController {
     private readonly userService: UserService,
     private readonly moderatorService: ModeratorService,
     private readonly eventsEmitter: EventsEmitter,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @Get()
@@ -93,10 +95,27 @@ export class ModeratorReviewController {
         };
         this.eventsEmitter.sendEmail(emailPayload);
       }
+
+      // In-app notification for moderator rejection
+      await this.notificationsService.create(
+        id,
+        'moderator_rejected',
+        'Moderator Request Rejected',
+        reviewActionDto.comment
+          ? `Your moderator request was rejected: ${reviewActionDto.comment}`
+          : 'Your moderator request was rejected.',
+      );
     } else if (reviewActionDto.action === ApprovalStatus.APPROVED) {
       // Update the user's role to moderator if approved
       await this.userService.update(id, { role: UserRoleEnum.MODERATOR });
       // Note: No email notification for approval as per current pattern
+      // In-app notification for moderator approval
+      await this.notificationsService.create(
+        id,
+        'moderator_approved',
+        'Moderator Request Approved',
+        'Congratulations! Your moderator request has been approved.',
+      );
     }
 
     return ResponseDto.createSuccessResponse(

@@ -13,6 +13,7 @@ import {
   Headers,
   UnauthorizedException,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ResponseDto } from '../../../libs/common/src/dto/response.dto';
@@ -27,6 +28,9 @@ import { ConfigService } from '@nestjs/config';
 import { Roles } from '../../../libs/common/src/decorators/roles.decorator';
 import { UserRoleEnum } from '../../../libs/common/src/types/db.types';
 import { PaginationDto } from '../../../libs/common/src/dto/pagination.dto';
+import { UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { MulterFile } from '@app/common/types';
 
 @Controller('user')
 export class UserController {
@@ -34,12 +38,6 @@ export class UserController {
     private readonly userService: UserService,
     private readonly configService: ConfigService,
   ) {}
-
-  // @Post()
-  // async create(@Body() createUserDto: CreateUserDto) {
-  //   const user = await this.userService.create(createUserDto);
-  //   return ResponseDto.createSuccessResponse('User created successfully', user);
-  // }
 
   @Get('profile')
   @UseGuards(RolesGuard)
@@ -175,7 +173,44 @@ export class UserController {
   @Get('bookmarks')
   @UseGuards(RolesGuard)
   @CacheControl({ maxAge: 300, private: true }) // Cache for 5 minutes
-  async getUserBookmarks(@CurrentUser() user: UserEntity) {
+  async getUserBookmarks(
+    @CurrentUser() user: UserEntity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('includeMaterial') includeMaterial?: string,
+  ) {
+    // Support pagination when query params are provided
+    if (page !== undefined || limit !== undefined) {
+      const pageNum = Math.max(1, Number.parseInt(page || '1', 10) || 1);
+      const limitNum = Math.min(
+        50,
+        Math.max(1, Number.parseInt(limit || '10', 10) || 10),
+      );
+      const include = includeMaterial !== 'false';
+
+      const result = await this.userService.getUserBookmarksPaginated(
+        user.id,
+        pageNum,
+        limitNum,
+        include,
+      );
+
+      return ResponseDto.createSuccessResponse(
+        'Bookmarks retrieved successfully',
+        result,
+      );
+    }
+
+    // Support lightweight bookmarks when includeMaterial=false
+    if (includeMaterial === 'false') {
+      const bookmarks = await this.userService.getUserBookmarksLite(user.id);
+      return ResponseDto.createSuccessResponse(
+        'Bookmarks retrieved successfully',
+        bookmarks,
+      );
+    }
+
+    // Legacy: return full list (with material) when pagination params are absent
     const bookmarks = await this.userService.getUserBookmarks(user.id);
     return ResponseDto.createSuccessResponse(
       'Bookmarks retrieved successfully',
@@ -198,6 +233,44 @@ export class UserController {
     const result = await this.userService.findAll(paginationDto);
     return ResponseDto.createSuccessResponse(
       'Users retrieved successfully',
+      result,
+    );
+  }
+
+  @Post('profile-picture')
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('profilePicture'))
+  @HttpCode(HttpStatus.OK)
+  async updateProfilePicture(
+    @CurrentUser() user: UserEntity,
+    @UploadedFile() file: MulterFile,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Profile picture file is required');
+    }
+
+    // Validate file type
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+    ];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Invalid file type. Only JPEG, PNG, and GIF images are allowed',
+      );
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new BadRequestException('File size too large. Maximum size is 5MB');
+    }
+
+    const result = await this.userService.updateProfilePicture(user.id, file);
+    return ResponseDto.createSuccessResponse(
+      'Profile picture updated successfully',
       result,
     );
   }

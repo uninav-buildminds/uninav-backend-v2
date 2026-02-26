@@ -2,7 +2,7 @@ import { pgTable, uuid, text, numeric, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { advertTypeEnum, approvalStatusEnum } from './enums.schema';
 import { material } from './material.schema';
-import { collection } from './collection.schema';
+import { folder } from './folder.schema';
 import { timestamps } from '@app/common/modules/database/schema/timestamps';
 import { TABLES } from '../tables.constants';
 import { users } from './user.schema';
@@ -19,7 +19,7 @@ export const advert = pgTable(TABLES.ADVERT, {
   materialId: uuid('material_id').references(() => material.id, {
     onDelete: 'cascade',
   }),
-  collectionId: uuid('collection_id').references(() => collection.id, {
+  folderId: uuid('folder_id').references(() => folder.id, {
     onDelete: 'cascade',
   }),
   imageUrl: text('image_url').notNull(),
@@ -40,9 +40,9 @@ export const advertRelations = relations(advert, ({ one }) => ({
     fields: [advert.materialId],
     references: [material.id],
   }),
-  collection: one(collection, {
-    fields: [advert.collectionId],
-    references: [collection.id],
+  folder: one(folder, {
+    fields: [advert.folderId],
+    references: [folder.id],
   }),
   creator: one(users, {
     fields: [advert.creatorId],

@@ -1,4 +1,5 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from '@app/common/modules/database';
@@ -8,7 +9,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FacultyModule } from './modules/faculty/faculty.module';
 import { DepartmentModule } from './modules/department/department.module';
 import { MaterialModule } from './modules/material/material.module';
-import { CollectionModule } from './modules/collection/collection.module';
+import { FolderModule } from './modules/folder/folder.module';
 import { BlogModule } from './modules/blog/blog.module';
 import { CoursesModule } from 'src/modules/courses/courses.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -20,14 +21,21 @@ import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CacheControlInterceptor } from '../libs/common/src/interceptors/cache-control.interceptor';
 import { AdvertModule } from 'src/modules/advert/advert.module';
+import { GDriveModule } from './modules/gdrive/gdrive.module';
 import { ReviewModule } from './modules/review/review.module';
 import { CommonModule } from '@app/common';
 import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.middleware';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ManagementModule } from './modules/management/management.module';
+import { ErrorReportsModule } from './modules/error-reports/error-reports.module';
+import { ENV } from 'src/utils/config/env.enum';
+import { CacheModule } from './utils/cache/cache.module';
 
 @Module({
   imports: [
     CommonModule,
     DatabaseModule,
+    CacheModule,
     UserModule,
     AuthModule,
     ConfigModule.forRoot({
@@ -36,10 +44,21 @@ import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.mi
       cache: false,
       expandVariables: true,
     }),
+    // BullMQ (Upstash Redis) configuration
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const url = config.get<string>(ENV.REDIS_URL);
+        console.log(' Redis url', url);
+        return {
+          connection: url ? { url, tls: {} } : undefined,
+        };
+      },
+    }),
     FacultyModule,
     DepartmentModule,
     MaterialModule,
-    CollectionModule,
+    FolderModule,
     BlogModule,
     CoursesModule,
     EventEmitterModule.forRoot({
@@ -58,6 +77,10 @@ import { CorrelationMiddleware } from '@app/common/modules/logger/correlation.mi
     }),
     AdvertModule,
     ReviewModule,
+    NotificationsModule,
+    ManagementModule,
+    ErrorReportsModule,
+    GDriveModule,
   ],
   controllers: [AppController],
   providers: [

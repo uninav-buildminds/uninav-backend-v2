@@ -35,4 +35,8 @@ export class UpdateUserDto extends PartialType(
   @IsString()
   @IsOptional()
   googleId?: string;
+
+  @IsString()
+  @IsOptional()
+  profilePicture?: string;
 }

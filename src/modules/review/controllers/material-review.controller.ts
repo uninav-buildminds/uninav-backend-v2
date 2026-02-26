@@ -26,6 +26,7 @@ import { EventsEmitter } from '@app/common/modules/events/events.emitter';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { UserService } from 'src/modules/user/user.service';
+import { NotificationsService } from 'src/modules/notifications/notifications.service';
 @Controller('review/materials')
 @UseGuards(RolesGuard)
 @Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
@@ -34,6 +35,7 @@ export class MaterialReviewController {
     private readonly materialService: MaterialService,
     private readonly userService: UserService,
     private readonly eventsEmitter: EventsEmitter,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @Get()
@@ -107,6 +109,25 @@ export class MaterialReviewController {
       };
       this.eventsEmitter.sendEmail(emailPayload);
     }
+
+    // Create app notification for creator
+    const actionTitle =
+      reviewActionDto.action === ApprovalStatus.APPROVED
+        ? 'Upload Approved'
+        : 'Upload Rejected';
+    const description =
+      reviewActionDto.action === ApprovalStatus.APPROVED
+        ? `Your upload '${material.label}' has been approved by a reviewer.`
+        : `Your upload '${material.label}' has been rejected${reviewActionDto.comment ? `: ${reviewActionDto.comment}` : ''}.`;
+    await this.notificationsService.create(
+      creator.id,
+      reviewActionDto.action === ApprovalStatus.APPROVED
+        ? 'material_approved'
+        : 'material_rejected',
+      actionTitle,
+      description,
+      material.id,
+    );
 
     return ResponseDto.createSuccessResponse(
       `Material ${reviewActionDto.action} successfully`,

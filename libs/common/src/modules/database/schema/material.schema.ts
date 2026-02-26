@@ -16,7 +16,7 @@ import {
   approvalStatusEnum,
 } from './enums.schema';
 import { bookmarks, users } from './user.schema';
-import { collectionContent } from './collection.schema';
+import { folderContent } from './folder.schema';
 import { advert } from './advert.schema';
 import { resource } from '@app/common/modules/database/schema/resource.schema';
 import { timestamps } from '@app/common/modules/database/schema/timestamps';
@@ -24,6 +24,7 @@ import { courses } from '@app/common/modules/database/schema/course.schema';
 import { TABLES } from '../tables.constants';
 import { materialLikes } from './material-likes.schema';
 import { tsvector } from '@app/common/modules/database/schema/custom-type';
+import { moderator } from './moderator.schema';
 
 export const material = pgTable(
   TABLES.MATERIALS,
@@ -54,6 +55,7 @@ export const material = pgTable(
     previewUrl: text('preview_url'),
     metaData: jsonb('meta_data'),
     searchVector: tsvector('search_vector'),
+    slug: text('slug').unique().notNull(),
     ...timestamps,
   },
   (table) => {
@@ -61,6 +63,13 @@ export const material = pgTable(
       searchVectorIdx: index('material_search_vector_idx').on(
         table.searchVector,
       ),
+      slugIdx: index('material_slug_idx').on(table.slug),
+      // Indexes to speed up common filters and joins
+      creatorIdIdx: index('material_creator_id_idx').on(table.creatorId),
+      targetCourseIdIdx: index('material_target_course_id_idx').on(
+        table.targetCourseId,
+      ),
+      tagsIdx: index('material_tags_idx').on(table.tags),
     };
   },
 );
@@ -76,12 +85,17 @@ export const materialRelations = relations(material, ({ one, many }) => ({
     references: [users.id],
     relationName: 'material_reviewer',
   }),
+  reviewer: one(moderator, {
+    fields: [material.reviewedById],
+    references: [moderator.userId],
+    relationName: 'reviewer',
+  }),
   resource: one(resource, {
     fields: [material.id],
     references: [resource.materialId],
   }),
   bookmarks: many(bookmarks),
-  collections: many(collectionContent),
+  folders: many(folderContent),
   adverts: many(advert),
   targetCourse: one(courses, {
     fields: [material.targetCourseId],

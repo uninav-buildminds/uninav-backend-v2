@@ -4,6 +4,8 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { MaterialRepository } from 'src/modules/material/material.repository';
 import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
@@ -26,8 +28,11 @@ import {
 } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
 import { UserService } from 'src/modules/user/user.service';
-import { PreviewService } from './preview.service';
 import { MaterialQueryDto } from '../dto/material-query.dto';
+import { SaveReadingProgressDto } from '../dto/save-reading-progress.dto';
+import { FolderService } from 'src/modules/folder/folder.service';
+import { AddMaterialToFolderDto } from 'src/modules/folder/dto/add-material.dto';
+import { RedisCacheService } from 'src/utils/cache/redis-cache.service';
 ('updateMaterialDto');
 
 @Injectable()
@@ -36,23 +41,53 @@ export class MaterialService {
     private readonly materialRepository: MaterialRepository,
     private readonly storageService: StorageService,
     private readonly userService: UserService,
-    private readonly previewService: PreviewService,
+    @Inject(forwardRef(() => FolderService))
+    private readonly folderService: FolderService,
+    private readonly cacheService: RedisCacheService,
   ) {}
+
+  // Helper to mark that a user's search results should bypass cache briefly
+  // Used after uploads/updates so the creator immediately sees fresh results
+  private async markUserSearchStale(userId: string) {
+    try {
+      const key = `search:materials:recentUpload:user:${userId}`;
+      // 60 seconds is enough for immediate follow-up searches after an upload/update
+      await this.cacheService.set(key, { stale: true }, 60);
+    } catch (error) {
+      logger.error('Error marking user search as stale:', error);
+    }
+  }
+
+  // Helper to clear all cached material search results
+  // Conservative but safe – trade some cache hit rate for strong freshness guarantees
+  private async invalidateSearchCache() {
+    try {
+      const pattern = 'search:materials:*';
+      await this.cacheService.deletePattern(pattern);
+    } catch (error) {
+      logger.error('Error invalidating material search cache:', error);
+    }
+  }
 
   async countMaterialsByStatus(departmentId?: string) {
     return this.materialRepository.countByStatus(departmentId);
   }
 
-  /**
-   * Update material with preview URL
-   * @param materialId Material ID
-   * @param previewUrl Preview URL to associate
-   */
-  async updateMaterialPreview(materialId: string, previewUrl: string) {
+  async updateMaterialPreview(
+    materialId: string,
+    previewUrl: string,
+    bypassOwnershipCheck: boolean = false,
+  ) {
     try {
+      // If bypassOwnershipCheck is true, skip ownership validation
+      if (!bypassOwnershipCheck) {
+        // Add ownership check here if needed
+        // For now, we'll allow the update
+      }
+
       await this.materialRepository.update(materialId, { previewUrl });
       logger.log(
-        `Updated material ${materialId} with preview URL: ${previewUrl}`,
+        `Updated material ${materialId} with preview URL: ${previewUrl}${bypassOwnershipCheck ? ' (root access)' : ''}`,
       );
       return { success: true, previewUrl };
     } catch (error) {
@@ -65,7 +100,7 @@ export class MaterialService {
 
   async create(createMaterialDto: CreateMaterialDto, file?: MulterFile) {
     try {
-      const { resourceAddress, metaData, ...materialData } = createMaterialDto;
+      const { resourceAddress, folderId, ...materialData } = createMaterialDto;
 
       // Check if creator is admin/moderator and auto-approve if so
       const creator = await this.userService.findOne(
@@ -87,10 +122,33 @@ export class MaterialService {
         material.id,
         {
           resourceAddress,
-          metaData,
         },
         file,
       );
+
+      // Add material to folder if folderId is provided
+      if (folderId) {
+        try {
+          await this.folderService.addMaterialToFolder(
+            folderId,
+            { materialId: material.id },
+            createMaterialDto.creatorId,
+          );
+        } catch (error) {
+          // Log error but don't fail material creation if folder addition fails
+          logger.warn(
+            `Failed to add material ${material.id} to folder ${folderId}: ${error.message}`,
+          );
+        }
+      }
+
+      // Increment upload count and allocate upload points (5 points)
+      await this.userService.incrementUploadCount(createMaterialDto.creatorId);
+      await this.userService.allocateUploadPoints(createMaterialDto.creatorId);
+
+      // Ensure fresh search results for the creator and other users
+      await this.markUserSearchStale(createMaterialDto.creatorId);
+      await this.invalidateSearchCache();
 
       // Return complete material with resource
       const materialWithResource = await this.materialRepository.findOne(
@@ -105,11 +163,145 @@ export class MaterialService {
     }
   }
 
+  /**
+   * Batch create materials (for links only - files must be uploaded sequentially)
+   * This is optimized for batch link uploads where previews are URLs, not files
+   */
+  async batchCreate(
+    materials: Array<{
+      label: string;
+      description?: string;
+      type: MaterialTypeEnum;
+      resourceAddress: string;
+      previewUrl?: string;
+      tags?: string[];
+      visibility?: string;
+      restriction?: string;
+      targetCourseId?: string;
+      folderId?: string;
+      metaData?: Record<string, any>;
+    }>,
+    creatorId: string,
+  ): Promise<{
+    totalRequested: number;
+    totalSucceeded: number;
+    totalFailed: number;
+    results: Array<{
+      index: number;
+      success: boolean;
+      materialId?: string;
+      label: string;
+      error?: string;
+    }>;
+  }> {
+    const results: Array<{
+      index: number;
+      success: boolean;
+      materialId?: string;
+      label: string;
+      error?: string;
+    }> = [];
+
+    // Check if creator is admin/moderator for auto-approval
+    const creator = await this.userService.findOne(creatorId);
+    const shouldAutoApprove =
+      creator.role === UserRoleEnum.ADMIN ||
+      creator.role === UserRoleEnum.MODERATOR;
+
+    for (let i = 0; i < materials.length; i++) {
+      const item = materials[i];
+      try {
+        // Create material
+        const materialData: any = {
+          label: item.label,
+          description: item.description || '',
+          type: item.type,
+          tags: item.tags || [],
+          visibility: item.visibility,
+          restriction: item.restriction,
+          targetCourseId: item.targetCourseId,
+          previewUrl: item.previewUrl,
+          creatorId,
+        };
+
+        if (shouldAutoApprove) {
+          materialData.reviewStatus = ApprovalStatus.APPROVED;
+          materialData.reviewedById = creator.id;
+        }
+
+        const material = await this.createMaterial(materialData);
+
+        // Create resource for link
+        await this.createResource(material.id, {
+          resourceAddress: item.resourceAddress,
+          metaData: item.metaData ? [JSON.stringify(item.metaData)] : [],
+        });
+
+        // Add material to folder if folderId is provided for this item
+        if (item.folderId) {
+          try {
+            await this.folderService.addMaterialToFolder(
+              item.folderId,
+              { materialId: material.id },
+              creatorId,
+            );
+          } catch (error) {
+            logger.warn(
+              `Failed to add material ${material.id} to folder ${item.folderId}: ${error.message}`,
+            );
+          }
+        }
+
+        results.push({
+          index: i,
+          success: true,
+          materialId: material.id,
+          label: item.label,
+        });
+
+        logger.log(
+          `Batch create: Successfully created material ${i + 1}/${materials.length}: ${item.label}`,
+        );
+      } catch (error) {
+        logger.error(
+          `Batch create: Failed to create material ${i + 1}/${materials.length}: ${error.message}`,
+        );
+        results.push({
+          index: i,
+          success: false,
+          label: item.label,
+          error: error.message || 'Unknown error',
+        });
+      }
+    }
+
+    // Allocate points for successful uploads
+    const successCount = results.filter((r) => r.success).length;
+    if (successCount > 0) {
+      // Increment upload count and points for each successful upload
+      for (let i = 0; i < successCount; i++) {
+        await this.userService.incrementUploadCount(creatorId);
+        await this.userService.allocateUploadPoints(creatorId);
+      }
+
+      // Mark creator's search results as stale and clear shared search cache
+      await this.markUserSearchStale(creatorId);
+      await this.invalidateSearchCache();
+    }
+
+    return {
+      totalRequested: materials.length,
+      totalSucceeded: successCount,
+      totalFailed: materials.length - successCount,
+      results,
+    };
+  }
+
   private async createResource(
     materialId: string,
     resourceDto: {
       resourceAddress?: string;
-      metaData?: string[];
+      metaData?: any;
       fileKey?: string;
     },
     file?: MulterFile,
@@ -119,48 +311,27 @@ export class MaterialService {
       let resourceAddress = resourceDto.resourceAddress;
       let fileKey = resourceDto.fileKey;
       let materialType: MaterialTypeEnum;
-      let previewUrl: string | undefined;
       let gdriveMetadata: Record<string, any> | undefined;
 
       // Infer resource type based on input
       if (file) {
         resourceType = ResourceType.UPLOAD;
-        const uploadResult = await this.storageService.uploadFile(
-          file,
-          'private', // Store sensitive materials in private bucket
-          STORAGE_FOLDERS.DOCS,
-        );
+        const uploadResult = await this.storageService.uploadFile(file, {
+          bucketType: 'private', // Store sensitive materials in private bucket
+          folder: STORAGE_FOLDERS.DOCS,
+        });
         fileKey = uploadResult.fileKey;
         resourceAddress = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
-          false,
           'private',
         );
       } else if (resourceAddress) {
-        // Check if it's a Google Drive link
+        // Check if it's a Google Drive link only to set material type
         if (resourceAddress.includes('drive.google.com')) {
           materialType = MaterialTypeEnum.GDRIVE;
-          resourceType = ResourceType.URL; // Google Drive links are still URLs
-
-          // Generate preview for Google Drive links
-          try {
-            const gdriveResult =
-              await this.previewService.processGDriveUrl(resourceAddress);
-            previewUrl = gdriveResult.previewUrl;
-            gdriveMetadata = gdriveResult.metadata;
-            logger.log(
-              `Generated preview for Google Drive material: ${previewUrl}`,
-            );
-          } catch (error) {
-            logger.warn(
-              `Failed to generate preview for Google Drive link: ${error.message}`,
-            );
-            // Continue without preview - this is not a critical failure
-          }
-        } else {
-          resourceType = ResourceType.URL;
         }
+        resourceType = ResourceType.URL;
       } else {
         throw new BadRequestException(
           'Either a file or resource address must be provided',
@@ -175,14 +346,20 @@ export class MaterialService {
         fileKey,
       };
 
-      // Update material with preview URL and type if available
+      // Update material with type and metaData if available
       const materialUpdates: any = {};
-      if (previewUrl) {
-        materialUpdates.previewUrl = previewUrl;
-        materialUpdates.metaData = gdriveMetadata;
-      }
       if (materialType) {
         materialUpdates.type = materialType;
+      }
+      if (gdriveMetadata) {
+        materialUpdates.metaData = gdriveMetadata;
+      }
+      // Add parsed metaData to material table for easy querying
+      if (
+        Array.isArray(resourceDto.metaData) &&
+        resourceDto.metaData.length > 0
+      ) {
+        materialUpdates.metaData = resourceDto.metaData;
       }
 
       if (Object.keys(materialUpdates).length > 0) {
@@ -200,10 +377,7 @@ export class MaterialService {
   }
 
   private async createMaterial(
-    materialData: Omit<
-      CreateMaterialDto,
-      'resourceType' | 'resourceAddress' | 'metaData'
-    >,
+    materialData: Omit<CreateMaterialDto, 'resourceType' | 'resourceAddress'>,
   ) {
     try {
       return await this.materialRepository.create(materialData);
@@ -220,6 +394,15 @@ export class MaterialService {
     }
     return material;
   }
+
+  async findBySlug(slug: string) {
+    const material = await this.materialRepository.findBySlug(slug);
+    if (!material) {
+      throw new NotFoundException(`Material with slug ${slug} not found`);
+    }
+    return material;
+  }
+
   async findMaterialResource(id: string) {
     const resource = await this.materialRepository.findMaterialResource(id);
     if (!resource) {
@@ -228,8 +411,21 @@ export class MaterialService {
     return resource;
   }
 
-  async getMaterial(id: string, userId?: string) {
-    const material = await this.findOne(id);
+  async getMaterial(idOrSlug: string, userId?: string) {
+    // Check if input is a UUID
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        idOrSlug,
+      );
+
+    let material;
+    if (isUuid) {
+      material = await this.findOne(idOrSlug);
+    } else {
+      material = await this.findBySlug(idOrSlug);
+    }
+
+    const id = material.id;
 
     // Get the associated resource
     const materialWithResource = await this.materialRepository.findOne(id);
@@ -239,19 +435,23 @@ export class MaterialService {
 
     const { resource: materialResource } = materialWithResource;
 
+    console.log('materialResource', materialResource);
     // For uploaded resources, generate a signed URL
     if (materialResource.resourceType === ResourceType.UPLOAD) {
       // ? Check if resourceAddress link has expired
-      const isExpired = moment(material.resource.updatedAt).isBefore(
-        moment().subtract(RESOURCE_ADDRESS_EXPIRY_DAYS, 'days'),
-      );
+      const isExpired =
+        true ||
+        moment(material.resource.updatedAt).isBefore(
+          moment().subtract(RESOURCE_ADDRESS_EXPIRY_DAYS - 2, 'days'),
+        );
+      console.log('material is Expired', isExpired);
       if (isExpired) {
         let fileKey = materialResource.fileKey;
         // Generate a signed URL for the file
         const signedUrl = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS, // 7 days expiration
-          false,
+          'private',
         );
         this.materialRepository.updateResource(id, {
           resourceAddress: signedUrl,
@@ -289,7 +489,6 @@ export class MaterialService {
       const signedUrl = await this.storageService.getSignedUrl(
         materialResource.fileKey,
         3600 * 24 * RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS, // 7 days expiration
-        true,
         'private', // Materials are stored in private bucket
       );
       return signedUrl;
@@ -343,16 +542,14 @@ export class MaterialService {
         // Infer resource type and handle file/url
         if (file) {
           resourceType = ResourceType.UPLOAD;
-          const uploadResult = await this.storageService.uploadFile(
-            file,
-            'private',
-            STORAGE_FOLDERS.DOCS,
-          );
+          const uploadResult = await this.storageService.uploadFile(file, {
+            bucketType: 'private',
+            folder: STORAGE_FOLDERS.DOCS,
+          });
           fileKey = uploadResult.fileKey;
           const signedUrl = await this.storageService.getSignedUrl(
             fileKey,
             3600 * 24 * RESOURCE_ADDRESS_EXPIRY_DAYS,
-            false,
             'private',
           );
 
@@ -409,6 +606,10 @@ export class MaterialService {
         await this.materialRepository.update(id, materialData);
       }
 
+      // Invalidate search cache so updates are reflected in subsequent searches
+      await this.invalidateSearchCache();
+      await this.markUserSearchStale(userId);
+
       // Return updated material with resource
       return this.materialRepository.findOne(id);
     } catch (error) {
@@ -454,7 +655,13 @@ export class MaterialService {
       }
     }
 
-    return this.materialRepository.remove(id);
+    const removed = await this.materialRepository.remove(id);
+
+    // Invalidate search cache after deletions so removed materials disappear from results
+    await this.invalidateSearchCache();
+    await this.markUserSearchStale(userId);
+
+    return removed;
   }
 
   /**
@@ -478,6 +685,10 @@ export class MaterialService {
         // User already liked the material, so unlike it
         await this.materialRepository.removeUserLike(id, userId);
         await this.materialRepository.decrementLikes(id);
+
+        // Invalidate recommendation cache (likes affect engagement scoring)
+        await this.invalidateUserRecommendationsCache(userId);
+
         return {
           liked: false,
           message: 'Material unliked successfully',
@@ -488,6 +699,10 @@ export class MaterialService {
         await this.materialRepository.addUserLike(id, userId);
         const updatedMaterial =
           await this.materialRepository.incrementLikes(id);
+
+        // Invalidate recommendation cache (likes affect engagement scoring)
+        await this.invalidateUserRecommendationsCache(userId);
+
         return {
           liked: true,
           message: 'Material liked successfully',
@@ -512,24 +727,138 @@ export class MaterialService {
     user?: UserEntity,
     includeReviewer?: boolean,
   ) {
-    return this.materialRepository.searchMaterial(
-      {
-        ...filters,
-        type: filters.type,
-      },
-      user,
-      includeReviewer,
-    );
-  }
+    // Normalize filters so cache keys remain stable
+    const normalizedFilters: MaterialQueryDto = {
+      ...filters,
+      type: filters.type,
+    };
 
-  async getRecommendations(user: UserEntity, page: number = 1) {
-    if (!user.departmentId) {
-      throw new BadRequestException(
-        'User must have a department to get recommendations',
-      );
+    const userKey = user?.id ?? 'anon';
+    const cachePayload = {
+      userId: userKey,
+      filters: normalizedFilters,
+      includeReviewer: !!includeReviewer,
+    };
+
+    const cacheKey = `search:materials:${JSON.stringify(cachePayload)}`;
+    const recentUploadKey = user
+      ? `search:materials:recentUpload:user:${user.id}`
+      : null;
+
+    // If user recently uploaded/updated materials, bypass cache to ensure freshness
+    let shouldBypassCache = false;
+    if (recentUploadKey) {
+      try {
+        shouldBypassCache = await this.cacheService.exists(recentUploadKey);
+      } catch (error) {
+        logger.error('Error checking recent upload key for search cache:', error);
+      }
     }
 
-    return this.materialRepository.getRecommendations(user, page);
+    let result;
+
+    // Try cache first when allowed
+    if (!shouldBypassCache) {
+      try {
+        const cached = await this.cacheService.get<{
+          items: any[];
+          pagination: any;
+          usedAdvanced?: boolean;
+          isAdvancedSearch?: boolean;
+        }>(cacheKey);
+
+        if (cached) {
+          logger.debug(`Cache hit for material search: ${cacheKey}`);
+          result = cached;
+        }
+      } catch (error) {
+        logger.error('Error reading material search cache:', error);
+      }
+    }
+
+    // Fallback to repository search when cache miss or bypass
+    if (!result) {
+      logger.debug(`Cache miss for material search: ${cacheKey}`);
+
+      // Search only materials - folder search is handled separately on client side
+      result = await this.materialRepository.searchMaterial(
+        normalizedFilters,
+        user,
+        includeReviewer,
+      );
+
+      // Short TTL to balance freshness and performance
+      const cacheTTLSeconds = 60;
+
+      // Only cache when not explicitly bypassing cache for this user
+      if (!shouldBypassCache) {
+        try {
+          await this.cacheService.set(cacheKey, result, cacheTTLSeconds);
+        } catch (error) {
+          logger.error('Error writing material search cache:', error);
+        }
+      }
+    }
+
+    // Invalidate user's recommendation cache when they search (search history affects recommendations)
+    if (user && filters.query) {
+      await this.invalidateUserRecommendationsCache(user.id);
+    }
+
+    return result;
+  }
+
+  // Helper method to invalidate all cached recommendations for a user
+  private async invalidateUserRecommendationsCache(userId: string) {
+    try {
+      const pattern = `recommendations:user:${userId}:*`;
+      const deletedCount = await this.cacheService.deletePattern(pattern);
+      if (deletedCount > 0) {
+        logger.debug(
+          `Invalidated ${deletedCount} recommendation cache entries for user ${userId}`,
+        );
+      }
+    } catch (error) {
+      logger.error('Error invalidating recommendation cache:', error);
+    }
+  }
+
+  /**
+   * Get material recommendations for a user with Redis caching (1 hour TTL)
+   * - Users with departments get personalized recommendations based on search history, department, and enrolled courses
+   * - Users without departments get general recommendations based on recent and most engaging materials
+   * - Recommendations are cached per user for 1 hour to improve performance
+   */
+  async getRecommendations(user: UserEntity, page: number = 1) {
+    const cacheKey = `recommendations:user:${user.id}:page:${page}`;
+    const cacheTTL = 3600; // 1 hour in seconds
+
+    // Try to get from cache first
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached) {
+      logger.debug(`Cache hit for recommendations: ${cacheKey}`);
+      return cached;
+    }
+
+    logger.debug(`Cache miss for recommendations: ${cacheKey}`);
+
+    // If user has no department, provide general recommendations based on engagement and recency
+    let result;
+    if (!user.departmentId) {
+      result = await this.materialRepository.getGeneralRecommendations(page);
+    } else {
+      // Use enhanced search-history-based recommendations for users with departments
+      result = await this.materialRepository.getRecommendations(user, page);
+    }
+
+    // Cache the result for 1 hour
+    await this.cacheService.set(cacheKey, result, cacheTTL);
+
+    return result;
+  }
+
+  async getPopularMaterials(limit: number = 10) {
+    return this.materialRepository.getPopularMaterials(limit);
   }
 
   async review(
@@ -571,5 +900,163 @@ export class MaterialService {
         totalPages: Math.ceil(result.total / limit),
       },
     };
+  }
+
+  /**
+   * Batch find materials by IDs with optimized database query
+   * @param materialIds Array of material IDs to fetch
+   * @param userId Optional user ID for tracking views
+   */
+  async findManyByIds(materialIds: string[], userId?: string) {
+    try {
+      if (materialIds.length === 0) {
+        return [];
+      }
+
+      // Use optimized batch query
+      const materials =
+        await this.materialRepository.findManyByIds(materialIds);
+
+      // Track views if user is provided (batch operation)
+      if (userId && materials.length > 0) {
+        const validMaterialIds = materials.map((m) => m.id);
+        // Run these operations in parallel for better performance
+        await Promise.all([
+          this.materialRepository.batchIncrementViews(validMaterialIds),
+          this.materialRepository.batchTrackRecentViews(
+            userId,
+            validMaterialIds,
+          ),
+        ]);
+      }
+
+      return materials;
+    } catch (error) {
+      logger.error(`Failed to batch find materials: ${error.message}`);
+      throw new InternalServerErrorException('Failed to retrieve materials');
+    }
+  }
+
+  /**
+   * Track a material download, increment user's download count, and allocate points
+   */
+  async trackDownload(materialId: string, userId: string): Promise<void> {
+    try {
+      // Verify material exists
+      const material = await this.materialRepository.findOne(materialId);
+      if (!material) {
+        throw new NotFoundException('Material not found');
+      }
+
+      // Increment user's download count and allocate download points (5 points)
+      await this.userService.incrementDownloadCount(userId);
+      await this.userService.allocateDownloadPoints(userId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      logger.error(`Failed to track download: ${error.message}`);
+      throw new InternalServerErrorException('Failed to track download');
+    }
+  }
+
+  // ============= READING PROGRESS METHODS =============
+
+  /**
+   * Save or update reading progress
+   */
+  async saveReadingProgress(
+    materialId: string,
+    userId: string,
+    progressData: SaveReadingProgressDto,
+  ) {
+    try {
+      // Verify material exists
+      await this.findOne(materialId);
+
+      return await this.materialRepository.saveReadingProgress(
+        userId,
+        materialId,
+        progressData,
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      logger.error(`Failed to save reading progress: ${error.message}`);
+      throw new InternalServerErrorException('Failed to save reading progress');
+    }
+  }
+
+  /**
+   * Get reading progress for a material
+   */
+  async getReadingProgress(materialId: string, userId: string) {
+    try {
+      // Verify material exists
+      await this.findOne(materialId);
+
+      return await this.materialRepository.getReadingProgress(
+        userId,
+        materialId,
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      logger.error(`Failed to get reading progress: ${error.message}`);
+      throw new InternalServerErrorException('Failed to get reading progress');
+    }
+  }
+
+  /**
+   * Delete reading progress (reset)
+   */
+  async deleteReadingProgress(materialId: string, userId: string) {
+    try {
+      return await this.materialRepository.deleteReadingProgress(
+        userId,
+        materialId,
+      );
+    } catch (error) {
+      logger.error(`Failed to delete reading progress: ${error.message}`);
+      throw new InternalServerErrorException(
+        'Failed to delete reading progress',
+      );
+    }
+  }
+
+  /**
+   * Get materials with reading progress (Continue Reading list)
+   */
+  async getMaterialsWithProgress(
+    userId: string,
+    limit: number = 10,
+    offset: number = 0,
+  ) {
+    try {
+      return await this.materialRepository.getMaterialsWithProgress(
+        userId,
+        limit,
+        offset,
+      );
+    } catch (error) {
+      logger.error(`Failed to get materials with progress: ${error.message}`);
+      throw new InternalServerErrorException(
+        'Failed to get materials with progress',
+      );
+    }
+  }
+
+  /**
+   * Get reading stats for a user
+   */
+  async getReadingStats(userId: string) {
+    try {
+      return await this.materialRepository.getReadingStats(userId);
+    } catch (error) {
+      logger.error(`Failed to get reading stats: ${error.message}`);
+      throw new InternalServerErrorException('Failed to get reading stats');
+    }
   }
 }

@@ -16,6 +16,7 @@ import {
   BadRequestException,
   UsePipes,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { MaterialService } from 'src/modules/material/services/material.service';
 import { CreateMaterialDto } from 'src/modules/material/dto/create-material.dto';
@@ -35,15 +36,28 @@ import { MulterFile } from '@app/common/types';
 import { materialLogger as logger } from 'src/modules/material/material.module';
 import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
 import { CacheControl } from '@app/common/decorators/cache-control.decorator';
-import { ProcessGDriveUrlDto, PreviewResult } from './dto/preview.dto';
 import { PreviewService } from './services/preview.service';
+import { BatchFindMaterialsDto } from './dto/batch-find-materials.dto';
+import { ConfigService } from '@nestjs/config';
+import { ENV } from 'src/utils/config/env.enum';
+import { Request } from 'express';
+import { BatchCreateMaterialsDto } from './dto/batch-create-material.dto';
+import { SaveReadingProgressDto } from './dto/save-reading-progress.dto';
 @Controller('materials')
 @UseInterceptors(CacheControlInterceptor)
 export class MaterialController {
   constructor(
     private readonly materialService: MaterialService,
     private readonly previewService: PreviewService,
+    private readonly configService: ConfigService,
   ) {}
+
+  // Helper method to check if request has root API key
+  private hasRootApiKey(req: Request): boolean {
+    const rootApiKey = this.configService.get<string>(ENV.ROOT_API_KEY);
+    const providedKey = req.headers['x-root-api-key'] as string;
+    return rootApiKey && providedKey === rootApiKey;
+  }
 
   @Post()
   @UseGuards(RolesGuard)
@@ -72,20 +86,63 @@ export class MaterialController {
     );
   }
 
+  /**
+   * Batch create materials (for links only)
+   * Files must be uploaded sequentially through the regular create endpoint
+   */
+  @Post('batch')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async batchCreate(
+    @CurrentUser() user: UserEntity,
+    @Body() batchCreateDto: BatchCreateMaterialsDto,
+  ) {
+    logger.debug('Batch upload attempt:', {
+      userId: user.id,
+      materialsCount: batchCreateDto.materials.length,
+    });
+
+    const result = await this.materialService.batchCreate(
+      batchCreateDto.materials,
+      user.id,
+    );
+
+    return ResponseDto.createSuccessResponse(
+      `Batch upload completed: ${result.totalSucceeded}/${result.totalRequested} materials created`,
+      result,
+    );
+  }
+
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false }) // Optional authentication
   @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
-  async findWithFilters(@Query() queryDto: MaterialQueryDto) {
-    const result = await this.materialService.searchMaterial(queryDto);
-    return ResponseDto.createPaginatedResponse(
+  async findWithFilters(
+    @Query() queryDto: MaterialQueryDto,
+    @CurrentUser() user?: UserEntity,
+  ) {
+    const result = await this.materialService.searchMaterial(queryDto, user);
+    const response = ResponseDto.createPaginatedResponse(
       'Materials retrieved successfully',
       result.items,
       result.pagination,
     );
+
+    // Add search metadata to response data
+    const responseData = response.data as any;
+    if (result.usedAdvanced !== undefined) {
+      responseData.usedAdvanced = result.usedAdvanced;
+    }
+    if (result.isAdvancedSearch !== undefined) {
+      responseData.isAdvancedSearch = result.isAdvancedSearch;
+    }
+
+    return response;
   }
 
   @Get('recommendations')
   @UseGuards(RolesGuard)
-  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  // Redis caching handled in service layer (1 hour TTL per user)
   async getRecommendations(
     @CurrentUser() user: UserEntity,
     @Query('page') page: number = 1,
@@ -101,7 +158,7 @@ export class MaterialController {
   @Get('recent')
   @UseGuards(RolesGuard)
   @Roles() // Requires authentication (strict mode by default)
-  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  @CacheControl({ public: false, maxAge: 0 }) // No cache - user-specific and changes frequently
   async getRecentMaterials(
     @CurrentUser() user: UserEntity,
     @Query('page') page: number = 1,
@@ -119,6 +176,16 @@ export class MaterialController {
     );
   }
 
+  @Get('popular')
+  @CacheControl({ public: true, maxAge: 300 })
+  async getPopularMaterials() {
+    const items = await this.materialService.getPopularMaterials(10);
+    return ResponseDto.createSuccessResponse(
+      'Popular materials retrieved successfully',
+      items,
+    );
+  }
+
   @Get('resource/:materialId')
   async findMaterialResource(@Param('materialId') id: string) {
     const resource = await this.materialService.findMaterialResource(id);
@@ -126,13 +193,6 @@ export class MaterialController {
       'Resource retrieved successfully',
       resource,
     );
-  }
-
-  @Post('downloaded/:id')
-  @HttpCode(HttpStatus.OK)
-  async trackDownload(@Param('id') id: string) {
-    await this.materialService.incrementDownloads(id);
-    return ResponseDto.createSuccessResponse('Download tracked successfully');
   }
 
   @Get('download/:id')
@@ -182,6 +242,54 @@ export class MaterialController {
     const result = await this.materialService.likeMaterial(id, user.id);
     return ResponseDto.createSuccessResponse(result.message, result);
   }
+  @Post('preview/upload/temp')
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('preview'))
+  async uploadTempPreview(@UploadedFile() file: MulterFile): Promise<any> {
+    if (!file) {
+      throw new BadRequestException('Preview file is required');
+    }
+
+    // Validate that it's an image
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Preview file must be an image');
+    }
+
+    // Upload the preview image to Cloudinary
+    const uploadResult = await this.previewService.uploadPreviewImage(file);
+
+    return ResponseDto.createSuccessResponse('Preview uploaded successfully', {
+      previewUrl: uploadResult,
+    });
+  }
+
+  @Delete('preview/cleanup/temp')
+  @UseGuards(RolesGuard)
+  async cleanupTempPreview(@Body() body: { previewUrl: string }): Promise<any> {
+    if (!body.previewUrl) {
+      throw new BadRequestException('Preview URL is required');
+    }
+
+    try {
+      // Extract file key from Cloudinary URL and delete it
+      const deleted = await this.previewService.deleteTempPreview(
+        body.previewUrl,
+      );
+
+      return ResponseDto.createSuccessResponse(
+        'Temp preview cleaned up successfully',
+        {
+          deleted,
+        },
+      );
+    } catch (error) {
+      // Don't throw error if cleanup fails - just log it
+      console.warn('Failed to cleanup temp preview:', error);
+      return ResponseDto.createSuccessResponse('Cleanup attempted', {
+        deleted: false,
+      });
+    }
+  }
 
   @Post('preview/upload/:materialId')
   @UseGuards(RolesGuard)
@@ -189,6 +297,7 @@ export class MaterialController {
   async uploadPreview(
     @UploadedFile() file: MulterFile,
     @Param('materialId') materialId: string,
+    @Req() req: Request,
   ): Promise<any> {
     if (!file) {
       throw new BadRequestException('Preview file is required');
@@ -202,26 +311,55 @@ export class MaterialController {
     // Upload the preview image
     const uploadResult = await this.previewService.uploadPreviewImage(file);
 
+    // Check if request has root API key to bypass ownership checks
+    const hasRootAccess = this.hasRootApiKey(req);
+
     const result = await this.materialService.updateMaterialPreview(
       materialId,
       uploadResult,
+      hasRootAccess, // Pass root access flag
     );
     return ResponseDto.createSuccessResponse('Preview uploaded successfully', {
       previewUrl: uploadResult,
     });
   }
 
-  @Post('test/gdrive/preview')
+  // Removed: GDrive preview generation endpoint; previews are now handled on the frontend.
+
+  @Get('batch')
   @UseGuards(RolesGuard)
-  async generateGDrivePreview(
-    @Body() processGDriveDto: ProcessGDriveUrlDto,
-  ): Promise<any> {
-    const result = await this.previewService.processGDriveUrl(
-      processGDriveDto.url,
+  @Roles([], { strict: false }) // Optional authentication - accessible to both guests and signed-in users
+  @CacheControl({ public: true, maxAge: 300 }) // Cache for 5 minutes
+  async findMaterialsBatch(
+    @Query() batchFindDto: BatchFindMaterialsDto,
+    @CurrentUser() user?: UserEntity,
+  ) {
+    const materials = await this.materialService.findManyByIds(
+      batchFindDto.materialIds,
+      user?.id,
     );
+
     return ResponseDto.createSuccessResponse(
-      'Google Drive preview generated successfully',
-      result,
+      `${materials.length} materials retrieved successfully`,
+      {
+        materials,
+        found: materials.length,
+        requested: batchFindDto.materialIds.length,
+      },
+    );
+  }
+
+  @Post(':id/download')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async trackDownload(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+  ) {
+    await this.materialService.trackDownload(id, user.id);
+    return ResponseDto.createSuccessResponse(
+      'Download tracked successfully',
+      null,
     );
   }
 
@@ -233,6 +371,85 @@ export class MaterialController {
     return ResponseDto.createSuccessResponse(
       'Material retrieved successfully',
       material,
+    );
+  }
+
+  // ============= READING PROGRESS ENDPOINTS =============
+
+  @Post(':id/progress')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async saveReadingProgress(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+    @Body() progressData: SaveReadingProgressDto,
+  ) {
+    const progress = await this.materialService.saveReadingProgress(
+      id,
+      user.id,
+      progressData,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Reading progress saved successfully',
+      progress,
+    );
+  }
+
+  @Get(':id/progress')
+  @UseGuards(RolesGuard)
+  async getReadingProgress(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+  ) {
+    const progress = await this.materialService.getReadingProgress(id, user.id);
+    return ResponseDto.createSuccessResponse(
+      'Reading progress retrieved successfully',
+      progress,
+    );
+  }
+
+  @Delete(':id/progress')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteReadingProgress(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+  ) {
+    const progress = await this.materialService.deleteReadingProgress(
+      id,
+      user.id,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Reading progress reset successfully',
+      progress,
+    );
+  }
+
+  @Get('continue/reading')
+  @UseGuards(RolesGuard)
+  async getContinueReading(
+    @CurrentUser() user: UserEntity,
+    @Query('limit') limit: number = 10,
+    @Query('offset') offset: number = 0,
+  ) {
+    const materials = await this.materialService.getMaterialsWithProgress(
+      user.id,
+      limit,
+      offset,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Continue reading materials retrieved successfully',
+      materials,
+    );
+  }
+
+  @Get('stats/reading')
+  @UseGuards(RolesGuard)
+  async getReadingStats(@CurrentUser() user: UserEntity) {
+    const stats = await this.materialService.getReadingStats(user.id);
+    return ResponseDto.createSuccessResponse(
+      'Reading stats retrieved successfully',
+      stats,
     );
   }
 }

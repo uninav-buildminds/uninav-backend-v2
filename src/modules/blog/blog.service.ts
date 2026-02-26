@@ -61,8 +61,8 @@ export class BlogService {
         headingImageUrl = await this.storageService.getSignedUrl(
           headingImageKey,
           3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
-          false,
           'public', // Blog images are public
+          'cloudinary',
         );
       }
 
@@ -151,7 +151,6 @@ export class BlogService {
         const headingImageUrl = await this.storageService.getSignedUrl(
           blog.headingImageKey,
           3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
-          false,
           'public',
         );
 
@@ -258,7 +257,6 @@ export class BlogService {
       const headingImageUrl = await this.storageService.getSignedUrl(
         fileKey,
         3600 * 24 * BLOG_HEADING_IMG_URL_EXPIRY_DAYS, // 7 days expiration
-        false,
         'public',
       );
 

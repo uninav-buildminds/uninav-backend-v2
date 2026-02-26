@@ -16,6 +16,7 @@ import { ModeratorModule } from 'src/modules/user/submodules/moderator/moderator
 import { PassportModule } from '@nestjs/passport';
 
 import { GoogleStrategy } from './strategies/google.strategy';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Global()
 @Module({
@@ -25,11 +26,12 @@ import { GoogleStrategy } from './strategies/google.strategy';
     UserModule,
     AdminModule,
     ModeratorModule,
+    NotificationsModule,
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET,
-        signOptions: { expiresIn: '1d' },
+        signOptions: { expiresIn: '30d' },
       }),
     }),
   ],

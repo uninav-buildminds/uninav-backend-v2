@@ -8,11 +8,12 @@ import { faculty } from '@app/common/modules/database/schema/faculty.schema';
 import { department } from '@app/common/modules/database/schema/department.schema';
 import { courses } from '@app/common/modules/database/schema/course.schema';
 import { material } from '@app/common/modules/database/schema/material.schema';
-import { collection } from '@app/common/modules/database/schema/collection.schema';
+import { folder } from '@app/common/modules/database/schema/folder.schema';
 import { blogs } from '@app/common/modules/database/schema/blog.schema';
 import { comments } from '@app/common/modules/database/schema/comments.schema';
 import { advert } from '@app/common/modules/database/schema/advert.schema';
 import { recent } from '@app/common/modules/database/schema/recent.schema';
+import { errorReports } from '@app/common/modules/database/schema/error-report.schema';
 import { auth } from '@app/common/modules/database/schema/schema';
 export type DrizzleDB = NodePgDatabase<typeof schema>;
 
@@ -25,11 +26,12 @@ export type FacultyEntity = InferSelectModel<typeof faculty>;
 export type DepartmentEntity = InferSelectModel<typeof department>;
 export type CourseEntity = InferSelectModel<typeof courses>;
 export type MaterialEntity = InferSelectModel<typeof material>;
-export type CollectionEntity = InferSelectModel<typeof collection>;
+export type FolderEntity = InferSelectModel<typeof folder>;
 export type BlogEntity = InferSelectModel<typeof blogs>;
 export type CommentEntity = InferSelectModel<typeof comments>;
 export type AdvertEntity = InferSelectModel<typeof advert>;
 export type RecentEntity = InferSelectModel<typeof recent>;
+export type ErrorReportEntity = InferSelectModel<typeof errorReports>;
 
 export type AuthEntity = InferSelectModel<typeof auth>;
 
@@ -70,15 +72,16 @@ export enum BlogTypeEnum {
 }
 
 export enum MaterialTypeEnum {
-  DOCS = 'docs', //  doc, docx, etc.
-  PDF = 'pdf', // pdf
-  PPT = 'ppt', // ppt, pptx
-  GDRIVE = 'gdrive', // gdrive
-  EXCEL = 'excel', // excel, xls, xlsx
-  // generic
-  IMAGE = 'image', // image, jpg, jpeg, png, gif, svg, etc.
-  VIDEO = 'video', // youtube, vimeo,
+  DOCS = 'docs',
+  PDF = 'pdf',
+  PPT = 'ppt',
+  GDRIVE = 'gdrive',
+  EXCEL = 'excel',
+  IMAGE = 'image',
+  VIDEO = 'video',
+  YOUTUBE = 'youtube',
   ARTICLE = 'article',
+  GUIDE = 'guide',
   OTHER = 'other',
 }
 

@@ -57,27 +57,28 @@ export class AdvertService {
             'You do not have permission to create an advert for this material',
           );
         }
-      } else if (createAdvertDto.collectionId) {
+      } else if (createAdvertDto.folderId) {
         // !handle later
       } else {
         throw new BadRequestException(
-          'Material ID or Collection ID must be provided',
+          'Material ID or Folder ID must be provided',
         );
       }
 
       // Upload image to storage (public bucket since adverts are publicly displayed)
-      const { fileKey } = await this.storageService.uploadFile(
-        image,
-        'public', // Advert images are public
-        STORAGE_FOLDERS.ADVERTS,
-      );
+      const uploadResult = await this.storageService.uploadFile(image, {
+        bucketType: 'public', // Advert images are public
+        folder: STORAGE_FOLDERS.ADVERTS,
+        provider: 'cloudinary', // Use Cloudinary for advert images
+      });
+      const { fileKey } = uploadResult;
 
       // Generate initial signed URL
       const imageUrl = await this.storageService.getSignedUrl(
         fileKey,
         3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS, // 7 days expiration
-        false,
         'public',
+        'cloudinary',
       );
 
       let isAdminOrModerator =
@@ -129,7 +130,6 @@ export class AdvertService {
       const newImageUrl = await this.storageService.getSignedUrl(
         advert.fileKey,
         3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
-        false,
         'public',
       );
 
@@ -150,8 +150,8 @@ export class AdvertService {
     return await this.refreshExpiredUrls(adverts);
   }
 
-  async findByCollection(collectionId: string): Promise<AdvertEntity[]> {
-    const adverts = await this.advertRepository.findByCollection(collectionId);
+  async findByFolder(folderId: string): Promise<AdvertEntity[]> {
+    const adverts = await this.advertRepository.findByFolder(folderId);
     return await this.refreshExpiredUrls(adverts);
   }
 
@@ -194,18 +194,19 @@ export class AdvertService {
 
       if (image) {
         // Upload new image
-        const { fileKey } = await this.storageService.uploadFile(
-          image,
-          'public',
-          STORAGE_FOLDERS.ADVERTS,
-        );
+        const uploadResult = await this.storageService.uploadFile(image, {
+          bucketType: 'public',
+          folder: STORAGE_FOLDERS.ADVERTS,
+          provider: 'cloudinary', // Use Cloudinary for advert images
+        });
+        const { fileKey } = uploadResult;
 
         // Generate new signed URL
         const imageUrl = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
-          false,
           'public',
+          'cloudinary',
         );
 
         // Delete old image if exists
@@ -280,7 +281,6 @@ export class AdvertService {
           const newImageUrl = await this.storageService.getSignedUrl(
             advert.fileKey,
             3600 * 24 * ADVERT_IMAGE_URL_EXPIRY_DAYS,
-            false,
             'public',
           );
 

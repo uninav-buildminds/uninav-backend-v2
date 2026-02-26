@@ -21,9 +21,7 @@ export class ResourceDto {
   resourceAddress?: string;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  metaData?: string[];
+  metaData?: Object;
 }
 
 export class CreateMaterialDto extends ResourceDto {
@@ -56,6 +54,14 @@ export class CreateMaterialDto extends ResourceDto {
   @IsOptional()
   @IsUUID()
   targetCourseId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  folderId?: string;
+
+  @IsOptional()
+  @IsString()
+  previewUrl?: string;
 
   creatorId: string;
   reviewStatus?: ApprovalStatus;

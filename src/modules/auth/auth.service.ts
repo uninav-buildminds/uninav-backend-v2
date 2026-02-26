@@ -20,6 +20,7 @@ import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
 import { cryptoService } from 'src/utils/crypto/crypto.service';
 import { DepartmentService } from 'src/modules/department/department.service';
+import { NotificationsService } from 'src/modules/notifications/notifications.service';
 import { EmailType } from 'src/utils/email/constants/email.enum';
 import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ModeratorService } from 'src/modules/user/submodules/moderator/moderator.service';
@@ -42,6 +43,7 @@ export class AuthService {
     @Inject(JWT_SYMBOL) private jwtService: JwtService,
     private readonly adminService: AdminService,
     private readonly moderatorService: ModeratorService,
+    private readonly notificationsService: NotificationsService,
   ) {
     this.BCRYPT_SALT = bcrypt.genSaltSync(
       +this.configService.get(ENV.BCRYPT_SALT_ROUNDS),
@@ -224,6 +226,14 @@ export class AuthService {
         };
         this.eventsEmitter.sendEmail(successEmailPayload);
 
+        // In-app notification
+        await this.notificationsService.create(
+          auth.userId,
+          'email_verified',
+          'Email Verified',
+          'Your email has been verified successfully.',
+        );
+
         return { verified: true, user };
       } catch (jwtError) {
         if (jwtError.name === 'TokenExpiredError') {
@@ -371,6 +381,40 @@ export class AuthService {
     return await this.jwtService.signAsync({ sub: userId });
   }
 
+  // one-line comment: checks if a decoded JWT is close enough to expiry to warrant refresh
+  private shouldRefreshToken(decodedToken: any): boolean {
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const secondsToExpiry = decodedToken.exp - nowInSeconds;
+
+    // one-line comment: threshold defines how many seconds before expiry we start refreshing (15 days here)
+    const refreshThresholdSeconds = 15 * 24 * 60 * 60;
+
+    return secondsToExpiry > 0 && secondsToExpiry < refreshThresholdSeconds;
+  }
+
+  // one-line comment: verifies a JWT and optionally refreshes it plus the cookie when close to expiry
+  async verifyAndRefreshTokenIfNeeded(
+    token: string,
+    res?: Response,
+  ): Promise<{ valid: boolean; refreshedToken?: string }> {
+    try {
+      const decoded: any = await this.jwtService.verifyAsync(token);
+
+      // one-line comment: if no response or token not near expiry, simply mark it as valid
+      if (!res || !this.shouldRefreshToken(decoded)) {
+        return { valid: true };
+      }
+
+      // one-line comment: issue a new token with the same subject and update the cookie
+      const newToken = await this.generateToken(decoded.sub);
+      await this.setCookie(res, newToken);
+
+      return { valid: true, refreshedToken: newToken };
+    } catch {
+      return { valid: false };
+    }
+  }
+
   async validateUser(
     emailOrMatricNo: string,
     password: string,
@@ -389,6 +433,7 @@ export class AuthService {
     firstName: string,
     lastName: string,
     googleId: string,
+    profilePictureUrl?: string,
   ): Promise<UserEntity> {
     this.logger.log(
       `Attempting Google validation for email: ${email}, googleId: ${googleId}`,
@@ -411,6 +456,14 @@ export class AuthService {
         );
         // User exists, link their Google ID
         await this.userService.update(user.id, { googleId });
+
+        // Save Google profile picture if provided and user doesn't have one
+        if (profilePictureUrl && user.profilePicture === null) {
+          await this.userService.update(user.id, {
+            profilePicture: profilePictureUrl,
+          });
+        }
+
         // Re-fetch to get potentially updated relations or ensure data consistency
         const updatedUser = await this.userService.findOne(user.id);
         if (!updatedUser) {
@@ -472,6 +525,13 @@ export class AuthService {
     this.logger.log(
       `New user created and auth record established for googleId: ${googleId}`,
     );
+
+    // Save Google profile picture for new user if provided
+    if (profilePictureUrl && createdUser.profilePicture === null) {
+      await this.userService.update(createdUser.id, {
+        profilePicture: profilePictureUrl,
+      });
+    }
 
     this.eventsEmitter.sendEmail({
       to: createdUser.email,

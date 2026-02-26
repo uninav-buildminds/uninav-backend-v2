@@ -4,7 +4,7 @@ import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { DrizzleDB } from '@app/common/types/db.types';
-import { eq, or, and, inArray, isNull, ilike } from 'drizzle-orm';
+import { eq, or, and, inArray, isNull, ilike, desc } from 'drizzle-orm';
 import {
   userCourses,
   bookmarks,
@@ -38,7 +38,7 @@ export class UserRepository {
     });
   }
   async getProfile(id: string) {
-    return this.db.query.users.findFirst({
+    const user = await this.db.query.users.findFirst({
       where: (user, { eq }) => eq(user.id, id),
       with: {
         department: true,
@@ -50,6 +50,24 @@ export class UserRepository {
         },
       },
     });
+
+    if (!user) {
+      return null;
+    }
+
+    // Count bookmarks for this user
+    const bookmarkCountResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(bookmarks)
+      .where(eq(bookmarks.userId, id))
+      .execute();
+
+    const bookmarkCount = Number(bookmarkCountResult[0]?.count || 0);
+
+    return {
+      ...user,
+      bookmarkCount,
+    };
   }
 
   async findByEmail(email: string) {
@@ -245,7 +263,7 @@ export class UserRepository {
       where: (bookmark) => eq(bookmark.id, bookmarkId),
       with: {
         material: true,
-        collection: true,
+        folder: true,
       },
     });
   }
@@ -277,8 +295,53 @@ export class UserRepository {
             },
           },
         },
-        collection: true,
+        folder: true,
       },
+    });
+  }
+
+  async getUserBookmarksLite(userId: string) {
+    return this.db.query.bookmarks.findMany({
+      where: eq(bookmarks.userId, userId),
+      with: {
+        folder: true,
+      },
+      orderBy: (bookmarks, { desc }) => [desc(bookmarks.createdAt)],
+    });
+  }
+
+  async getUserBookmarksPaginated(
+    userId: string,
+    limit: number,
+    offset: number,
+    includeMaterial: boolean,
+  ) {
+    return this.db.query.bookmarks.findMany({
+      where: eq(bookmarks.userId, userId),
+      with: includeMaterial
+        ? {
+            material: {
+              with: {
+                creator: {
+                  columns: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    username: true,
+                    level: true,
+                    departmentId: true,
+                  },
+                },
+              },
+            },
+            folder: true,
+          }
+        : {
+            folder: true,
+          },
+      orderBy: (bookmarks, { desc }) => [desc(bookmarks.createdAt)],
+      limit,
+      offset,
     });
   }
 
@@ -291,11 +354,11 @@ export class UserRepository {
     });
   }
 
-  async findBookmarkByCollection(userId: string, collectionId: string) {
+  async findBookmarkByFolder(userId: string, folderId: string) {
     return this.db.query.bookmarks.findFirst({
       where: and(
         eq(bookmarks.userId, userId),
-        eq(bookmarks.collectionId, collectionId),
+        eq(bookmarks.folderId, folderId),
       ),
     });
   }
@@ -307,5 +370,19 @@ export class UserRepository {
         eq(bookmarks.materialId, materialId),
       ),
     });
+  }
+
+  async incrementUploadCount(userId: string) {
+    await this.db
+      .update(users)
+      .set({ uploadCount: sql`${users.uploadCount} + 1` } as any)
+      .where(eq(users.id, userId));
+  }
+
+  async incrementDownloadCount(userId: string) {
+    await this.db
+      .update(users)
+      .set({ downloadCount: sql`${users.downloadCount} + 1` } as any)
+      .where(eq(users.id, userId));
   }
 }
