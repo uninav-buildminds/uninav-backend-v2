@@ -2,7 +2,6 @@ import {
   pgTable,
   uuid,
   text,
-  integer,
   primaryKey,
   timestamp as pgTimestamp,
 } from 'drizzle-orm/pg-core';
@@ -33,7 +32,6 @@ export const clubs = pgTable(TABLES.CLUBS, {
   organizerId: uuid('organizer_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
-  clickCount: integer('click_count').default(0),
   ...timestamps,
 });
 
