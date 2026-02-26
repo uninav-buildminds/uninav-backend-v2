@@ -35,6 +35,7 @@ export enum STORAGE_FOLDERS {
   DOCS = 'docs',
   BLOGS = 'blogs',
   ADVERTS = 'adverts',
+  CLUBS = 'clubs',
 }
 
 // Material Resource config
@@ -42,6 +43,7 @@ export const RESOURCE_ADDRESS_EXPIRY_DAYS = 7;
 export const RESOURCE_DOWNLOAD_URL_EXPIRY_DAYS = 7;
 export const BLOG_HEADING_IMG_URL_EXPIRY_DAYS = 7; // Heading image URLs expire after 7 days
 export const ADVERT_IMAGE_URL_EXPIRY_DAYS = 7; // Advert image URLs expire after 7 days
+export const CLUB_IMAGE_URL_EXPIRY_DAYS = 7; // Club image URLs expire after 7 days
 export const MAX_RECENT_ENTRIES_PER_USER = 15; // Maximum number of recent entries to keep per user
 
 export const EmailPaths = {
