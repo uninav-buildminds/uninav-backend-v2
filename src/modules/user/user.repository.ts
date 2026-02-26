@@ -321,7 +321,7 @@ export class UserRepository {
     // If there's a search query and we need to include materials, use a raw SQL query
     if (query && includeMaterial) {
       const searchPattern = `%${query.toLowerCase()}%`;
-      
+
       // Use a raw SQL query with proper joins
       const results = await this.db
         .select()
@@ -344,7 +344,7 @@ export class UserRepository {
         .orderBy(desc(bookmarks.createdAt))
         .limit(limit)
         .offset(offset);
-      
+
       // Transform the results to match the expected format
       return results.map((row) => ({
         ...row.bookmarks,
@@ -366,7 +366,7 @@ export class UserRepository {
         folder: null, // Folders not included in search results for simplicity
       }));
     }
-    
+
     // Default behavior without search
     return this.db.query.bookmarks.findMany({
       where: eq(bookmarks.userId, userId),
