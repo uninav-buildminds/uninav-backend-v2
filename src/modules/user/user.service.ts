@@ -545,6 +545,7 @@ export class UserService {
     page: number,
     limit: number,
     includeMaterial: boolean,
+    query?: string,
   ) {
     try {
       const offset = (page - 1) * limit;
@@ -553,6 +554,7 @@ export class UserService {
         limit + 1,
         offset,
         includeMaterial,
+        query,
       );
 
       const hasMore = results.length > limit;
