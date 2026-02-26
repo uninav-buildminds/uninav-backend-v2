@@ -14,6 +14,12 @@ import { comments } from '@app/common/modules/database/schema/comments.schema';
 import { advert } from '@app/common/modules/database/schema/advert.schema';
 import { recent } from '@app/common/modules/database/schema/recent.schema';
 import { errorReports } from '@app/common/modules/database/schema/error-report.schema';
+import {
+  clubs,
+  clubFlags,
+  clubRequests,
+  clubClicks,
+} from '@app/common/modules/database/schema/clubs.schema';
 import { auth } from '@app/common/modules/database/schema/schema';
 export type DrizzleDB = NodePgDatabase<typeof schema>;
 
@@ -32,6 +38,10 @@ export type CommentEntity = InferSelectModel<typeof comments>;
 export type AdvertEntity = InferSelectModel<typeof advert>;
 export type RecentEntity = InferSelectModel<typeof recent>;
 export type ErrorReportEntity = InferSelectModel<typeof errorReports>;
+export type ClubEntity = InferSelectModel<typeof clubs>;
+export type ClubFlagEntity = InferSelectModel<typeof clubFlags>;
+export type ClubRequestEntity = InferSelectModel<typeof clubRequests>;
+export type ClubClickEntity = InferSelectModel<typeof clubClicks>;
 
 export type AuthEntity = InferSelectModel<typeof auth>;
 
@@ -96,4 +106,28 @@ export enum ResourceType {
 export enum UserIdTypeEnum {
   ID_CARD = 'id_card',
   ADMISSION_LETTER = 'admission_letter',
+}
+
+export enum ClubStatusEnum {
+  LIVE = 'live',
+  FLAGGED = 'flagged',
+  HIDDEN = 'hidden',
+}
+
+export enum ClubTargetingEnum {
+  PUBLIC = 'public',
+  SPECIFIC = 'specific',
+  EXCLUDE = 'exclude',
+}
+
+export enum ClubFlagStatusEnum {
+  PENDING = 'pending',
+  REVIEWED = 'reviewed',
+  DISMISSED = 'dismissed',
+}
+
+export enum ClubRequestStatusEnum {
+  PENDING = 'pending',
+  FULFILLED = 'fulfilled',
+  DISMISSED = 'dismissed',
 }
