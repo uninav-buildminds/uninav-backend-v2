@@ -4,6 +4,7 @@ import {
   text,
   primaryKey,
   timestamp as pgTimestamp,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import {
@@ -57,8 +58,8 @@ export const clubTargetDepartments = pgTable(
       .references(() => department.id, { onDelete: 'cascade' })
       .notNull(),
   },
-  (t) => ({
-    pk: primaryKey({ columns: [t.clubId, t.departmentId] }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.clubId, table.departmentId] }),
   }),
 );
 
@@ -77,17 +78,23 @@ export const clubTargetDepartmentsRelations = relations(
 );
 
 // Clicks tracking
-export const clubClicks = pgTable(TABLES.CLUB_CLICKS, {
-  id: uuid('id').primaryKey().defaultRandom(),
-  clubId: uuid('club_id')
-    .references(() => clubs.id, { onDelete: 'cascade' })
-    .notNull(),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
-  departmentId: uuid('department_id').references(() => department.id, {
-    onDelete: 'set null',
+export const clubClicks = pgTable(
+  TABLES.CLUB_CLICKS,
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clubId: uuid('club_id')
+      .references(() => clubs.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    departmentId: uuid('department_id').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    clickedAt: pgTimestamp('clicked_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    clubIdIdx: index('club_clicks_club_id_idx').on(table.clubId),
   }),
-  clickedAt: pgTimestamp('clicked_at').defaultNow().notNull(),
-});
+);
 
 export const clubClicksRelations = relations(clubClicks, ({ one }) => ({
   club: one(clubs, {
