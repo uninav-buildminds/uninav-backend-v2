@@ -162,6 +162,13 @@
       "when": 1772193581292,
       "tag": "0022_ambiguous_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1772199022095,
+      "tag": "0023_mysterious_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }

@@ -156,16 +156,6 @@ export class ClubsService {
       }
     }
 
-    // Record page view only when viewerId is explicitly provided (null = anonymous visitor).
-    // undefined means an internal call (update/remove/etc.) — skip tracking.
-    if (viewerId !== undefined && viewerId !== club.organizerId) {
-      this.clubsRepository
-        .recordView({ clubId: id, userId: viewerId ?? undefined })
-        .catch((err) => {
-          this.logger.warn(`Failed to record view for club ${id}: ${err.message}`);
-        });
-    }
-
     return club;
   }
 
@@ -309,30 +299,36 @@ export class ClubsService {
     return this.clubsRepository.getAnalytics(clubId);
   }
 
+  // Track a detail-page click — anonymous-safe, skips if viewer is the organizer
   async trackClick(
     clubId: string,
+    viewerId?: string | null,
+  ): Promise<{ clickCount: number }> {
+    const club = await this.clubsRepository.findOne(clubId);
+    if (!club) throw new Error(`Club ${clubId} not found`);
+
+    // Soft guard: don't count organizer's own views
+    if (viewerId && viewerId === club.organizerId) {
+      return { clickCount: club.clickCount };
+    }
+
+    const clickCount = await this.clubsRepository.incrementClickCount(clubId);
+    return { clickCount };
+  }
+
+  // Track a join — authenticated users only, idempotent
+  async trackJoin(
+    clubId: string,
     user: UserEntity,
-  ): Promise<{ externalLink: string; clickCount: number }> {
+  ): Promise<{ externalLink: string }> {
     const club = await this.findOne(clubId);
 
-    await this.clubsRepository.createClick({
-      clubId,
-      userId: user.id,
-      departmentId: user.departmentId,
-    });
-
-    const clickCount = await this.clubsRepository.getClickCount(clubId);
-
-    // Record join non-blocking — only if user hasn't joined before
-    this.clubsRepository.findJoin(clubId, user.id).then((existing) => {
-      if (!existing) {
-        return this.clubsRepository.createJoin({ clubId, userId: user.id });
-      }
-    }).catch((err) => {
+    // Non-blocking: insert join record + increment joinCount
+    this.clubsRepository.createJoin(clubId, user.id).catch((err) => {
       this.logger.warn(`Failed to record join for club ${clubId}: ${err.message}`);
     });
 
-    return { externalLink: club.externalLink, clickCount };
+    return { externalLink: club.externalLink };
   }
 
   async updateStatus(

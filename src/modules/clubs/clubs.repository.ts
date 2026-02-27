@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import {
-  ClubClickEntity,
   ClubEntity,
   ClubFlagEntity,
   ClubFlagStatusEnum,
@@ -10,15 +9,12 @@ import {
   ClubRequestEntity,
   ClubRequestStatusEnum,
   ClubStatusEnum,
-  ClubViewEntity,
   DrizzleDB,
 } from '@app/common/types/db.types';
 import { eq, sql, and, desc, or, ilike, gte } from 'drizzle-orm';
 import {
   clubs,
   clubTargetDepartments,
-  clubClicks,
-  clubViews,
   clubJoins,
   clubFlags,
   clubRequests,
@@ -249,142 +245,72 @@ export class ClubsRepository {
     });
   }
 
-  // Clicks tracking
-  async createClick(data: {
-    clubId: string;
-    userId?: string;
-    departmentId?: string;
-  }): Promise<ClubClickEntity> {
-    const result = await this.db.insert(clubClicks).values(data).returning();
-    return result[0];
-  }
-
-  // Page view tracking
-  async recordView(data: {
-    clubId: string;
-    userId?: string;
-  }): Promise<ClubViewEntity> {
-    const result = await this.db.insert(clubViews).values(data).returning();
-    return result[0];
-  }
-
-  async getViewCount(clubId: string): Promise<number> {
+  // Click tracking — anonymous-safe, increments counter atomically
+  async incrementClickCount(clubId: string): Promise<number> {
     const result = await this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(clubViews)
-      .where(eq(clubViews.clubId, clubId))
-      .execute();
-    return Number(result[0]?.count || 0);
+      .update(clubs)
+      .set({ clickCount: sql<number>`${clubs.clickCount} + 1` })
+      .where(eq(clubs.id, clubId))
+      .returning({ clickCount: clubs.clickCount });
+    return result[0]?.clickCount ?? 0;
   }
 
-  // Join tracking (unique per user)
+  // Join tracking — authenticated users only, unique per user
   async findJoin(clubId: string, userId: string): Promise<ClubJoinEntity | undefined> {
     return this.db.query.clubJoins.findFirst({
       where: and(eq(clubJoins.clubId, clubId), eq(clubJoins.userId, userId)),
     });
   }
 
-  async createJoin(data: {
-    clubId: string;
-    userId: string;
-  }): Promise<ClubJoinEntity> {
-    const result = await this.db.insert(clubJoins).values(data).returning();
-    return result[0];
-  }
-
-  async getJoinCount(clubId: string): Promise<number> {
-    const result = await this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(clubJoins)
-      .where(eq(clubJoins.clubId, clubId))
-      .execute();
-    return Number(result[0]?.count || 0);
+  async createJoin(clubId: string, userId: string): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx.insert(clubJoins).values({ clubId, userId }).onConflictDoNothing();
+      await tx
+        .update(clubs)
+        .set({ joinCount: sql<number>`${clubs.joinCount} + 1` })
+        .where(eq(clubs.id, clubId));
+    });
   }
 
   // Analytics aggregation
   async getAnalytics(clubId: string): Promise<{
     totalClicks: number;
-    clicksByDept: { departmentId: string; departmentName: string; clicks: number }[];
-    clickTrend: { date: string; clicks: number }[];
+    totalJoins: number;
     joinTrend: { date: string; joins: number }[];
   }> {
     const since14 = new Date();
     since14.setDate(since14.getDate() - 13);
     since14.setHours(0, 0, 0, 0);
 
-    const [totalResult, deptResult, clickTrendResult, joinTrendResult] =
-      await Promise.all([
-        // Total clicks
-        this.db
-          .select({ count: sql<number>`count(*)` })
-          .from(clubClicks)
-          .where(eq(clubClicks.clubId, clubId))
-          .execute(),
+    const [clubResult, joinTrendResult] = await Promise.all([
+      // Totals from counter columns
+      this.db
+        .select({ clickCount: clubs.clickCount, joinCount: clubs.joinCount })
+        .from(clubs)
+        .where(eq(clubs.id, clubId))
+        .execute(),
 
-        // Clicks by department (with department name)
-        this.db
-          .select({
-            departmentId: clubClicks.departmentId,
-            departmentName: department.name,
-            clicks: sql<number>`count(*)`,
-          })
-          .from(clubClicks)
-          .leftJoin(department, eq(clubClicks.departmentId, department.id))
-          .where(
-            and(
-              eq(clubClicks.clubId, clubId),
-              sql`${clubClicks.departmentId} IS NOT NULL`,
-            ),
-          )
-          .groupBy(clubClicks.departmentId, department.name)
-          .execute(),
-
-        // Click trend — last 14 days, grouped by day
-        this.db
-          .select({
-            date: sql<string>`DATE(${clubClicks.clickedAt})::text`,
-            clicks: sql<number>`count(*)`,
-          })
-          .from(clubClicks)
-          .where(
-            and(
-              eq(clubClicks.clubId, clubId),
-              gte(clubClicks.clickedAt, since14),
-            ),
-          )
-          .groupBy(sql`DATE(${clubClicks.clickedAt})`)
-          .orderBy(sql`DATE(${clubClicks.clickedAt})`)
-          .execute(),
-
-        // Join trend — last 14 days, grouped by day
-        this.db
-          .select({
-            date: sql<string>`DATE(${clubJoins.createdAt})::text`,
-            joins: sql<number>`count(*)`,
-          })
-          .from(clubJoins)
-          .where(
-            and(
-              eq(clubJoins.clubId, clubId),
-              gte(clubJoins.createdAt, since14),
-            ),
-          )
-          .groupBy(sql`DATE(${clubJoins.createdAt})`)
-          .orderBy(sql`DATE(${clubJoins.createdAt})`)
-          .execute(),
-      ]);
+      // Join trend — last 14 days, grouped by day
+      this.db
+        .select({
+          date: sql<string>`DATE(${clubJoins.createdAt})::text`,
+          joins: sql<number>`count(*)`,
+        })
+        .from(clubJoins)
+        .where(
+          and(
+            eq(clubJoins.clubId, clubId),
+            gte(clubJoins.createdAt, since14),
+          ),
+        )
+        .groupBy(sql`DATE(${clubJoins.createdAt})`)
+        .orderBy(sql`DATE(${clubJoins.createdAt})`)
+        .execute(),
+    ]);
 
     return {
-      totalClicks: Number(totalResult[0]?.count || 0),
-      clicksByDept: deptResult.map((r) => ({
-        departmentId: r.departmentId ?? '',
-        departmentName: r.departmentName ?? 'Unknown',
-        clicks: Number(r.clicks),
-      })),
-      clickTrend: clickTrendResult.map((r) => ({
-        date: r.date,
-        clicks: Number(r.clicks),
-      })),
+      totalClicks: Number(clubResult[0]?.clickCount || 0),
+      totalJoins: Number(clubResult[0]?.joinCount || 0),
       joinTrend: joinTrendResult.map((r) => ({
         date: r.date,
         joins: Number(r.joins),

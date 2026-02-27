@@ -173,20 +173,31 @@ export class ClubsController {
     );
   }
 
-  // Click Tracking
+  // Click Tracking — anonymous-safe
 
   @Post(':id/click')
   @UseGuards(RolesGuard)
+  @Roles([], { strict: false })
   async trackClick(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: Request,
   ) {
+    const user = req.user as UserEntity | undefined;
+    const result = await this.clubsService.trackClick(id, user?.id ?? null);
+    return ResponseDto.createSuccessResponse('Click tracked', result);
+  }
+
+  // Join Tracking — authenticated users only
+
+  @Post(':id/join')
+  @UseGuards(RolesGuard)
+  async trackJoin(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Request,
+  ) {
     const user = req.user as UserEntity;
-    const result = await this.clubsService.trackClick(id, user);
-    return ResponseDto.createSuccessResponse(
-      'Click tracked successfully',
-      result,
-    );
+    const result = await this.clubsService.trackJoin(id, user);
+    return ResponseDto.createSuccessResponse('Join tracked', result);
   }
 
   // Club Status (Admin/Moderator)

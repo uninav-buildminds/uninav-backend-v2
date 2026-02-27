@@ -2,6 +2,7 @@ import {
   pgTable,
   uuid,
   text,
+  integer,
   primaryKey,
   timestamp as pgTimestamp,
   index,
@@ -35,6 +36,8 @@ export const clubs = pgTable(TABLES.CLUBS, {
   organizerId: uuid('organizer_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
+  clickCount: integer('click_count').default(0).notNull(),
+  joinCount: integer('join_count').default(0).notNull(),
   ...timestamps,
 });
 
