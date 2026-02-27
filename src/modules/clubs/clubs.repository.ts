@@ -19,7 +19,6 @@ import {
   clubFlags,
   clubRequests,
 } from '@app/common/modules/database/schema/clubs.schema';
-import { department } from '@app/common/modules/database/schema/department.schema';
 import { CreateClubDto } from './dto/create-club.dto';
 import { CreateClubRequestDto } from './dto/create-club-request.dto';
 
@@ -215,15 +214,6 @@ export class ClubsRepository {
     return result[0];
   }
 
-  async getClickCount(clubId: string): Promise<number> {
-    const result = await this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(clubClicks)
-      .where(eq(clubClicks.clubId, clubId))
-      .execute();
-    return Number(result[0]?.count || 0);
-  }
-
   // For setting the target departments of a club
   async setTargetDepartments(
     clubId: string,
@@ -249,9 +239,9 @@ export class ClubsRepository {
   async incrementClickCount(clubId: string): Promise<number> {
     const result = await this.db
       .update(clubs)
-      .set({ clickCount: sql<number>`${clubs.clickCount} + 1` })
+      .set({ clickCount: sql<number>`${clubs.clickCount} + 1` } as any)
       .where(eq(clubs.id, clubId))
-      .returning({ clickCount: clubs.clickCount });
+      .returning();
     return result[0]?.clickCount ?? 0;
   }
 
@@ -267,7 +257,7 @@ export class ClubsRepository {
       await tx.insert(clubJoins).values({ clubId, userId }).onConflictDoNothing();
       await tx
         .update(clubs)
-        .set({ joinCount: sql<number>`${clubs.joinCount} + 1` })
+        .set({ joinCount: sql<number>`${clubs.joinCount} + 1` } as any)
         .where(eq(clubs.id, clubId));
     });
   }
