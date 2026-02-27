@@ -149,6 +149,32 @@ export class FolderController {
     );
   }
 
+  // NOTE: must be declared before @Get(':id') so NestJS does not swallow 'search' as a slug
+  @Get('search')
+  async search(
+    @Query('query') query: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ) {
+    const limitNum = Math.min(parseInt(limit, 10) || 10, 50);
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+
+    const items = await this.folderService.searchFolders(query ?? '', limitNum);
+    const total = items.length;
+
+    return ResponseDto.createSuccessResponse('Folders retrieved successfully', {
+      items,
+      pagination: {
+        total,
+        page: pageNum,
+        pageSize: limitNum,
+        totalPages: Math.ceil(total / limitNum) || 1,
+        hasMore: false,
+        hasPrev: pageNum > 1,
+      },
+    });
+  }
+
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles([], { strict: false }) // Allow guest access for public folders

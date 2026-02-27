@@ -9,6 +9,7 @@ import {
   userCourses,
   bookmarks,
 } from '@app/common/modules/database/schema/user.schema';
+import { material } from '@app/common/modules/database/schema/material.schema';
 import { AddBookmarkDto } from './dto/bookmark.dto';
 import { sql } from 'drizzle-orm';
 
@@ -315,7 +316,58 @@ export class UserRepository {
     limit: number,
     offset: number,
     includeMaterial: boolean,
+    query?: string,
   ) {
+    // If there's a search query and we need to include materials, use a raw SQL query
+    if (query && includeMaterial) {
+      const searchPattern = `%${query.toLowerCase()}%`;
+
+      // Use a raw SQL query with proper joins
+      const results = await this.db
+        .select()
+        .from(bookmarks)
+        .innerJoin(material, eq(bookmarks.materialId, material.id))
+        .leftJoin(users, eq(material.creatorId, users.id))
+        .where(
+          and(
+            eq(bookmarks.userId, userId),
+            or(
+              ilike(material.label, searchPattern),
+              ilike(material.description, searchPattern),
+              sql`EXISTS (
+                SELECT 1 FROM unnest(${material.tags}) AS tag 
+                WHERE LOWER(tag) LIKE ${searchPattern}
+              )`,
+            ),
+          ),
+        )
+        .orderBy(desc(bookmarks.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Transform the results to match the expected format
+      return results.map((row) => ({
+        ...row.bookmarks,
+        material: row.material
+          ? {
+              ...row.material,
+              creator: row.users
+                ? {
+                    id: row.users.id,
+                    firstName: row.users.firstName,
+                    lastName: row.users.lastName,
+                    username: row.users.username,
+                    level: row.users.level,
+                    departmentId: row.users.departmentId,
+                  }
+                : null,
+            }
+          : null,
+        folder: null, // Folders not included in search results for simplicity
+      }));
+    }
+
+    // Default behavior without search
     return this.db.query.bookmarks.findMany({
       where: eq(bookmarks.userId, userId),
       with: includeMaterial

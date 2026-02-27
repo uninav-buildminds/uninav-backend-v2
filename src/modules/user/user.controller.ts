@@ -178,6 +178,7 @@ export class UserController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('includeMaterial') includeMaterial?: string,
+    @Query('query') query?: string,
   ) {
     // Support pagination when query params are provided
     if (page !== undefined || limit !== undefined) {
@@ -193,6 +194,7 @@ export class UserController {
         pageNum,
         limitNum,
         include,
+        query,
       );
 
       return ResponseDto.createSuccessResponse(
