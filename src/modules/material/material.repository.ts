@@ -12,6 +12,7 @@ import {
 import {
   eq,
   and,
+  asc,
   desc,
   getTableColumns,
   inArray,
@@ -309,6 +310,8 @@ export class MaterialRepository {
       advancedSearch,
       ignorePreference = false,
       excludeIds = [],
+      sortBy,
+      sortOrder,
       ...filters
     } = options;
     let conditions = [];
@@ -562,13 +565,21 @@ export class MaterialRepository {
         );
       }
 
-      // Add default ordering
-      orderByClause.push(
-        desc(material.createdAt),
-        desc(material.likes),
-        desc(material.downloads),
-        desc(material.views),
-      );
+      // Resolve primary sort column and direction from optional params
+      const sortColumnMap = {
+        createdAt: material.createdAt,
+        label: material.label,
+        downloads: material.downloads,
+      };
+      const primaryColumn = sortColumnMap[sortBy ?? 'createdAt'] ?? material.createdAt;
+      const primarySort = (sortOrder ?? 'desc') === 'asc' ? asc(primaryColumn) : desc(primaryColumn);
+
+      orderByClause.push(primarySort);
+      // Tiebreakers: skip whichever field is already the primary sort
+      if ((sortBy ?? 'createdAt') !== 'createdAt') orderByClause.push(desc(material.createdAt));
+      orderByClause.push(desc(material.likes));
+      if ((sortBy ?? 'createdAt') !== 'downloads') orderByClause.push(desc(material.downloads));
+      orderByClause.push(desc(material.views));
 
       const data = await this.db
         .select({

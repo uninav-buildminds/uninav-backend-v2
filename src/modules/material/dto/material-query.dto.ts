@@ -7,6 +7,9 @@ import {
   IsUUID,
   IsArray,
 } from 'class-validator';
+
+export type SortByField = 'createdAt' | 'label' | 'downloads';
+export type SortOrder = 'asc' | 'desc';
 import { Type, Transform } from 'class-transformer';
 import { MaterialTypeEnum, ApprovalStatus } from '@app/common/types/db.types';
 
@@ -76,4 +79,12 @@ export class MaterialQueryDto extends PaginationDto {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   saveHistory?: boolean = false; // Whether to save this search to user's search history (false for autocomplete, true for explicit searches)
+
+  @IsOptional()
+  @IsEnum(['createdAt', 'label', 'downloads'])
+  sortBy?: SortByField;
+
+  @IsOptional()
+  @IsEnum(['asc', 'desc'])
+  sortOrder?: SortOrder;
 }
