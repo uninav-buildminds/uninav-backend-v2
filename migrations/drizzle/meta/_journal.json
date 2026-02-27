@@ -148,6 +148,20 @@
       "when": 1772120845350,
       "tag": "0020_hesitant_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1772192947294,
+      "tag": "0021_dear_scarlet_witch",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1772193581292,
+      "tag": "0022_ambiguous_wonder_man",
+      "breakpoints": true
     }
   ]
 }

@@ -52,17 +52,15 @@ export class ClubsService {
 
       if (image) {
         const uploadResult = await this.storageService.uploadFile(image, {
-          bucketType: 'public',
+          bucketType: 'private',
           folder: STORAGE_FOLDERS.CLUBS,
-          provider: 'cloudinary',
         });
         imageKey = uploadResult.fileKey;
 
         imageUrl = await this.storageService.getSignedUrl(
           imageKey,
           3600 * 24 * CLUB_IMAGE_URL_EXPIRY_DAYS,
-          'public',
-          'cloudinary',
+          'private',
         );
       }
 
@@ -95,7 +93,7 @@ export class ClubsService {
 
   async findAll(query: GetClubsQueryDto) {
     try {
-      return await this.clubsRepository.findAllPaginated({
+      const result = await this.clubsRepository.findAllPaginated({
         search: query.search,
         interest: query.interest,
         departmentId: query.departmentId,
@@ -104,13 +102,37 @@ export class ClubsService {
         page: query.page,
         limit: query.limit,
       });
+
+      // Refresh expired signed image URLs — same logic as findOne
+      const refreshPromises = result.data.map(async (club) => {
+        if (!club.imageKey) return club;
+
+        const isExpired = moment(club.updatedAt).isBefore(
+          moment().subtract(CLUB_IMAGE_URL_EXPIRY_DAYS, 'days'),
+        );
+
+        if (!isExpired) return club;
+
+        const newImageUrl = await this.storageService.getSignedUrl(
+          club.imageKey,
+          3600 * 24 * CLUB_IMAGE_URL_EXPIRY_DAYS,
+          'private',
+        );
+
+        await this.clubsRepository.update(club.id, { imageUrl: newImageUrl });
+        club.imageUrl = newImageUrl;
+        return club;
+      });
+
+      result.data = await Promise.all(refreshPromises);
+      return result;
     } catch (error) {
       this.logger.error(`Failed to fetch clubs: ${error.message}`);
       throw new InternalServerErrorException('Failed to fetch clubs');
     }
   }
 
-  async findOne(id: string): Promise<ClubEntity> {
+  async findOne(id: string, viewerId?: string | null): Promise<ClubEntity> {
     const club = await this.clubsRepository.findOne(id);
     if (!club) {
       throw new NotFoundException(`Club with ID ${id} not found`);
@@ -126,13 +148,22 @@ export class ClubsService {
         const newImageUrl = await this.storageService.getSignedUrl(
           club.imageKey,
           3600 * 24 * CLUB_IMAGE_URL_EXPIRY_DAYS,
-          'public',
-          'cloudinary',
+          'private',
         );
 
         await this.clubsRepository.update(id, { imageUrl: newImageUrl });
         club.imageUrl = newImageUrl;
       }
+    }
+
+    // Record page view only when viewerId is explicitly provided (null = anonymous visitor).
+    // undefined means an internal call (update/remove/etc.) — skip tracking.
+    if (viewerId !== undefined && viewerId !== club.organizerId) {
+      this.clubsRepository
+        .recordView({ clubId: id, userId: viewerId ?? undefined })
+        .catch((err) => {
+          this.logger.warn(`Failed to record view for club ${id}: ${err.message}`);
+        });
     }
 
     return club;
@@ -164,23 +195,21 @@ export class ClubsService {
 
       if (image) {
         const uploadResult = await this.storageService.uploadFile(image, {
-          bucketType: 'public',
+          bucketType: 'private',
           folder: STORAGE_FOLDERS.CLUBS,
-          provider: 'cloudinary',
         });
         const { fileKey } = uploadResult;
 
         const imageUrl = await this.storageService.getSignedUrl(
           fileKey,
           3600 * 24 * CLUB_IMAGE_URL_EXPIRY_DAYS,
-          'public',
-          'cloudinary',
+          'private',
         );
 
         // Delete old image if exists
         if (club.imageKey) {
           try {
-            await this.storageService.deleteFile(club.imageKey, 'public');
+            await this.storageService.deleteFile(club.imageKey, 'private');
           } catch (error) {
             this.logger.error(`Failed to delete old club image: ${error.message}`);
           }
@@ -259,6 +288,27 @@ export class ClubsService {
     }
   }
 
+  async findBySlug(slug: string, viewerId?: string | null): Promise<ClubEntity> {
+    const club = await this.clubsRepository.findBySlug(slug);
+    if (!club) {
+      throw new NotFoundException(`Club with slug "${slug}" not found`);
+    }
+    // Delegate to findOne for URL refresh + view tracking
+    return this.findOne(club.id, viewerId);
+  }
+
+  async getAnalytics(clubId: string, requesterId: string, requesterRole: UserRoleEnum) {
+    const club = await this.findOne(clubId);
+    if (
+      club.organizerId !== requesterId &&
+      requesterRole !== UserRoleEnum.ADMIN &&
+      requesterRole !== UserRoleEnum.MODERATOR
+    ) {
+      throw new ForbiddenException('You do not have permission to view analytics for this club');
+    }
+    return this.clubsRepository.getAnalytics(clubId);
+  }
+
   async trackClick(
     clubId: string,
     user: UserEntity,
@@ -272,6 +322,15 @@ export class ClubsService {
     });
 
     const clickCount = await this.clubsRepository.getClickCount(clubId);
+
+    // Record join non-blocking — only if user hasn't joined before
+    this.clubsRepository.findJoin(clubId, user.id).then((existing) => {
+      if (!existing) {
+        return this.clubsRepository.createJoin({ clubId, userId: user.id });
+      }
+    }).catch((err) => {
+      this.logger.warn(`Failed to record join for club ${clubId}: ${err.message}`);
+    });
 
     return { externalLink: club.externalLink, clickCount };
   }

@@ -28,6 +28,8 @@ export const TABLES = {
   CLUBS: 'clubs',
   CLUB_TARGET_DEPARTMENTS: 'club_target_departments',
   CLUB_CLICKS: 'club_clicks',
+  CLUB_VIEWS: 'club_views',
+  CLUB_JOINS: 'club_joins',
   CLUB_FLAGS: 'club_flags',
   CLUB_REQUESTS: 'club_requests',
 } as const;

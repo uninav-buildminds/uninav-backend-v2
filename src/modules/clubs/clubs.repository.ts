@@ -1,29 +1,47 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import {
   ClubClickEntity,
   ClubEntity,
   ClubFlagEntity,
   ClubFlagStatusEnum,
+  ClubJoinEntity,
   ClubRequestEntity,
   ClubRequestStatusEnum,
   ClubStatusEnum,
+  ClubViewEntity,
   DrizzleDB,
 } from '@app/common/types/db.types';
-import { eq, sql, and, desc, or, ilike } from 'drizzle-orm';
+import { eq, sql, and, desc, or, ilike, gte } from 'drizzle-orm';
 import {
   clubs,
   clubTargetDepartments,
   clubClicks,
+  clubViews,
+  clubJoins,
   clubFlags,
   clubRequests,
 } from '@app/common/modules/database/schema/clubs.schema';
+import { department } from '@app/common/modules/database/schema/department.schema';
 import { CreateClubDto } from './dto/create-club.dto';
 import { CreateClubRequestDto } from './dto/create-club-request.dto';
 
 @Injectable()
 export class ClubsRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
+
+  private generateSlug(name: string, id: string): string {
+    const base = (name || 'club')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s_]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .substring(0, 100) || 'club';
+    return `${base}_${id.substring(0, 8)}`;
+  }
 
   // Main club CRUD operations
   async create(
@@ -32,9 +50,11 @@ export class ClubsRepository {
       imageKey?: string;
     },
   ): Promise<ClubEntity> {
+    const id = randomUUID();
+    const slug = this.generateSlug((clubData as any).name, id);
     const result = await this.db
       .insert(clubs)
-      .values(clubData as any)
+      .values({ ...clubData, id, slug } as any)
       .returning();
     return result[0];
   }
@@ -148,25 +168,34 @@ export class ClubsRepository {
     };
   }
 
+  private readonly clubWithRelations = {
+    organizer: {
+      columns: {
+        id: true as const,
+        firstName: true as const,
+        lastName: true as const,
+        username: true as const,
+        profilePicture: true as const,
+      },
+    },
+    targetDepartments: {
+      with: {
+        department: true as const,
+      },
+    },
+  };
+
   async findOne(id: string): Promise<ClubEntity | undefined> {
     return this.db.query.clubs.findFirst({
       where: eq(clubs.id, id),
-      with: {
-        organizer: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-            profilePicture: true,
-          },
-        },
-        targetDepartments: {
-          with: {
-            department: true,
-          },
-        },
-      },
+      with: this.clubWithRelations,
+    });
+  }
+
+  async findBySlug(slug: string): Promise<ClubEntity | undefined> {
+    return this.db.query.clubs.findFirst({
+      where: eq(clubs.slug, slug),
+      with: this.clubWithRelations,
     });
   }
 
@@ -228,6 +257,139 @@ export class ClubsRepository {
   }): Promise<ClubClickEntity> {
     const result = await this.db.insert(clubClicks).values(data).returning();
     return result[0];
+  }
+
+  // Page view tracking
+  async recordView(data: {
+    clubId: string;
+    userId?: string;
+  }): Promise<ClubViewEntity> {
+    const result = await this.db.insert(clubViews).values(data).returning();
+    return result[0];
+  }
+
+  async getViewCount(clubId: string): Promise<number> {
+    const result = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(clubViews)
+      .where(eq(clubViews.clubId, clubId))
+      .execute();
+    return Number(result[0]?.count || 0);
+  }
+
+  // Join tracking (unique per user)
+  async findJoin(clubId: string, userId: string): Promise<ClubJoinEntity | undefined> {
+    return this.db.query.clubJoins.findFirst({
+      where: and(eq(clubJoins.clubId, clubId), eq(clubJoins.userId, userId)),
+    });
+  }
+
+  async createJoin(data: {
+    clubId: string;
+    userId: string;
+  }): Promise<ClubJoinEntity> {
+    const result = await this.db.insert(clubJoins).values(data).returning();
+    return result[0];
+  }
+
+  async getJoinCount(clubId: string): Promise<number> {
+    const result = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(clubJoins)
+      .where(eq(clubJoins.clubId, clubId))
+      .execute();
+    return Number(result[0]?.count || 0);
+  }
+
+  // Analytics aggregation
+  async getAnalytics(clubId: string): Promise<{
+    totalClicks: number;
+    clicksByDept: { departmentId: string; departmentName: string; clicks: number }[];
+    clickTrend: { date: string; clicks: number }[];
+    joinTrend: { date: string; joins: number }[];
+  }> {
+    const since14 = new Date();
+    since14.setDate(since14.getDate() - 13);
+    since14.setHours(0, 0, 0, 0);
+
+    const [totalResult, deptResult, clickTrendResult, joinTrendResult] =
+      await Promise.all([
+        // Total clicks
+        this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(clubClicks)
+          .where(eq(clubClicks.clubId, clubId))
+          .execute(),
+
+        // Clicks by department (with department name)
+        this.db
+          .select({
+            departmentId: clubClicks.departmentId,
+            departmentName: department.name,
+            clicks: sql<number>`count(*)`,
+          })
+          .from(clubClicks)
+          .leftJoin(department, eq(clubClicks.departmentId, department.id))
+          .where(
+            and(
+              eq(clubClicks.clubId, clubId),
+              sql`${clubClicks.departmentId} IS NOT NULL`,
+            ),
+          )
+          .groupBy(clubClicks.departmentId, department.name)
+          .execute(),
+
+        // Click trend — last 14 days, grouped by day
+        this.db
+          .select({
+            date: sql<string>`DATE(${clubClicks.clickedAt})::text`,
+            clicks: sql<number>`count(*)`,
+          })
+          .from(clubClicks)
+          .where(
+            and(
+              eq(clubClicks.clubId, clubId),
+              gte(clubClicks.clickedAt, since14),
+            ),
+          )
+          .groupBy(sql`DATE(${clubClicks.clickedAt})`)
+          .orderBy(sql`DATE(${clubClicks.clickedAt})`)
+          .execute(),
+
+        // Join trend — last 14 days, grouped by day
+        this.db
+          .select({
+            date: sql<string>`DATE(${clubJoins.createdAt})::text`,
+            joins: sql<number>`count(*)`,
+          })
+          .from(clubJoins)
+          .where(
+            and(
+              eq(clubJoins.clubId, clubId),
+              gte(clubJoins.createdAt, since14),
+            ),
+          )
+          .groupBy(sql`DATE(${clubJoins.createdAt})`)
+          .orderBy(sql`DATE(${clubJoins.createdAt})`)
+          .execute(),
+      ]);
+
+    return {
+      totalClicks: Number(totalResult[0]?.count || 0),
+      clicksByDept: deptResult.map((r) => ({
+        departmentId: r.departmentId ?? '',
+        departmentName: r.departmentName ?? 'Unknown',
+        clicks: Number(r.clicks),
+      })),
+      clickTrend: clickTrendResult.map((r) => ({
+        date: r.date,
+        clicks: Number(r.clicks),
+      })),
+      joinTrend: joinTrendResult.map((r) => ({
+        date: r.date,
+        joins: Number(r.joins),
+      })),
+    };
   }
 
   // Club flagging methods

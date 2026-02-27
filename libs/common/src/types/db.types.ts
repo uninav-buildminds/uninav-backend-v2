@@ -19,6 +19,8 @@ import {
   clubFlags,
   clubRequests,
   clubClicks,
+  clubViews,
+  clubJoins,
 } from '@app/common/modules/database/schema/clubs.schema';
 import { auth } from '@app/common/modules/database/schema/schema';
 export type DrizzleDB = NodePgDatabase<typeof schema>;
@@ -42,6 +44,8 @@ export type ClubEntity = InferSelectModel<typeof clubs>;
 export type ClubFlagEntity = InferSelectModel<typeof clubFlags>;
 export type ClubRequestEntity = InferSelectModel<typeof clubRequests>;
 export type ClubClickEntity = InferSelectModel<typeof clubClicks>;
+export type ClubViewEntity = InferSelectModel<typeof clubViews>;
+export type ClubJoinEntity = InferSelectModel<typeof clubJoins>;
 
 export type AuthEntity = InferSelectModel<typeof auth>;
 

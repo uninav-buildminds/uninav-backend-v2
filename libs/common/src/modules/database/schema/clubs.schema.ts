@@ -5,6 +5,7 @@ import {
   primaryKey,
   timestamp as pgTimestamp,
   index,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import {
@@ -28,6 +29,7 @@ export const clubs = pgTable(TABLES.CLUBS, {
   imageKey: text('image_key'),
   tags: text('tags').array(),
   interests: text('interests').array(),
+  slug: text('slug').unique().notNull(),
   targeting: clubTargetingEnum('targeting').default('public').notNull(),
   status: clubStatusEnum('status').default('live').notNull(),
   organizerId: uuid('organizer_id')
@@ -44,6 +46,8 @@ export const clubsRelations = relations(clubs, ({ one, many }) => ({
   }),
   targetDepartments: many(clubTargetDepartments),
   clicks: many(clubClicks),
+  views: many(clubViews),
+  joins: many(clubJoins),
   flags: many(clubFlags),
 }));
 
@@ -108,6 +112,66 @@ export const clubClicksRelations = relations(clubClicks, ({ one }) => ({
   department: one(department, {
     fields: [clubClicks.departmentId],
     references: [department.id],
+  }),
+}));
+
+// Page view tracking (detail page visits, deduped per user per day)
+export const clubViews = pgTable(
+  TABLES.CLUB_VIEWS,
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clubId: uuid('club_id')
+      .references(() => clubs.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    viewedAt: pgTimestamp('viewed_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    clubIdIdx: index('club_views_club_id_idx').on(table.clubId),
+  }),
+);
+
+export const clubViewsRelations = relations(clubViews, ({ one }) => ({
+  club: one(clubs, {
+    fields: [clubViews.clubId],
+    references: [clubs.id],
+  }),
+  user: one(users, {
+    fields: [clubViews.userId],
+    references: [users.id],
+  }),
+}));
+
+// Join tracking (unique per user — one record per user who clicks "Join Now")
+export const clubJoins = pgTable(
+  TABLES.CLUB_JOINS,
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clubId: uuid('club_id')
+      .references(() => clubs.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: pgTimestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    clubUserUnique: unique('club_joins_club_user_unique').on(
+      table.clubId,
+      table.userId,
+    ),
+    clubIdIdx: index('club_joins_club_id_idx').on(table.clubId),
+  }),
+);
+
+export const clubJoinsRelations = relations(clubJoins, ({ one }) => ({
+  club: one(clubs, {
+    fields: [clubJoins.clubId],
+    references: [clubs.id],
+  }),
+  user: one(users, {
+    fields: [clubJoins.userId],
+    references: [users.id],
   }),
 }));
 

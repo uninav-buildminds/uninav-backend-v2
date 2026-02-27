@@ -80,12 +80,55 @@ export class ClubsController {
     );
   }
 
-  @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const club = await this.clubsService.findOne(id);
+  @Get('slug/:slug')
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false })
+  async findBySlug(
+    @Param('slug') slug: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity | undefined;
+    const viewerId = user?.id ?? null;
+    const club = await this.clubsService.findBySlug(slug, viewerId);
     return ResponseDto.createSuccessResponse(
       'Club retrieved successfully',
       club,
+    );
+  }
+
+  @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false })
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity | undefined;
+    // Pass user ID if authenticated, null if anonymous — both trigger view recording.
+    // undefined is reserved for internal service calls that should not record views.
+    const viewerId = user?.id ?? null;
+    const club = await this.clubsService.findOne(id, viewerId);
+    return ResponseDto.createSuccessResponse(
+      'Club retrieved successfully',
+      club,
+    );
+  }
+
+  @Get(':id/analytics')
+  @UseGuards(RolesGuard)
+  async getAnalytics(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as UserEntity;
+    const analytics = await this.clubsService.getAnalytics(
+      id,
+      user.id,
+      user.role as UserRoleEnum,
+    );
+    return ResponseDto.createSuccessResponse(
+      'Analytics retrieved successfully',
+      analytics,
     );
   }
 
