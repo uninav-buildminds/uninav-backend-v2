@@ -261,7 +261,7 @@ export class AuthController {
     await this.authService.setCookie(res, accessToken);
     // res.cookie('authorization', accessToken, globalCookieOptions);
 
-    const redirectUrl = OriginDetectorHelper.detectAndValidateOrigin(
+    const redirectUrl = OriginDetectorHelper.resolveCallbackOrigin(
       req,
       this.configService.get(ENV.FRONTEND_URL),
     );

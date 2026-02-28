@@ -2,42 +2,70 @@ import { Request } from 'express';
 import { AppEnum } from 'src/utils/config/app.config';
 
 export class OriginDetectorHelper {
-  // Define allowed origins for security
   private static readonly allowedOrigins = AppEnum.CORS_OPTIONS
-    .origin as string;
+    .origin as string[];
 
+  /**
+   * Validate a raw origin string against the allowlist.
+   * Returns the clean base origin or null if invalid.
+   */
+  private static validateOrigin(raw: string): string | null {
+    try {
+      let decoded = raw;
+      if (raw.includes('%')) {
+        decoded = decodeURIComponent(raw);
+      }
+      const url = new URL(decoded);
+      const base = `${url.protocol}//${url.hostname}${
+        url.port ? ':' + url.port : ''
+      }`;
+
+      if (this.allowedOrigins.includes(base)) {
+        return base;
+      }
+    } catch {
+      // invalid URL — ignore
+    }
+    return null;
+  }
+
+  /**
+   * Detect origin from an initial request (e.g. GET /auth/google).
+   * Reads Origin / Referer headers sent by the user's browser.
+   */
   static detectAndValidateOrigin(
     req: Request,
     fallbackUrl: string = 'https://uninav.live',
   ): string {
-    console.log(' will detect origin from ', req.url);
-    // Extract origin from request headers
-    const origin = req.headers.origin || req.headers.referer || req.query.state;
+    const candidates = [
+      req.headers.origin,
+      req.headers.referer,
+    ].filter(Boolean) as string[];
 
-    if (!origin || typeof origin !== 'string') {
-      return fallbackUrl;
+    for (const candidate of candidates) {
+      const validated = this.validateOrigin(candidate);
+      if (validated) return validated;
     }
 
-    let decodedOrigin = origin;
-    try {
-      // Try decoding if it looks encoded
-      if (origin.includes('%')) {
-        decodedOrigin = decodeURIComponent(origin);
-      }
-      const originUrl = new URL(decodedOrigin);
-      const baseOrigin = `${originUrl.protocol}//${originUrl.hostname}${
-        originUrl.port ? ':' + originUrl.port : ''
-      }`;
-
-      // Check if the origin is in the allowed list
-      if (this.allowedOrigins.includes(baseOrigin)) {
-        console.log('detected origin', baseOrigin);
-        return baseOrigin;
-      }
-    } catch (error) {
-      console.warn('Failed to parse origin URL:', error);
-    }
-    console.log('failed to detect origin, using fallback', fallbackUrl);
     return fallbackUrl;
+  }
+
+  /**
+   * Resolve redirect origin from an OAuth callback request.
+   * Prioritises the `state` query parameter (set by us during initiation)
+   * because headers on the callback belong to Google, not the user's frontend.
+   */
+  static resolveCallbackOrigin(
+    req: Request,
+    fallbackUrl: string = 'https://uninav.live',
+  ): string {
+    const state = req.query.state;
+    if (state && typeof state === 'string') {
+      const validated = this.validateOrigin(state);
+      if (validated) return validated;
+    }
+
+    // Fallback: try headers (unlikely to work on OAuth callbacks, but safe)
+    return this.detectAndValidateOrigin(req, fallbackUrl);
   }
 }
