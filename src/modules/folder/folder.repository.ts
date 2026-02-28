@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_SYMBOL } from 'src/utils/config/constants.config';
 import { FolderEntity, DrizzleDB } from '@app/common/types/db.types';
-import { and, eq, sql, desc, or, isNull, inArray } from 'drizzle-orm';
+import { and, eq, sql, desc, or, inArray } from 'drizzle-orm';
 import {
   folder,
   folderContent,
@@ -184,26 +184,29 @@ export class FolderRepository {
       const childCounts = await this.db
         .select({
           folderId: folderContent.folderId,
-          count: sql<number>`count(*)`,
+          materialCount: sql<number>`count(*) filter (where ${folderContent.contentMaterialId} is not null)`,
+          nestedFolderCount: sql<number>`count(*) filter (where ${folderContent.contentFolderId} is not null)`,
         })
         .from(folderContent)
-        .where(
-          and(
-            inArray(folderContent.folderId, childFolderIds),
-            sql`${folderContent.contentMaterialId} IS NOT NULL`,
-          ),
-        )
+        .where(inArray(folderContent.folderId, childFolderIds))
         .groupBy(folderContent.folderId);
 
-      const countsMap = new Map<string, number>(
-        childCounts.map((row) => [row.folderId, Number(row.count)]),
+      const countsMap = new Map(
+        childCounts.map((row) => [
+          row.folderId,
+          {
+            materialCount: Number(row.materialCount),
+            nestedFolderCount: Number(row.nestedFolderCount),
+          },
+        ]),
       );
 
-      // Attach materialCount to each nested folder entity
+      // Attach counts to each nested folder entity
       found.content?.forEach((c) => {
         if (c.contentFolderId && c.nestedFolder) {
-          (c.nestedFolder as any).materialCount =
-            countsMap.get(c.contentFolderId) || 0;
+          const counts = countsMap.get(c.contentFolderId);
+          (c.nestedFolder as any).materialCount = counts?.materialCount || 0;
+          (c.nestedFolder as any).nestedFolderCount = counts?.nestedFolderCount || 0;
         }
       });
     }
@@ -278,25 +281,29 @@ export class FolderRepository {
       const childCounts = await this.db
         .select({
           folderId: folderContent.folderId,
-          count: sql<number>`count(*)`,
+          materialCount: sql<number>`count(*) filter (where ${folderContent.contentMaterialId} is not null)`,
+          nestedFolderCount: sql<number>`count(*) filter (where ${folderContent.contentFolderId} is not null)`,
         })
         .from(folderContent)
-        .where(
-          and(
-            inArray(folderContent.folderId, childFolderIds),
-            sql`${folderContent.contentMaterialId} IS NOT NULL`,
-          ),
-        )
+        .where(inArray(folderContent.folderId, childFolderIds))
         .groupBy(folderContent.folderId);
 
-      const countsMap = new Map<string, number>(
-        childCounts.map((row) => [row.folderId, Number(row.count)]),
+      const countsMap = new Map(
+        childCounts.map((row) => [
+          row.folderId,
+          {
+            materialCount: Number(row.materialCount),
+            nestedFolderCount: Number(row.nestedFolderCount),
+          },
+        ]),
       );
 
+      // Attach counts to each nested folder entity
       found.content?.forEach((c) => {
         if (c.contentFolderId && c.nestedFolder) {
-          (c.nestedFolder as any).materialCount =
-            countsMap.get(c.contentFolderId) || 0;
+          const counts = countsMap.get(c.contentFolderId);
+          (c.nestedFolder as any).materialCount = counts?.materialCount || 0;
+          (c.nestedFolder as any).nestedFolderCount = counts?.nestedFolderCount || 0;
         }
       });
     }
