@@ -387,7 +387,7 @@ export class MaterialRepository {
     }
 
     let whereCondition =
-      conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
+      conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count for pagination
     const countResult = await this.db
@@ -435,7 +435,7 @@ export class MaterialRepository {
       );
       advancedConditions.push(advancedSearchCondition);
 
-      whereCondition = sql.join(advancedConditions, sql` AND `);
+      whereCondition = and(...advancedConditions);
 
       // Re-count with advanced search
       const advancedCountResult = await this.db
