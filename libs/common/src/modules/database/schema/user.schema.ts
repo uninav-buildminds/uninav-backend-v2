@@ -38,6 +38,7 @@ export const users = pgTable(
     level: integer('level'),
     role: userRoleEnum('role').default('student'),
     profilePicture: text('profile_picture'),
+    interests: text('interests').array().default([]).notNull(),
     downloadCount: integer('download_count').default(0).notNull(),
     uploadCount: integer('upload_count').default(0).notNull(),
     ...timestamps,

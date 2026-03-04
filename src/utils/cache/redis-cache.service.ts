@@ -107,22 +107,73 @@ export class RedisCacheService implements OnModuleDestroy {
     }
   }
 
-  // Delete multiple keys matching a pattern
+  // Delete multiple keys matching a pattern using SCAN to avoid blocking Redis
   async deletePattern(pattern: string): Promise<number> {
     if (!this.isConnected || !this.redisClient) {
       return 0;
     }
 
     try {
-      const keys = await this.redisClient.keys(pattern);
-      if (keys.length === 0) {
-        return 0;
-      }
-      await this.redisClient.del(...keys);
-      return keys.length;
+      let deleted = 0;
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await this.redisClient.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await this.redisClient.del(...keys);
+          deleted += keys.length;
+        }
+      } while (cursor !== '0');
+      return deleted;
     } catch (error) {
       this.logger.error(`Error deleting cache pattern ${pattern}:`, error);
       return 0;
+    }
+  }
+
+  // Increment a user's search cache version and return the new version.
+  // Used to bust per-user search caches without touching anyone else's.
+  async incrementUserSearchVersion(userId: string): Promise<number> {
+    if (!this.isConnected || !this.redisClient) {
+      return 1;
+    }
+    try {
+      // Key never expires — version just keeps incrementing
+      const version = await this.redisClient.incr(
+        `search:version:user:${userId}`,
+      );
+      return version;
+    } catch (error) {
+      this.logger.error(
+        `Error incrementing search version for user ${userId}:`,
+        error,
+      );
+      return 1;
+    }
+  }
+
+  // Get current search cache version for a user (defaults to 1 if not set)
+  async getUserSearchVersion(userId: string): Promise<number> {
+    if (!this.isConnected || !this.redisClient) {
+      return 1;
+    }
+    try {
+      const version = await this.redisClient.get(
+        `search:version:user:${userId}`,
+      );
+      return version ? parseInt(version, 10) : 1;
+    } catch (error) {
+      this.logger.error(
+        `Error getting search version for user ${userId}:`,
+        error,
+      );
+      return 1;
     }
   }
 
@@ -160,6 +211,28 @@ export class RedisCacheService implements OnModuleDestroy {
     if (this.redisClient) {
       await this.redisClient.quit();
       this.logger.log('Redis connection closed');
+    }
+  }
+
+  /**
+   * Atomically increment a counter key and set TTL on first creation.
+   * Uses INCR (atomic) + EXPIRE only when key is new (count === 1).
+   * Returns the new count, or 0 on error / Redis unavailable.
+   */
+  async increment(key: string, initialTtl: number): Promise<number> {
+    if (!this.isConnected || !this.redisClient) {
+      return 0;
+    }
+    try {
+      const count = await this.redisClient.incr(key);
+      if (count === 1) {
+        // First increment — set the TTL window
+        await this.redisClient.expire(key, initialTtl);
+      }
+      return count;
+    } catch (error) {
+      this.logger.error(`Error incrementing key ${key}:`, error);
+      return 0;
     }
   }
 

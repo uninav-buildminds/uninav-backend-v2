@@ -46,21 +46,20 @@ export class MaterialService {
     private readonly cacheService: RedisCacheService,
   ) {}
 
-  // Helper to mark that a user's search results should bypass cache briefly
-  // Used after uploads/updates so the creator immediately sees fresh results
-  private async markUserSearchStale(userId: string) {
+  // Bump the user's search cache version so their next search misses the cache
+  // and hits the DB — guaranteeing they immediately see their own uploads/edits.
+  // Other users are unaffected; their caches expire naturally via TTL.
+  private async bumpUserSearchVersion(userId: string) {
     try {
-      const key = `search:materials:recentUpload:user:${userId}`;
-      // 60 seconds is enough for immediate follow-up searches after an upload/update
-      await this.cacheService.set(key, { stale: true }, 60);
+      await this.cacheService.incrementUserSearchVersion(userId);
     } catch (error) {
-      logger.error('Error marking user search as stale:', error);
+      logger.error('Error bumping search version for user:', error);
     }
   }
 
-  // Helper to clear all cached material search results
-  // Conservative but safe – trade some cache hit rate for strong freshness guarantees
-  private async invalidateSearchCache() {
+  // Wipe ALL search caches globally — reserved for hard deletes only,
+  // where a material must disappear from every user's results immediately.
+  private async invalidateSearchCacheGlobal() {
     try {
       const pattern = 'search:materials:*';
       await this.cacheService.deletePattern(pattern);
@@ -146,9 +145,8 @@ export class MaterialService {
       await this.userService.incrementUploadCount(createMaterialDto.creatorId);
       await this.userService.allocateUploadPoints(createMaterialDto.creatorId);
 
-      // Ensure fresh search results for the creator and other users
-      await this.markUserSearchStale(createMaterialDto.creatorId);
-      await this.invalidateSearchCache();
+      // Bump the creator's search version so they see their new material immediately
+      await this.bumpUserSearchVersion(createMaterialDto.creatorId);
 
       // Return complete material with resource
       const materialWithResource = await this.materialRepository.findOne(
@@ -284,9 +282,8 @@ export class MaterialService {
         await this.userService.allocateUploadPoints(creatorId);
       }
 
-      // Mark creator's search results as stale and clear shared search cache
-      await this.markUserSearchStale(creatorId);
-      await this.invalidateSearchCache();
+      // Bump the creator's search version so they see their new materials immediately
+      await this.bumpUserSearchVersion(creatorId);
     }
 
     return {
@@ -606,9 +603,8 @@ export class MaterialService {
         await this.materialRepository.update(id, materialData);
       }
 
-      // Invalidate search cache so updates are reflected in subsequent searches
-      await this.invalidateSearchCache();
-      await this.markUserSearchStale(userId);
+      // Bump the editor's search version so they see their changes immediately
+      await this.bumpUserSearchVersion(userId);
 
       // Return updated material with resource
       return this.materialRepository.findOne(id);
@@ -657,9 +653,8 @@ export class MaterialService {
 
     const removed = await this.materialRepository.remove(id);
 
-    // Invalidate search cache after deletions so removed materials disappear from results
-    await this.invalidateSearchCache();
-    await this.markUserSearchStale(userId);
+    // Hard delete — wipe all search caches so the material disappears for everyone
+    await this.invalidateSearchCacheGlobal();
 
     return removed;
   }
@@ -734,31 +729,27 @@ export class MaterialService {
     };
 
     const userKey = user?.id ?? 'anon';
+
+    // Include the user's current search version in the key so that after an
+    // upload/edit (which increments the version) the old cache entry is
+    // never matched — forcing a DB hit without touching anyone else's cache.
+    const userVersion = user
+      ? await this.cacheService.getUserSearchVersion(user.id)
+      : 1;
+
     const cachePayload = {
       userId: userKey,
+      v: userVersion,
       filters: normalizedFilters,
       includeReviewer: !!includeReviewer,
     };
 
     const cacheKey = `search:materials:${JSON.stringify(cachePayload)}`;
-    const recentUploadKey = user
-      ? `search:materials:recentUpload:user:${user.id}`
-      : null;
-
-    // If user recently uploaded/updated materials, bypass cache to ensure freshness
-    let shouldBypassCache = false;
-    if (recentUploadKey) {
-      try {
-        shouldBypassCache = await this.cacheService.exists(recentUploadKey);
-      } catch (error) {
-        logger.error('Error checking recent upload key for search cache:', error);
-      }
-    }
 
     let result;
 
-    // Try cache first when allowed
-    if (!shouldBypassCache) {
+    // Try cache first
+    {
       try {
         const cached = await this.cacheService.get<{
           items: any[];
@@ -790,13 +781,10 @@ export class MaterialService {
       // Short TTL to balance freshness and performance
       const cacheTTLSeconds = 60;
 
-      // Only cache when not explicitly bypassing cache for this user
-      if (!shouldBypassCache) {
-        try {
-          await this.cacheService.set(cacheKey, result, cacheTTLSeconds);
-        } catch (error) {
-          logger.error('Error writing material search cache:', error);
-        }
+      try {
+        await this.cacheService.set(cacheKey, result, cacheTTLSeconds);
+      } catch (error) {
+        logger.error('Error writing material search cache:', error);
       }
     }
 

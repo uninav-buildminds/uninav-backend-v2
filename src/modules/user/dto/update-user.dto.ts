@@ -6,7 +6,10 @@ import {
   IsNotEmpty,
   IsNumber,
   IsIn,
+  IsArray,
+  ArrayMaxSize,
 } from 'class-validator';
+import { CLUB_INTERESTS } from 'src/utils/config/interests.constants';
 
 export class UpdateUserDto extends PartialType(
   OmitType(CreateUserDto, ['email']),
@@ -39,4 +42,11 @@ export class UpdateUserDto extends PartialType(
   @IsString()
   @IsOptional()
   profilePicture?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn([...CLUB_INTERESTS], { each: true })
+  @ArrayMaxSize(10)
+  @IsOptional()
+  interests?: string[];
 }
