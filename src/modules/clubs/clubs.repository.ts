@@ -26,16 +26,38 @@ import { CreateClubRequestDto } from './dto/create-club-request.dto';
 export class ClubsRepository {
   constructor(@Inject(DRIZZLE_SYMBOL) private readonly db: DrizzleDB) {}
 
-  private generateSlug(name: string, id: string): string {
-    const base = (name || 'club')
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s_]/g, '')
-      .replace(/\s+/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .substring(0, 100) || 'club';
-    return `${base}_${id.substring(0, 8)}`;
+  private buildBaseSlug(name: string): string {
+    return (
+      (name || 'club')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s_]/g, '')
+        .replace(/\s+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 100) || 'club'
+    );
+  }
+
+  private async resolveUniqueSlug(base: string): Promise<string> {
+    // Try the clean slug first
+    const existing = await this.db.query.clubs.findFirst({
+      where: eq(clubs.slug, base),
+      columns: { id: true },
+    });
+    if (!existing) return base;
+
+    // Fall back to base_<suffix> until unique
+    let suffix = 2;
+    while (true) {
+      const candidate = `${base}_${suffix}`;
+      const conflict = await this.db.query.clubs.findFirst({
+        where: eq(clubs.slug, candidate),
+        columns: { id: true },
+      });
+      if (!conflict) return candidate;
+      suffix++;
+    }
   }
 
   // Main club CRUD operations
@@ -46,7 +68,8 @@ export class ClubsRepository {
     },
   ): Promise<ClubEntity> {
     const id = randomUUID();
-    const slug = this.generateSlug((clubData as any).name, id);
+    const base = this.buildBaseSlug((clubData as any).name);
+    const slug = await this.resolveUniqueSlug(base);
     const result = await this.db
       .insert(clubs)
       .values({ ...clubData, id, slug } as any)

@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -31,20 +31,23 @@ import { ErrorReportsModule } from './modules/error-reports/error-reports.module
 import { ClubsModule } from './modules/clubs/clubs.module';
 import { ENV } from 'src/utils/config/env.enum';
 import { CacheModule } from './utils/cache/cache.module';
+import { RateLimitModule } from '@app/common/middleware/rate-limit.module';
+import { RateLimitMiddleware } from '@app/common/middleware/rate-limit.middleware';
 
 @Module({
   imports: [
-    CommonModule,
-    DatabaseModule,
-    CacheModule,
-    UserModule,
-    AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
       cache: false,
       expandVariables: true,
     }),
+    CommonModule,
+    DatabaseModule,
+    CacheModule,
+    RateLimitModule,
+    UserModule,
+    AuthModule,
     // BullMQ (Upstash Redis) configuration
     BullModule.forRootAsync({
       inject: [ConfigService],
@@ -101,6 +104,8 @@ import { CacheModule } from './utils/cache/cache.module';
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
+    // RateLimitMiddleware runs first — blocks malicious IPs before any other processing
+    consumer.apply(RateLimitMiddleware).forRoutes('*path');
     consumer.apply(CorrelationMiddleware).forRoutes('*path');
   }
 }

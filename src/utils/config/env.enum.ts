@@ -52,4 +52,8 @@ export enum ENV {
 
   REDIS_URL = 'REDIS_URL',
   MAX_FILE_SIZE = 'MAX_FILE_SIZE',
+
+  // Rate limiting (requests per minute per IP)
+  RATE_LIMIT_GENERAL_MAX = 'RATE_LIMIT_GENERAL_MAX',
+  RATE_LIMIT_AUTH_MAX = 'RATE_LIMIT_AUTH_MAX',
 }
