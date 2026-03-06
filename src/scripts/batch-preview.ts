@@ -12,7 +12,7 @@
  *   --type=pdf|gdrive  Filter by material type (default: both)
  *   --creator=<uuid>   Filter by creator ID
  *   --course=<uuid>    Filter by course ID
- *   --throttle=<n>     Requests per minute (default: 30)
+ *   --throttle=<n>     Delay in ms between items (default: 500)
  *   --start-page=<n>   Resume from page N (default: 1)
  *   --limit=<n>        Page size (default: 50)
  *   --dry-run          Fetch and log only, no uploads
@@ -51,10 +51,9 @@ const DRY_RUN           = flag('dry-run');
 const TYPE_FILTER       = opt('type');           // 'pdf' | 'gdrive' | undefined
 const CREATOR_FILTER    = opt('creator');
 const COURSE_FILTER     = opt('course');
-const THROTTLE          = parseInt(opt('throttle', '30')!, 10);
+const DELAY_MS          = parseInt(opt('throttle', '500')!, 10); // ms between items
 const START_PAGE        = parseInt(opt('start-page', '1')!, 10);
 const PAGE_LIMIT        = parseInt(opt('limit', '50')!, 10);
-const DELAY_MS          = Math.ceil(60_000 / THROTTLE);
 
 // ── HTTP client ───────────────────────────────────────────────────────────────
 
@@ -69,7 +68,7 @@ const http = axios.create({
 interface Material {
   id: string;
   label: string;
-  type: 'PDF' | 'GDRIVE';
+  type: 'pdf' | 'gdrive';
   previewUrl?: string | null;
 }
 
@@ -115,18 +114,19 @@ async function generatePdfPreview(source: string | Buffer): Promise<Buffer | nul
     pdfBuffer = source;
   }
 
-  // Write to a temp file — pdf2pic works best with file paths
   const tmpDir  = os.tmpdir();
   const tmpFile = path.join(tmpDir, `uninav_preview_${Date.now()}.pdf`);
   fs.writeFileSync(tmpFile, pdfBuffer);
 
+  log(`  Converting PDF (${Math.round(pdfBuffer.length / 1024)}KB) → JPG via pdf2pic…`);
+
   try {
     const convert = fromBuffer(pdfBuffer, {
-      density: 72,          // low DPI — preview quality is fine
+      density: 72,
       format: 'jpg',
       width: 800,
-      height: 1131,         // ~A4 ratio
-      quality: 60,          // low quality JPEG, keeps file small
+      height: 1131,
+      quality: 60,
       saveFilename: 'page',
       savePath: tmpDir,
     });
@@ -134,9 +134,15 @@ async function generatePdfPreview(source: string | Buffer): Promise<Buffer | nul
     const result = await convert(1, { responseType: 'buffer' });
 
     if (!result?.buffer) {
+      log('  pdf2pic returned no buffer');
       return null;
     }
-    return result.buffer as Buffer;
+
+    const buf = result.buffer as Buffer;
+    const previewPath = path.join(tmpDir, `preview_inspect_${Date.now()}.jpg`);
+    fs.writeFileSync(previewPath, buf);
+    log(`  Conversion done (${Math.round(buf.length / 1024)}KB) — inspect: ${previewPath}`);
+    return buf;
   } finally {
     try { fs.unlinkSync(tmpFile); } catch {}
   }
@@ -156,6 +162,8 @@ async function generateGDrivePreview(materialId: string): Promise<Buffer | null>
   // Direct download URL — works for publicly shared files, no API key needed
   const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download`;
 
+  log(`  Downloading from GDrive (id: ${fileId})…`);
+
   let fileBuffer: Buffer;
   try {
     const dlRes = await axios.get<ArrayBuffer>(downloadUrl, {
@@ -163,12 +171,10 @@ async function generateGDrivePreview(materialId: string): Promise<Buffer | null>
       timeout: 60_000,
       maxRedirects: 5,
       headers: {
-        // Mimic a browser to avoid Google's virus-scan interstitial for large files
         'User-Agent': 'Mozilla/5.0 (compatible; uninav-preview-bot/1.0)',
       },
     });
 
-    // Google redirects large files to a confirmation page (HTML), not the file
     const contentType = String(dlRes.headers['content-type'] ?? '');
     if (contentType.includes('text/html')) {
       log('  GDrive returned confirmation page (file too large or not public) — skipping');
@@ -176,17 +182,17 @@ async function generateGDrivePreview(materialId: string): Promise<Buffer | null>
     }
 
     fileBuffer = Buffer.from(dlRes.data);
+    log(`  Downloaded ${Math.round(fileBuffer.length / 1024)}KB`);
   } catch (err: any) {
     throw new Error(`GDrive download failed: ${err.message}`);
   }
 
-  // Only PDF files can be rendered with pdf2pic; other types (Docs, Slides) aren't raw files
   const isPdf =
     address.toLowerCase().includes('.pdf') ||
     fileBuffer.slice(0, 4).toString('ascii') === '%PDF';
 
   if (!isPdf) {
-    log('  GDrive file is not a PDF — skipping (non-PDF GDrive types not supported)');
+    log('  Not a PDF — skipping');
     return null;
   }
 
@@ -219,14 +225,35 @@ async function uploadPreview(materialId: string, imageBuffer: Buffer): Promise<v
   });
 
   await http.post(`/materials/preview/upload/${materialId}`, form, {
-    headers: { ...form.getHeaders() },
-    timeout: 30_000,
+    headers: {
+      'X-Root-API-Key': ROOT_API_KEY,
+      ...form.getHeaders(),
+    },
+    timeout: 120_000, // Cloudinary uploads can be slow
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
   });
+}
+
+// ── URL patterns that should never be replaced ───────────────────────────────
+// Add any hostname/pattern here to protect those previews from being overwritten.
+const SKIP_REPLACE_PATTERNS = [
+  'res.cloudinary.com',
+];
+
+function isProtectedUrl(url: string): boolean {
+  return SKIP_REPLACE_PATTERNS.some((p) => url.includes(p));
 }
 
 // ── Process one material ──────────────────────────────────────────────────────
 
 async function processMaterial(material: Material): Promise<void> {
+  if (material.previewUrl && isProtectedUrl(material.previewUrl)) {
+    skipped++;
+    processed++;
+    return;
+  }
+
   if (!REPLACE_EXISTING && material.previewUrl) {
     skipped++;
     processed++;
@@ -239,7 +266,7 @@ async function processMaterial(material: Material): Promise<void> {
   let hitRateLimit = false;
 
   try {
-    if (material.type === 'PDF') {
+    if (material.type === 'pdf') {
       const dlRes = await http.get(`/materials/download/${material.id}`);
       const pdfUrl: string = dlRes.data?.data?.url;
       if (!pdfUrl) throw new Error('No download URL returned');
@@ -269,7 +296,7 @@ async function processMaterial(material: Material): Promise<void> {
     process.stdout.write('\n');
 
     try {
-      if (material.type === 'PDF') {
+      if (material.type === 'pdf') {
         const dlRes = await http.get(`/materials/download/${material.id}`);
         const pdfUrl: string = dlRes.data?.data?.url;
         if (!pdfUrl) throw new Error('No download URL returned');
@@ -315,7 +342,7 @@ async function processMaterial(material: Material): Promise<void> {
 
 async function main() {
   log('=== Batch Preview Generator ===');
-  log(`API: ${API_BASE} | throttle: ${THROTTLE}/min (${DELAY_MS}ms delay) | replace: ${REPLACE_EXISTING} | dry-run: ${DRY_RUN}`);
+  log(`API: ${API_BASE} | delay: ${DELAY_MS}ms between items | replace: ${REPLACE_EXISTING} | dry-run: ${DRY_RUN}`);
   if (TYPE_FILTER)   log(`Filter type: ${TYPE_FILTER}`);
   if (CREATOR_FILTER) log(`Filter creator: ${CREATOR_FILTER}`);
   if (COURSE_FILTER)  log(`Filter course: ${COURSE_FILTER}`);
@@ -327,7 +354,7 @@ async function main() {
     sortBy: 'createdAt',
     sortOrder: 'desc',
   };
-  if (TYPE_FILTER)    baseParams.type       = TYPE_FILTER.toUpperCase();
+  if (TYPE_FILTER)    baseParams.type       = TYPE_FILTER.toLowerCase();
   if (CREATOR_FILTER) baseParams.creatorId  = CREATOR_FILTER;
   if (COURSE_FILTER)  baseParams.courseId   = COURSE_FILTER;
 
@@ -354,7 +381,7 @@ async function main() {
     }
 
     const eligible = pageRes.data.data.items.filter(
-      (m) => m.type === 'PDF' || m.type === 'GDRIVE',
+      (m) => m.type === 'pdf' || m.type === 'gdrive',
     );
 
     for (const material of eligible) {

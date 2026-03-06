@@ -35,6 +35,7 @@ export class CloudinaryProvider implements IStorageProvider {
           folder: folder,
           use_filename: false,
           unique_filename: true,
+          timeout: 120000,
         },
         (error, result) => {
           if (error) {

@@ -44,6 +44,26 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest() as Request;
 
+    // Root API key bypass — attach the uninav system user and allow through
+    const rootApiKey = this.configService.get<string>(ENV.ROOT_API_KEY);
+    const providedKey =
+      (request.headers['x-root-api-key'] as string) ||
+      (request.headers['root-api-key'] as string);
+    if (rootApiKey && providedKey === rootApiKey) {
+      const companyEmail = this.configService.get<string>(ENV.COMPANY_EMAIL);
+      if (companyEmail) {
+        try {
+          const systemUser = await this.userService.findByEmail(companyEmail);
+          if (systemUser) {
+            request.user = systemUser;
+          }
+        } catch {
+          // system user not found — still allow through, just no user context
+        }
+      }
+      return true;
+    }
+
     try {
       const user = await this.authenticateRequest(request);
 
