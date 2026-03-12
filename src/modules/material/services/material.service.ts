@@ -33,6 +33,7 @@ import { SaveReadingProgressDto } from '../dto/save-reading-progress.dto';
 import { FolderService } from 'src/modules/folder/folder.service';
 import { AddMaterialToFolderDto } from 'src/modules/folder/dto/add-material.dto';
 import { RedisCacheService } from 'src/utils/cache/redis-cache.service';
+import { PreviewService } from './preview.service';
 ('updateMaterialDto');
 
 @Injectable()
@@ -44,6 +45,7 @@ export class MaterialService {
     @Inject(forwardRef(() => FolderService))
     private readonly folderService: FolderService,
     private readonly cacheService: RedisCacheService,
+    private readonly previewService: PreviewService,
   ) {}
 
   // Bump the user's search cache version so their next search misses the cache
@@ -648,6 +650,17 @@ export class MaterialService {
           `Failed to delete file when removing material: ${error.message}`,
         );
         // Continue with the deletion even if file deletion fails
+      }
+    }
+
+    // Delete preview image if present
+    if (material.previewUrl) {
+      try {
+        await this.previewService.deleteTempPreview(material.previewUrl);
+        logger.log(`Deleted preview image for material ${id}`);
+      } catch (error) {
+        logger.error(`Failed to delete preview image for material ${id}: ${error.message}`);
+        // Non-fatal — continue with deletion
       }
     }
 

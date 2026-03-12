@@ -24,6 +24,7 @@ import * as path from 'path';
 import axios from 'axios';
 import FormData from 'form-data';
 import { fromBuffer } from 'pdf2pic';
+import sharp from 'sharp';
 import * as dotenv from 'dotenv';
 
 // ── Env ─────────────────────────────────────────────────────────────────────
@@ -126,7 +127,7 @@ async function generatePdfPreview(source: string | Buffer): Promise<Buffer | nul
       format: 'jpg',
       width: 800,
       height: 1131,
-      quality: 60,
+      quality: 50,
       saveFilename: 'page',
       savePath: tmpDir,
     });
@@ -138,7 +139,14 @@ async function generatePdfPreview(source: string | Buffer): Promise<Buffer | nul
       return null;
     }
 
-    const buf = result.buffer as Buffer;
+    let buf = result.buffer as Buffer;
+
+    if (buf.length > 10_000) {
+      const before = Math.round(buf.length / 1024);
+      buf = await sharp(buf).jpeg({ quality: 20, mozjpeg: true }).toBuffer();
+      log(`  Compressed ${before}KB → ${Math.round(buf.length / 1024)}KB`);
+    }
+
     const previewPath = path.join(tmpDir, `preview_inspect_${Date.now()}.jpg`);
     fs.writeFileSync(previewPath, buf);
     log(`  Conversion done (${Math.round(buf.length / 1024)}KB) — inspect: ${previewPath}`);
@@ -146,6 +154,54 @@ async function generatePdfPreview(source: string | Buffer): Promise<Buffer | nul
   } finally {
     try { fs.unlinkSync(tmpFile); } catch {}
   }
+}
+
+// ── Image downscale via sharp ─────────────────────────────────────────────────
+
+const IMAGE_MAGIC_BYTES: Array<{ bytes: number[]; label: string }> = [
+  { bytes: [0xff, 0xd8, 0xff], label: 'JPEG' },
+  { bytes: [0x89, 0x50, 0x4e, 0x47], label: 'PNG' },
+  { bytes: [0x47, 0x49, 0x46], label: 'GIF' },
+  { bytes: [0x52, 0x49, 0x46, 0x46], label: 'WEBP' }, // RIFF....WEBP
+];
+
+function detectImageType(buf: Buffer): string | null {
+  for (const { bytes, label } of IMAGE_MAGIC_BYTES) {
+    if (bytes.every((b, i) => buf[i] === b)) return label;
+  }
+  return null;
+}
+
+async function generateImagePreview(source: string | Buffer): Promise<Buffer | null> {
+  let imgBuffer: Buffer;
+  if (typeof source === 'string') {
+    const res = await axios.get<ArrayBuffer>(source, { responseType: 'arraybuffer', timeout: 60_000 });
+    imgBuffer = Buffer.from(res.data);
+  } else {
+    imgBuffer = source;
+  }
+
+  const type = detectImageType(imgBuffer);
+  if (!type) return null;
+
+  log(`  Downscaling ${type} image (${Math.round(imgBuffer.length / 1024)}KB) via sharp…`);
+
+  let result = await sharp(imgBuffer)
+    .resize(800, 1131, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 50, mozjpeg: true })
+    .toBuffer();
+
+  if (result.length > 10_000) {
+    const before = Math.round(result.length / 1024);
+    result = await sharp(result).jpeg({ quality: 20, mozjpeg: true }).toBuffer();
+    log(`  Compressed ${before}KB → ${Math.round(result.length / 1024)}KB`);
+  }
+
+  const previewPath = path.join(os.tmpdir(), `preview_inspect_${Date.now()}.jpg`);
+  fs.writeFileSync(previewPath, result);
+  log(`  Done (${Math.round(result.length / 1024)}KB) — inspect: ${previewPath}`);
+
+  return result;
 }
 
 // ── GDrive preview via direct download (no API key) ──────────────────────────
@@ -187,12 +243,16 @@ async function generateGDrivePreview(materialId: string): Promise<Buffer | null>
     throw new Error(`GDrive download failed: ${err.message}`);
   }
 
+  if (detectImageType(fileBuffer)) {
+    return generateImagePreview(fileBuffer);
+  }
+
   const isPdf =
     address.toLowerCase().includes('.pdf') ||
     fileBuffer.slice(0, 4).toString('ascii') === '%PDF';
 
   if (!isPdf) {
-    log('  Not a PDF — skipping');
+    log('  Not a PDF or image — skipping');
     return null;
   }
 
@@ -235,6 +295,18 @@ async function uploadPreview(materialId: string, imageBuffer: Buffer): Promise<v
   });
 }
 
+// ── File suffixes to skip entirely (checked against label) ───────────────────
+const SKIP_SUFFIXES = [
+  '.pptx', '.ppt', '.docx', '.doc', '.xlsx', '.xls',
+  '.csv', '.txt', '.zip', '.rar', '.7z', '.mp4', '.mp3',
+  '.mov', '.avi', '.mkv',
+];
+
+function hasSkippedSuffix(label: string): boolean {
+  const lower = label.toLowerCase();
+  return SKIP_SUFFIXES.some((ext) => lower.endsWith(ext));
+}
+
 // ── URL patterns that should never be replaced ───────────────────────────────
 // Add any hostname/pattern here to protect those previews from being overwritten.
 const SKIP_REPLACE_PATTERNS = [
@@ -248,6 +320,13 @@ function isProtectedUrl(url: string): boolean {
 // ── Process one material ──────────────────────────────────────────────────────
 
 async function processMaterial(material: Material): Promise<void> {
+  if (hasSkippedSuffix(material.label)) {
+    log(`  Skipping unsupported format: ${material.label}`);
+    skipped++;
+    processed++;
+    return;
+  }
+
   if (material.previewUrl && isProtectedUrl(material.previewUrl)) {
     skipped++;
     processed++;
@@ -270,7 +349,14 @@ async function processMaterial(material: Material): Promise<void> {
       const dlRes = await http.get(`/materials/download/${material.id}`);
       const pdfUrl: string = dlRes.data?.data?.url;
       if (!pdfUrl) throw new Error('No download URL returned');
-      imageBuffer = await generatePdfPreview(pdfUrl);
+      // Download first to detect whether it's actually an image
+      const fileRes = await axios.get<ArrayBuffer>(pdfUrl, { responseType: 'arraybuffer', timeout: 60_000 });
+      const fileBuf = Buffer.from(fileRes.data);
+      if (detectImageType(fileBuf)) {
+        imageBuffer = await generateImagePreview(fileBuf);
+      } else {
+        imageBuffer = await generatePdfPreview(fileBuf);
+      }
     } else {
       imageBuffer = await generateGDrivePreview(material.id);
     }
@@ -300,7 +386,13 @@ async function processMaterial(material: Material): Promise<void> {
         const dlRes = await http.get(`/materials/download/${material.id}`);
         const pdfUrl: string = dlRes.data?.data?.url;
         if (!pdfUrl) throw new Error('No download URL returned');
-        imageBuffer = await generatePdfPreview(pdfUrl);
+        const fileRes = await axios.get<ArrayBuffer>(pdfUrl, { responseType: 'arraybuffer', timeout: 60_000 });
+        const fileBuf = Buffer.from(fileRes.data);
+        if (detectImageType(fileBuf)) {
+          imageBuffer = await generateImagePreview(fileBuf);
+        } else {
+          imageBuffer = await generatePdfPreview(fileBuf);
+        }
       } else {
         imageBuffer = await generateGDrivePreview(material.id);
       }
