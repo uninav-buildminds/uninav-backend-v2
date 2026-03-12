@@ -50,6 +50,7 @@ export const userIdTypeEnum = pgEnum('user_id_type', [
 ]);
 
 export const clubStatusEnum = pgEnum('club_status', [
+  'pending',
   'live',
   'flagged',
   'hidden',

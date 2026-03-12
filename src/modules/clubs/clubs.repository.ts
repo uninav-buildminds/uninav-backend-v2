@@ -65,6 +65,7 @@ export class ClubsRepository {
     clubData: Omit<CreateClubDto, 'targetDepartmentIds'> & {
       imageUrl?: string;
       imageKey?: string;
+      status?: ClubStatusEnum;
     },
   ): Promise<ClubEntity> {
     const id = randomUUID();
@@ -81,7 +82,7 @@ export class ClubsRepository {
     search?: string;
     interest?: string;
     departmentId?: string;
-    status?: ClubStatusEnum;
+    status?: ClubStatusEnum | null;
     organizerId?: string;
     page?: number;
     limit?: number;
@@ -100,7 +101,8 @@ export class ClubsRepository {
       search,
       interest,
       departmentId,
-      status,
+      // null = no status filter (admin sees all); undefined = default to live
+      status = ClubStatusEnum.LIVE,
       organizerId,
       page = 1,
       limit = 10,
@@ -109,7 +111,7 @@ export class ClubsRepository {
 
     const whereConditions = [];
 
-    if (status) {
+    if (status !== null) {
       whereConditions.push(eq(clubs.status, status));
     }
 

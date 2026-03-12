@@ -45,6 +45,7 @@ export class ClubsService {
   async create(
     createClubDto: CreateClubDto,
     image?: MulterFile,
+    posterRole?: UserRoleEnum,
   ): Promise<ClubEntity> {
     try {
       let imageUrl: string | undefined;
@@ -66,8 +67,15 @@ export class ClubsService {
 
       const { targetDepartmentIds, ...clubData } = createClubDto;
 
+      // Admins bypass review — their clubs go live immediately
+      const status =
+        posterRole === UserRoleEnum.ADMIN
+          ? ClubStatusEnum.LIVE
+          : ClubStatusEnum.PENDING;
+
       const club = await this.clubsRepository.create({
         ...clubData,
+        status,
         imageUrl,
         imageKey,
       });
@@ -91,13 +99,18 @@ export class ClubsService {
     }
   }
 
-  async findAll(query: GetClubsQueryDto) {
+  async findAll(query: GetClubsQueryDto, isAdmin = false) {
     try {
+      // Admins see all statuses unless they explicitly filter; public only sees live
+      const status = isAdmin
+        ? (query.status ?? null)
+        : (query.status ?? ClubStatusEnum.LIVE);
+
       const result = await this.clubsRepository.findAllPaginated({
         search: query.search,
         interest: query.interest,
         departmentId: query.departmentId,
-        status: query.status,
+        status,
         organizerId: query.organizerId,
         page: query.page,
         limit: query.limit,

@@ -51,7 +51,7 @@ export class ClubsController {
     const user = req.user as UserEntity;
     createClubDto.organizerId = user.id;
 
-    const club = await this.clubsService.create(createClubDto, image);
+    const club = await this.clubsService.create(createClubDto, image, user.role as UserRoleEnum);
     return ResponseDto.createSuccessResponse(
       'Club created successfully',
       club,
@@ -59,8 +59,21 @@ export class ClubsController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles([], { strict: false })
   async findAll(@Query() query: GetClubsQueryDto) {
-    const result = await this.clubsService.findAll(query);
+    const result = await this.clubsService.findAll(query, false);
+    return ResponseDto.createSuccessResponse(
+      'Clubs retrieved successfully',
+      result,
+    );
+  }
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles([UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR])
+  async findAllAdmin(@Query() query: GetClubsQueryDto) {
+    const result = await this.clubsService.findAll(query, true);
     return ResponseDto.createSuccessResponse(
       'Clubs retrieved successfully',
       result,
@@ -73,7 +86,8 @@ export class ClubsController {
     const user = req.user as UserEntity;
     query.organizerId = user.id;
 
-    const result = await this.clubsService.findAll(query);
+    // Organizers see all their own clubs regardless of status
+    const result = await this.clubsService.findAll(query, true);
     return ResponseDto.createSuccessResponse(
       'Your clubs retrieved successfully',
       result,

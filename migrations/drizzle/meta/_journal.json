@@ -176,6 +176,20 @@
       "when": 1772644559614,
       "tag": "0024_high_morph",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1773321599547,
+      "tag": "0025_old_katie_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1773321630507,
+      "tag": "0026_gifted_lockheed",
+      "breakpoints": true
     }
   ]
 }

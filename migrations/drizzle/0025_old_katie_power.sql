@@ -1,0 +1,1 @@
+ALTER TYPE "public"."club_status" ADD VALUE 'pending' BEFORE 'live';

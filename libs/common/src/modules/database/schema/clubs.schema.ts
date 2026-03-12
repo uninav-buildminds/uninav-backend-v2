@@ -32,7 +32,7 @@ export const clubs = pgTable(TABLES.CLUBS, {
   interests: text('interests').array(),
   slug: text('slug').unique().notNull(),
   targeting: clubTargetingEnum('targeting').default('public').notNull(),
-  status: clubStatusEnum('status').default('live').notNull(),
+  status: clubStatusEnum('status').default('pending').notNull(),
   organizerId: uuid('organizer_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
@@ -92,7 +92,9 @@ export const clubClicks = pgTable(
     clubId: uuid('club_id')
       .references(() => clubs.id, { onDelete: 'cascade' })
       .notNull(),
-    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    userId: uuid('user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     departmentId: uuid('department_id').references(() => department.id, {
       onDelete: 'set null',
     }),
@@ -126,7 +128,9 @@ export const clubViews = pgTable(
     clubId: uuid('club_id')
       .references(() => clubs.id, { onDelete: 'cascade' })
       .notNull(),
-    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    userId: uuid('user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     viewedAt: pgTimestamp('viewed_at').defaultNow().notNull(),
   },
   (table) => ({
