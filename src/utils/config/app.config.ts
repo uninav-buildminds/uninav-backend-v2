@@ -20,7 +20,9 @@ const CORS_OPTIONS: CorsOptions = {
     'https://www.dev.uninav.live',
     'https://material.uninav.live',
     'https://club.uninav.live',
+    'https://clubs.uninav.live',
     'https://guide.uninav.live',
+    'https://guides.uninav.live',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
