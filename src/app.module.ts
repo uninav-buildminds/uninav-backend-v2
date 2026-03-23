@@ -19,7 +19,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { getJwtConfig } from 'src/utils/config/jwt.config';
 import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { CacheControlInterceptor } from '../libs/common/src/interceptors/cache-control.interceptor';
+import { CacheControlInterceptor } from '@app/common/interceptors/cache-control.interceptor';
 import { AdvertModule } from 'src/modules/advert/advert.module';
 import { GDriveModule } from './modules/gdrive/gdrive.module';
 import { ReviewModule } from './modules/review/review.module';
@@ -29,6 +29,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ManagementModule } from './modules/management/management.module';
 import { ErrorReportsModule } from './modules/error-reports/error-reports.module';
 import { ClubsModule } from './modules/clubs/clubs.module';
+import { TutorialsModule } from './modules/tutorials/tutorials.module';
 import { ENV } from 'src/utils/config/env.enum';
 import { CacheModule } from './utils/cache/cache.module';
 import { RateLimitModule } from '@app/common/middleware/rate-limit.module';
@@ -86,6 +87,7 @@ import { RateLimitMiddleware } from '@app/common/middleware/rate-limit.middlewar
     ErrorReportsModule,
     GDriveModule,
     ClubsModule,
+    TutorialsModule,
   ],
   controllers: [AppController],
   providers: [
