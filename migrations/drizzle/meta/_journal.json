@@ -190,6 +190,13 @@
       "when": 1773321630507,
       "tag": "0026_gifted_lockheed",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1774257958956,
+      "tag": "0027_wide_moonstone",
+      "breakpoints": true
     }
   ]
 }
