@@ -22,3 +22,4 @@ export * from './notifications.schema';
 export * from './reading-progress.schema';
 export * from './search-history.schema';
 export * from './clubs.schema';
+export * from './tutorials.schema';

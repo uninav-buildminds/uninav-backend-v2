@@ -32,4 +32,9 @@ export const TABLES = {
   CLUB_JOINS: 'club_joins',
   CLUB_FLAGS: 'club_flags',
   CLUB_REQUESTS: 'club_requests',
+  TUTORIALS: 'tutorials',
+  MODULES: 'modules',
+  LESSONS: 'lessons',
+  ENROLLMENTS: 'enrollments',
+  LESSON_PROGRESS: 'lesson_progress',
 } as const;
