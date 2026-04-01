@@ -32,6 +32,11 @@ import {
   STORAGE_FOLDERS,
 } from 'src/utils/config/constants.config';
 import * as moment from 'moment-timezone';
+import { EventsEmitter } from '@app/common/modules/events/events.emitter';
+import { UserService } from 'src/modules/user/user.service';
+import { EmailType } from 'src/utils/email/constants/email.enum';
+import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
+import { EmailBaseConfig } from 'src/utils/email/config/email-base.config';
 
 @Injectable()
 export class ClubsService {
@@ -39,7 +44,9 @@ export class ClubsService {
 
   constructor(
     private readonly clubsRepository: ClubsRepository,
-    private readonly storageService: StorageService
+    private readonly storageService: StorageService,
+    private readonly eventsEmitter: EventsEmitter,
+    private readonly userService: UserService,
   ) {}
 
   async create(
@@ -349,9 +356,36 @@ export class ClubsService {
     updateStatusDto: UpdateClubStatusDto,
   ): Promise<ClubEntity> {
     const club = await this.findOne(id);
-    return this.clubsRepository.update(club.id, {
+    const updated = await this.clubsRepository.update(club.id, {
       status: updateStatusDto.status as ClubStatusEnum,
     });
+
+    // Send approval email when a pending club goes live
+    if (
+      updateStatusDto.status === ClubStatusEnum.LIVE &&
+      club.status === ClubStatusEnum.PENDING
+    ) {
+      try {
+        const organizer = await this.userService.findOne(club.organizerId);
+        const clubUrl = `${EmailBaseConfig.websiteUrl}/clubs/${club.slug}`;
+        const emailPayload: EmailPayloadDto = {
+          to: organizer.email,
+          type: EmailType.CLUB_APPROVAL,
+          context: {
+            creatorName: `${organizer.firstName} ${organizer.lastName}`,
+            clubName: club.name,
+            clubUrl,
+          },
+        };
+        this.eventsEmitter.sendEmail(emailPayload);
+      } catch (error) {
+        this.logger.error(
+          `Failed to send club approval email for club ${id}: ${error.message}`,
+        );
+      }
+    }
+
+    return updated;
   }
 
   async flagClub(flagDto: FlagClubDto) {

@@ -14,4 +14,5 @@ export const EmailSubjects: Record<EmailType, string> = {
   [EmailType.CONTACT_US]: 'Contact Us',
   [EmailType.MODERATOR_REJECTION]: 'Moderator Request Result - Rejected',
   [EmailType.ADVERT_REJECTION]: 'Advertisement Review Result - Rejected',
+  [EmailType.CLUB_APPROVAL]: 'Your Club Has Been Approved!',
 } as const;

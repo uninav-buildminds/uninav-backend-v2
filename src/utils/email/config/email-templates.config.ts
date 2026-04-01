@@ -15,4 +15,5 @@ export const EmailTemplates: Record<EmailType, string> = {
   [EmailType.CONTACT_US]: 'contact-us.ejs',
   [EmailType.MODERATOR_REJECTION]: 'moderator-rejection.ejs',
   [EmailType.ADVERT_REJECTION]: 'advert-rejection.ejs',
+  [EmailType.CLUB_APPROVAL]: 'club-approval.ejs',
 } as const;
