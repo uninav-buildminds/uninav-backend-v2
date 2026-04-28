@@ -11,7 +11,6 @@ import {
   Headers,
   UnauthorizedException,
   HttpStatus,
-  Inject,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -23,10 +22,6 @@ import {
   UserRoleEnum,
   AuthEntity,
 } from '@app/common/types/db.types';
-import {
-  globalCookieOptions,
-  JWT_SYMBOL,
-} from 'src/utils/config/constants.config';
 import { UserService } from 'src/modules/user/user.service';
 import { ResendVerificationDto } from './dto/verify-email.dto';
 import { ConfigService } from '@nestjs/config';
@@ -38,12 +33,10 @@ import {
 import { GoogleAuthGuard } from '@app/common/guards/google.guard';
 import { OriginDetectorHelper } from 'src/utils/helpers/origin-detector.helper';
 import { OAuth2Client } from 'google-auth-library';
-import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
 export class AuthController {
   constructor(
-    @Inject(JWT_SYMBOL) private readonly jwtService: JwtService,
     private readonly authService: AuthService,
     private readonly userService: UserService,
     private readonly configService: ConfigService,
@@ -51,16 +44,9 @@ export class AuthController {
 
   // one-line comment: checks authentication status and refreshes token/cookie when close to expiry
   @Get('check')
-  async checkAuthStatus(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    let token = req.cookies?.authorization;
-
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      token = authHeader?.split(' ')[1];
-    }
+  async checkAuthStatus(@Req() req: Request) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
 
     if (!token) {
       return ResponseDto.createSuccessResponse('User not logged in', {
@@ -69,10 +55,7 @@ export class AuthController {
     }
 
     // one-line comment: verify current token and refresh it (and cookie) when near expiry
-    const result = await this.authService.verifyAndRefreshTokenIfNeeded(
-      token,
-      res,
-    );
+    const result = await this.authService.verifyAndRefreshTokenIfNeeded(token);
 
     if (!result.valid) {
       return ResponseDto.createSuccessResponse('Invalid JWT token', {
@@ -83,6 +66,7 @@ export class AuthController {
     return ResponseDto.createSuccessResponse('User is logged in', {
       loggedIn: true,
       refreshed: !!result.refreshedToken,
+      refreshedToken: result.refreshedToken,
     });
   }
 
@@ -125,7 +109,6 @@ export class AuthController {
   @Get('verify-email/token')
   async verifyEmailWithToken(
     @Query('token') token: string,
-    @Res({ passthrough: true }) res: Response,
   ) {
     const { verified, user } =
       await this.authService.verifyEmailWithToken(token);
@@ -134,13 +117,12 @@ export class AuthController {
     }
 
     const accessToken = await this.authService.generateToken(user.id);
-    await this.authService.setCookie(res, accessToken);
 
     const responseObj = ResponseDto.createSuccessResponse(
       'Email verified successfully',
-      { verified, user },
+      { verified, user, token: accessToken },
     );
-    res.status(HttpStatus.OK).json(responseObj);
+    return responseObj;
   }
 
   @Post('resend-verification')
@@ -161,7 +143,7 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async login(@Req() req: Request) {
     const user = req.user as UserEntity;
     const profile = await this.userService.getProfile(user.id);
     const auth = profile.auth as AuthEntity;
@@ -181,28 +163,21 @@ export class AuthController {
     }
 
     const accessToken = await this.authService.generateToken(user.id);
-    await this.authService.setCookie(res, accessToken);
 
     const responseObj = ResponseDto.createSuccessResponse(
       'Login Successful',
-      profile,
+      { profile, token: accessToken },
     );
-    res.status(200).json(responseObj);
+    return responseObj;
   }
 
   @Post('logout')
-  async logout(@Res({ passthrough: true }) res: Response) {
-    // Clear the authorization cookie
-    res.clearCookie('authorization', {
-      ...globalCookieOptions,
-      maxAge: 0,
-    });
-
+  async logout() {
     const responseObj = ResponseDto.createSuccessResponse(
       'Logged out successfully',
       null,
     );
-    return res.status(200).json(responseObj);
+    return responseObj;
   }
 
   @Post('forgot-password')
@@ -257,17 +232,13 @@ export class AuthController {
 
     const accessToken = await this.authService.generateToken(user.id);
 
-    // Set cookie
-    await this.authService.setCookie(res, accessToken);
-    // res.cookie('authorization', accessToken, globalCookieOptions);
-
     const redirectUrl = OriginDetectorHelper.resolveCallbackOrigin(
       req,
       this.configService.get(ENV.FRONTEND_URL),
     );
 
     // Ensure redirect URL ends with dashboard path
-    const finalRedirectUrl = `${redirectUrl}/`;
+    const finalRedirectUrl = `${redirectUrl}/auth/google/callback#token=${accessToken}`;
 
     // Perform the redirect
     res.status(HttpStatus.FOUND).redirect(finalRedirectUrl);
@@ -277,8 +248,6 @@ export class AuthController {
   // @UseGuards(GoogleAuthGuard)
   async googleOneTapRedirect(
     @Query('token') token: string,
-    @Req() req: Request,
-    @Res() res: Response,
   ) {
     const oAuth2Client = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
@@ -313,21 +282,9 @@ export class AuthController {
     );
 
     const accessToken = await this.authService.generateToken(user.id);
-    await this.authService.setCookie(res, accessToken);
-    // const user = this.authService.validateUserWithGoogle()
 
-    // const redirectUrl = OriginDetectorHelper.detectAndValidateOrigin(
-    //   req,
-    //   this.configService.get(ENV.FRONTEND_URL),
-    // );
-
-    // Ensure redirect URL ends with dashboard path
-    // const finalRedirectUrl = `${redirectUrl}/`;
-
-    // Perform the redirect
-    // res.status(HttpStatus.FOUND).redirect(finalRedirectUrl);
-    res
-      .status(HttpStatus.OK)
-      .json({ message: 'Google One Tap login successful' });
+    return ResponseDto.createSuccessResponse('Google One Tap login successful', {
+      token: accessToken,
+    });
   }
 }

@@ -11,10 +11,7 @@ import { UserService } from 'src/modules/user/user.service';
 import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import {
-  globalCookieOptions,
-  JWT_SYMBOL,
-} from 'src/utils/config/constants.config';
+import { JWT_SYMBOL } from 'src/utils/config/constants.config';
 import { UserEntity, AuthEntity } from '@app/common/types/db.types';
 import { AuthRepository } from './auth.repository';
 import { DataFormatter } from 'src/utils/helpers/data-formater.helper';
@@ -26,7 +23,6 @@ import { EmailPayloadDto } from 'src/utils/email/dto/email-payload.dto';
 import { ModeratorService } from 'src/modules/user/submodules/moderator/moderator.service';
 import { AdminService } from 'src/modules/user/submodules/admin/admin.service';
 import { EventsEmitter } from '@app/common/modules/events/events.emitter';
-import { Response } from 'express';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { ENV } from 'src/utils/config/env.enum';
 
@@ -395,19 +391,17 @@ export class AuthService {
   // one-line comment: verifies a JWT and optionally refreshes it plus the cookie when close to expiry
   async verifyAndRefreshTokenIfNeeded(
     token: string,
-    res?: Response,
   ): Promise<{ valid: boolean; refreshedToken?: string }> {
     try {
       const decoded: any = await this.jwtService.verifyAsync(token);
 
-      // one-line comment: if no response or token not near expiry, simply mark it as valid
-      if (!res || !this.shouldRefreshToken(decoded)) {
+      // one-line comment: if token not near expiry, simply mark it as valid
+      if (!this.shouldRefreshToken(decoded)) {
         return { valid: true };
       }
 
-      // one-line comment: issue a new token with the same subject and update the cookie
+      // one-line comment: issue a new token with the same subject
       const newToken = await this.generateToken(decoded.sub);
-      await this.setCookie(res, newToken);
 
       return { valid: true, refreshedToken: newToken };
     } catch {
@@ -546,12 +540,4 @@ export class AuthService {
     return createdUser;
   }
 
-  async setCookie(res: Response, token: string) {
-    // for cookies
-    res.cookie('authorization', token, globalCookieOptions);
-
-    // for sessions  (if not using cookies)
-    res.header('authorization', `Bearer ${token}`);
-    res.header('Access-Control-Expose-Headers', 'authorization');
-  }
 }
