@@ -13,7 +13,7 @@ const CORS_OPTIONS: CorsOptions = {
     'http://localhost:3001',
     'http://localhost:3200',
     'https://uninav-buildminds.vercel.app',
-    'https://uninav.live',
+    'https://uni-nav.vercel.app',
     'https://uninav-landing.vercel.app',
     'https://dev.uninav.live',
 
