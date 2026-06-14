@@ -21,6 +21,8 @@ const CORS_OPTIONS: CorsOptions = {
     'https://www.dev.uninav.live',
     'https://material.uninav.live',
     'https://uninav.prospercoded.tech',
+    'https://uninav.tech',
+    'https://www.uninav.tech',
     'https://club.uninav.live',
     'https://clubs.uninav.live',
     'https://guide.uninav.live',
